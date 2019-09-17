@@ -9,7 +9,6 @@
 #include "globals.hh"
 #include "BOSS.hh"
 #include "KallistoLite.hh"
-#include "MetaPanGenome.hh"
 #include <stdlib.h> 
 
 using namespace std;
