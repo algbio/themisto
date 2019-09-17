@@ -22,6 +22,14 @@ int main(){
         cerr << "Error creating directory ./temp" << endl;
     }
 
+    if(system("mkdir -p test_data") != 0){
+        cerr << "Error creating directory ./test_data" << endl;
+    }
+
+    if(system("mkdir -p test_out") != 0){
+        cerr << "Error creating directory ./test_out" << endl;
+    }
+
     temp_file_manager.set_dir("temp");
 
     disable_logging();
