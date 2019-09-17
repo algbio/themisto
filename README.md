@@ -1,5 +1,3 @@
-KallistoLite is working title.
-
 Compiling:
 
     cd sdsl-lite
