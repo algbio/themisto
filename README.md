@@ -18,11 +18,13 @@ To run tests, run:
 If there is a problem, it will terminate and report an error message.
 
 To build the index, run:
+
     ./build_index
 
 The program will then print instructions on how to use it.
 
 To pseudoalign against the index, run:
+
     ./pseudoalign
 
 The program will then print instructions on how to use it.
