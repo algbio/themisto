@@ -4,12 +4,12 @@
 #include <stack>
 #include <algorithm>
 #include "BD_BWT_index.hh"
-#include "mark_kmers.hh"
 #include "input_reading.hh"
 #include "globals.hh"
 #include "BOSS.hh"
 #include "KallistoLite.hh"
 #include <stdlib.h> 
+#include "EM_sort_tests.hh"
 
 using namespace std;
 
@@ -32,14 +32,15 @@ int main(){
 
     temp_file_manager.set_dir("temp");
 
-    disable_logging();
+    //disable_logging();
 
-    //test_build_metapangenome("./temp");
-
-    test_pseudoalign("./temp");
     test_coloring();
-    test_BOSS();
+    test_pseudoalign("./temp");
+    test_EM_sort();    
+    test_BOSS();    
 
+
+    write_log("All tests passed");
     
 
 }

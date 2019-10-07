@@ -11,10 +11,16 @@
 #include "test_tools.hh"
 #include "globals.hh"
 #include "mark_kmers.hh"
+#include "kmer_tools.hh"
+#include "EM_sort.hh"
 
 using namespace std;
 
 typedef int64_t LL; // long long
+
+// list_kmers is defined in KMC_wrapper.cpp
+extern void list_kmers(int64_t k, int64_t ram_gigas, int64_t n_threads, 
+                       string fastafile, string outfile, string tempdir);
 
 class Rank_String{
 
@@ -26,7 +32,7 @@ sdsl::wt_huff<sdsl::bit_vector> wt;
 
 public:
 
-    Rank_String(string S) {
+    Rank_String(const string& S) {
         sdsl::construct_im(wt, S.c_str(),1); // 1: file format is a sequence, not a serialized sdsl object
     }
 
@@ -200,7 +206,7 @@ public:
 
         alphabet.clear();
         set<char> alphabet_set;
-        for(LL i = 0; i < outlabels->size(); i++) alphabet_set.insert(outlabels->char_at(i));
+        for(LL i = 0; i < outlabels->size(); i++) alphabet_set.insert(outlabels->char_at(i)); // Todo: heavy
         for(char c : alphabet_set) alphabet.push_back(c);
 
     }
@@ -266,7 +272,7 @@ public:
         outlabels = new Rank_String(S);
     }
 
-    BOSS(string outlabels_string, sdsl::bit_vector indegs, sdsl::bit_vector outdegs, vector<LL> C, LL k) 
+    BOSS(const string& outlabels_string, const sdsl::bit_vector& indegs, const sdsl::bit_vector& outdegs, const vector<LL>& C, LL k) 
     : indegs(indegs), outdegs(outdegs), C(C), k(k){
         outlabels = new Rank_String(outlabels_string);
         sdsl::util::init_support(indegs_rs, &indegs);
@@ -550,9 +556,151 @@ vector<LL> char_counts_to_C_array(vector<LL> counts){
 
 }
 
+// Input: a file with all cyclic k-mers, one on each line, colex-sorted
+// Splits the file by the last character of each kmer
+vector<string> split_kmerfile(string kmerfile){
+    map<char, ofstream*> out_streams;
+    vector<string> filenames;
+
+    string line;
+    ifstream in(kmerfile);
+    while(getline(in, line)){
+        char last = line[line.size()-1];
+
+        // If this is the first occurrence of character 'last'. create a new file for it
+        if(out_streams.find(last) == out_streams.end()){
+            string filename = get_temp_file_name("split");
+            filenames.push_back(filename);
+            ofstream* new_stream = new ofstream(filename);
+            out_streams[last] = new_stream;
+        }
+
+        *(out_streams[last]) << line << "\n";
+    }
+
+    // Clean up
+    for(auto keyval : out_streams){
+        delete keyval.second;
+    }
+
+    return filenames;
+}
+
+// Input: a file with all cyclic (k+2)-mers, one on each line, colex-sorted
+BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
+
+    vector<bool> boss_indegrees; // Concatenation of unary representations. Indegree k -> 1 0^k
+    vector<bool> boss_outdegrees;
+    string boss_outlabels;
+    vector<LL> boss_counts(256);
+
+    // l-way merge. Put a pointer to the start of each file. 
+    // Invariant: next largest element is on one of the pointed lines.
+    // Store the pointed lines in a min-priority queue by the colex order of the middle k-mer.
+    // Iteration:
+    //   - Pop the minimum, push to the priority queue the next line from that file
+    //   - While the minimum is still the same, pop that and push the next line
+    //   - Record the indeg, outdeg and outlabels
+
+    vector<string> kmerfiles = split_kmerfile(kmerfile);
+    temp_file_manager.delete_file(kmerfile);
+
+    vector<ifstream*> inputs;
+
+    // Open files
+    for(int64_t i = 0; i < kmerfiles.size(); i++) {
+        ifstream* input = new ifstream(kmerfiles[i]);
+        if(!input->good()){
+            cerr << "Error opening file: " << kmerfiles[i] << endl;
+            exit(1);
+        }
+        inputs.push_back(input);
+    }
+
+    auto cmp = [&](pair<string, int64_t> x, pair<string, int64_t> y) { 
+        bool result = colex_compare(x.first.substr(1,k), y.first.substr(1,k));
+        return result;
+    };
+
+    multiset<pair<string, int64_t>, decltype(cmp)> Q(cmp); // Priority queue: (kmer, file index).
+    // Must be a multiset because a regular set will not add an element if it is equal
+    // to another according to the comparison function.
+
+    // Initialize priority queue
+    string line;
+    for(int64_t i = 0; i < inputs.size(); i++){
+        getline(*(inputs[i]), line);
+        assert(line.size() == k+2);
+        Q.insert({line, i});
+    }
+
+    set<char> cur_outlabels;
+    set<char> cur_inlabels;
+
+    // Do the merge
+    while(!Q.empty()){
+        cur_outlabels.clear();
+        cur_inlabels.clear();
+
+        string kmer; LL stream_idx;
+        std::tie(kmer, stream_idx) = *(Q.begin());
+        Q.erase(Q.begin()); // pop
+
+        cur_inlabels.insert(kmer[0]);
+        cur_outlabels.insert(kmer.back());
+
+        // Read next value from the file
+        if(getline(*(inputs[stream_idx]), line)){
+            assert(line.size() == k+2);
+            Q.insert(make_pair(line, stream_idx));
+        }
+
+        while(!Q.empty() && Q.begin()->first.substr(1,k) == kmer.substr(1,k)){
+            string next_kmer; LL next_stream_idx;
+            std::tie(next_kmer, next_stream_idx) = *(Q.begin());
+            cur_inlabels.insert(next_kmer[0]);
+            cur_outlabels.insert(next_kmer.back());
+            Q.erase(Q.begin()); // pop
+
+            // Read next value from the file
+            if(getline(*(inputs[next_stream_idx]), line)){
+                assert(line.size() == k+2);
+                Q.insert(make_pair(line, next_stream_idx));
+            }
+        }
+
+        // Add the data to the BOSS arrays
+
+        boss_outdegrees.push_back(1);
+        for(char c : cur_outlabels){
+            boss_outlabels += c;
+            boss_outdegrees.push_back(0);
+            boss_counts[c]++;
+        }
+
+        boss_indegrees.push_back(1);
+        for(char c : cur_inlabels){
+            (void)c; // Unused. Cast to void so that the compiler is happy
+            boss_indegrees.push_back(0);
+        }
+
+    }
+
+    for(ifstream* input : inputs) delete input; // Clean up
+    for(string filename : kmerfiles) temp_file_manager.delete_file(filename); // Clean up
+
+    // Put the data into the format that the BOSS constructor wants
+    sdsl::bit_vector sdsl_indegs(boss_indegrees.size()), sdsl_outdegs(boss_outdegrees.size());
+    for(LL i = 0; i < boss_indegrees.size(); i++) sdsl_indegs[i] = boss_indegrees[i];
+    for(LL i = 0; i < boss_outdegrees.size(); i++) sdsl_outdegs[i] = boss_outdegrees[i];
+    vector<LL> boss_C = char_counts_to_C_array(boss_counts);
+    
+    return BOSS(boss_outlabels, sdsl_indegs, sdsl_outdegs, boss_C, k);
+}
+
 BOSS build_BOSS_with_maps(const string& S, LL k){
-    map<string, LL> k_counts; // k-mer counts. Keys are reverses of the k-mers to that the order is colexicographic
-    map<string, LL> k_plus_1_counts; // k+1 mer counts. Keys are reverses of the k-mers to that the order is colexicographic
+    map<string, LL> k_counts; // k-mer counts. Keys are reverses of the k-mers so that the order is colexicographic
+    map<string, LL> k_plus_1_counts; // k+1 mer counts. Keys are reverses of the k-mers so that the order is colexicographic
 
     set<char> alphabet;
     for(char c : S) alphabet.insert(c);
@@ -608,13 +756,6 @@ BOSS build_BOSS_with_maps(const string& S, LL k){
     sdsl::bit_vector sdsl_indegs(indegrees.size()), sdsl_outdegs(outdegrees.size());
     for(LL i = 0; i < indegrees.size(); i++) sdsl_indegs[i] = indegrees[i];
     for(LL i = 0; i < outdegrees.size(); i++) sdsl_outdegs[i] = outdegrees[i];
-
-    vector<LL> char_to_rank(256);
-    LL char_rank = 0;
-    for(char c : alphabet){
-        char_to_rank[c] = char_rank;
-        char_rank++;
-    }
 
     vector<LL> counts(256);
     for(char c : outlabels) counts[c]++;
@@ -700,11 +841,23 @@ public:
     class TestCase{
         public:
         string concat; // without BD_BWT_index<>::END
+        vector<string> reads;
         set<string> kmers;
         set<string> k_plus1_mers;
         unordered_map<string,LL> kmer_to_node_id;
         set<char> alphabet;
         vector<string> colex_kmers;
+        LL k;
+    };
+
+    // For KMC-based construction. KMC only supports the alphabet
+    // {a,c,g,t,A,C,G,T}. It also turns all lower-case letters into upper case.
+    class DNA_testcase{
+        public:
+
+        string concat;
+        vector<string> reads;
+        set<string> kmers;
         LL k;
     };
 
@@ -735,16 +888,19 @@ public:
         return neighbors;
     }
 
-    vector<Boss_Tester::TestCase> generate_testcases(LL read_length, LL n_reads, LL min_k, LL max_k){
+    vector<Boss_Tester::TestCase> generate_testcases(){
         srand(random_seed);
         vector<TestCase> testcases;
-        for(LL rep = 1; rep < 10; rep++){
-            for(LL k = min_k; k <= max_k; k++){
+        LL n_reads = 10;
+        for(LL read_length = 1; read_length <= 128; read_length *= 2){
+            for(LL k = 1; k <= 256; k *= 2){
+                k = min(k,(LL)254); // 254 + 2 = 256 is the biggest the EM sort can do
                 TestCase tcase;
                 vector<string> reads;
                 string concat;
-                for(LL i = 0; i < n_reads; i++) reads.push_back(get_random_string(read_length,2));
-                for(string S : reads) concat += read_separator + S; // in other code the  separator is appended, not prepended, but that's ok
+                for(LL i = 0; i < n_reads; i++) reads.push_back(get_random_dna_string(read_length,2));
+                for(string S : reads) concat += read_separator + S;
+                tcase.reads = reads;
                 tcase.concat = concat;
                 concat += BD_BWT_index<>::END;
                 tcase.kmers = get_all_distinct_cyclic_kmers(concat,k);
@@ -763,10 +919,50 @@ public:
         return testcases;
     }
 
-    void test_construction(TestCase& tcase){
+    void test_bibwt_construction(TestCase& tcase){
 
         BOSS boss1 = build_BOSS_with_bibwt(tcase.concat, tcase.k); // Adds BD_BWT_index<>::END automatically
         BOSS boss2 = build_BOSS_with_maps(tcase.concat + (char)(BD_BWT_index<>::END), tcase.k);
+        check_data_is_equal(boss1, boss2);
+        assert(tcase.kmers.size() == boss1.get_number_of_nodes());
+        
+    }
+
+    void test_kplus2_construction(TestCase& tcase){
+
+        // Write reads out in fasta
+        string fastafile = temp_file_manager.get_temp_file_name("fasta");
+        ofstream fasta_out(fastafile);
+        
+        for(string read : tcase.reads){
+            fasta_out << ">\n" << read << "\n";
+        }
+        fasta_out.close();
+
+        // List
+        string kmers_outfile = temp_file_manager.get_temp_file_name("kmers_out");
+        list_all_distinct_cyclic_kmers_in_external_memory(fastafile, kmers_outfile, tcase.k+2, 1, 2);
+
+        // Sort
+        string sorted_out = temp_file_manager.get_temp_file_name("kmers_sorted");
+
+        auto colex_cmp = [](const char* x, const char* y){
+            LL nx = strlen(x);
+            LL ny = strlen(y);
+            assert(nx != 0 && ny != 0);
+            for(LL i = 0; i < min(nx,ny); i++){
+                if(x[nx-1-i] < y[ny-1-i]) return true;
+                if(x[nx-1-i] > y[ny-1-i]) return false;
+            }
+            // No mismatches -> the shorter string is smaller
+            return nx < ny;
+        };
+
+        EM_sort(kmers_outfile, sorted_out, colex_cmp, 100, 4, 3, EM_LINES);
+
+        BOSS boss1 = build_BOSS_from_kplus2_mers(sorted_out, tcase.k);
+        BOSS boss2 = build_BOSS_with_maps(tcase.concat  + (char)(BD_BWT_index<>::END), tcase.k);
+        cout << boss1.to_string() << endl << "==" << endl << boss2.to_string() << endl;
         check_data_is_equal(boss1, boss2);
         assert(tcase.kmers.size() == boss1.get_number_of_nodes());
         
@@ -889,11 +1085,12 @@ void test_BOSS(){
     disable_logging();
 
     Boss_Tester tester;
-    LL read_length = 20;
-    LL n_reads = 5;
-    for(Boss_Tester::TestCase tcase : tester.generate_testcases(read_length, n_reads,1,20)){
-        cerr << "Testing construction" << endl;
-        tester.test_construction(tcase);
+    for(Boss_Tester::TestCase tcase : tester.generate_testcases()){
+        cerr << "Running testcase: " << "k = " << tcase.k << ", read_length = " << tcase.reads[0].size() << " n_reads = " << tcase.reads.size() << endl;
+        cerr << "Testing (k+2)-mer construction" << endl;
+        tester.test_kplus2_construction(tcase);
+        cerr << "Testing bibwt construction" << endl;
+        tester.test_bibwt_construction(tcase);
         cerr << "Testing serialization" << endl;
         tester.test_serialization(tcase);
         cerr << "Testing search" << endl;
@@ -911,5 +1108,4 @@ void test_BOSS(){
     }
 
     enable_logging();
-    cerr << "All tests ok" << endl;
 }

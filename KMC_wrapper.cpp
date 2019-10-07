@@ -1,5 +1,3 @@
-#pragma once
-
 #include "stdafx.h"
 /*
   This file is a part of KMC software distributed under GNU GPL 3 licence.
@@ -20,10 +18,13 @@
 #include "timer.h"
 #include "kmc.h"
 //#include "meta_oper.h"
-#include "globals.hh"
-
+//#include "globals.hh"
+#include "Argv.hh"
+#include "TempFileManager.hh"
 
 using namespace std;
+
+extern Temp_File_Manager temp_file_manager;
 
 uint64 total_reads, total_fastq_size;
 
@@ -486,46 +487,30 @@ void call_kmc(int argc, _TCHAR* argv[])
 	}
 }
 
-class Argv{ // Class for turning a vector<string> into char**
-private:
+// Only works for alphabet {a,c,g,t,A,C,G,T}
+void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string outfile, string tempdir){
 
-    // Forbid copying the class because it wont work right
-    Argv(Argv const& other);
-    Argv& operator=(Argv const& other);
+	// Check that the alphabet is {a,c,g,t,A,C,G,T} (otherwise k-mers would be dropped silently)
+	ifstream fasta_input(fastafile);
+	string line;
+	while(getline(fasta_input,line)){
+		if(line.size() > 0 && line[0] != '>'){
+			for(char c : line){
+				if(c != 'a' && c != 'c' && c != 'g' && c != 't' &&
+				   c != 'A' && c != 'C' && c != 'G' && c != 'T'){
+					cerr << "Error calling KMC: all characters in the sequences in the fasta-file must be from the alphabet {a,c,g,t,A,C,G,T}. Found invalid character: " << c << endl;
+					exit(1);
+				}
+			}
+		}
+	}
 
-public:
-
-    char** array = NULL;
-    int64_t size = 0;
-
-    Argv(vector<string> v){
-        array = (char**)malloc(sizeof(char*) * v.size());
-        // Copy contents of v into array
-        for(int64_t i = 0; i < v.size(); i++){
-            char* s = (char*)malloc(sizeof(char) * (v[i].size() + 1)); // +1: space for '\0' at the end
-            for(int64_t j = 0; j < v[i].size(); j++){
-                s[j] = v[i][j]; // Can't use strcpy because s.c_str() is const
-            }
-            s[v[i].size()] = '\0';
-            array[i] = s;
-        }
-        size = v.size();
-    }
-
-    ~Argv(){
-        for(int64_t i = 0; i < size; i++) free(array[i]);
-        free(array);
-    }
-
-};
-
-
-void list_kmers(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string outfile, string tempdir){
-	// TODO REMEMBER: Need to add kmers crossing ref boundaries
 	string KMC_database_file = temp_file_manager.get_temp_file_name("KMC");
-	vector<string> argv = {"", 
+	
+	vector<string> argv = {"kmc", 
 	                      "-fm", 
 						  "-k" + to_string(k),
+						  "-b",
 						  "-m" + to_string(ram_gigas),
 						  "-ci1", // Exclude k-mers occurring less than 1 times = do not exclude anything
 						  "-cs1", // Maximum value of counter: 1
@@ -534,10 +519,15 @@ void list_kmers(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafil
 						  fastafile, 
 						  KMC_database_file, 
 						  tempdir};
-    // Example call: ./KMC_test -fm ~/data/mouse.fna temp/kmc_out temp
+
+	cerr << "Calling KMC with: ";
+	for(string S : argv) cerr << S << " ";
+	cerr << endl;
 	
 	Argv A(argv);
     call_kmc(argv.size(), A.array);
+
+	cerr << "Dumping k-mers to disk" << endl;
 
 	// Dump the database to text
 	ofstream out(outfile);

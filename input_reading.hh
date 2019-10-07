@@ -1,6 +1,4 @@
-#ifndef INPUT_READING_HH
-#define INPUT_READING_HH
-
+#pragma once
 #include <utility>
 #include <string>
 #include <vector>
@@ -131,7 +129,4 @@ std::vector<std::pair<std::string, std::string> > parse_FASTA(std::string filena
     //reads.erase(std::remove_if(reads.begin(), reads.end(), is_invalid_read), reads.end());
     return reads;
 }
-
-
-#endif
 

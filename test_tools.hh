@@ -6,6 +6,11 @@
 #include <stack>
 #include <algorithm>
 #include <cassert>
+#include <set>
+#include <unordered_map>
+#include <map>
+#include "globals.hh"
+#include <cassert>
 
 using namespace std;
 typedef int64_t LL;
@@ -21,22 +26,6 @@ set<char> get_alphabet(string S){
     set<char> ans;
     for(char c: S) ans.insert(c);
     return ans;
-}
-
-set<string> get_concat_kmers(vector<string>& A , vector<string>& B, LL k, char separator){
-    string concat;
-    for(string read : A){
-        concat += separator + read;
-    }
-    for(string read : B){
-        concat += separator + read;
-    }
-    concat += '\x01'; // bibwt end sentinel
-
-    set<string> kmers_concat;
-    string cyclic_concat = concat + concat; // Get kmers from this so that we get the wrap around at the end like in the bwt
-    for(LL i = 0; i < cyclic_concat.size()-k+1; i++) kmers_concat.insert(cyclic_concat.substr(i,k));
-    return kmers_concat;
 }
 
 set<string> get_all_distinct_kmers(string S, LL k){
@@ -59,6 +48,17 @@ set<string> get_all_distinct_cyclic_kmers(string S, LL k){
     return kmers;
 }
 
+
+set<string> get_all_distinct_cyclic_kmers(vector<string>& A, LL k){
+    string concat;
+    for(string read : A){
+        concat += read_separator + read;
+    }
+    concat += '\x01'; // bibwt end sentinel
+
+    return get_all_distinct_cyclic_kmers(concat,k);
+}
+
 vector<string> get_all_kmers(string& S, LL k){
     vector<string> kmers;
     for(LL i = 0; i < S.size()-k+1; i++){
@@ -73,8 +73,8 @@ vector<string> all_binary_strings_up_to(int64_t k){ // For testing
         for(int64_t mask = 0; mask < (1 << length); mask++){
             string s = "";
             for(int64_t i = 0; i < length; i++){
-                if(mask & (1 << i)) s += 'a';
-                else s += 'b';
+                if(mask & (1 << i)) s += 'A';
+                else s += 'C';
             }
             ans.push_back(s);
         }
@@ -82,10 +82,21 @@ vector<string> all_binary_strings_up_to(int64_t k){ // For testing
     return ans;
 }
 
+string get_random_dna_string(int64_t length, int64_t alphabet_size){ // For testing
+    string s;
+    assert(alphabet_size >= 1 && alphabet_size <= 4);
+    char alphabet[4] = {'A','C','G','T'};
+    for(int64_t i = 0; i < length; i++){
+        s.push_back(alphabet[rand() % alphabet_size]);
+    }
+    return s;
+}
+
 string get_random_string(int64_t length, int64_t alphabet_size){ // For testing
     string s;
     for(int64_t i = 0; i < length; i++){
-        s.push_back('a' + rand() % alphabet_size);
+        LL r = rand() % alphabet_size;
+        s += 'a' + r;
     }
     return s;
 }
@@ -98,39 +109,6 @@ vector<string> get_sorted_suffixes(string S){
     sort(suffixes.begin(), suffixes.end());
     return suffixes;
 }
-
-class Argv{ // Class for turning a vector<string> into char**
-private:
-
-    // Forbid copying the class because it wont work right
-    Argv(Argv const& other);
-    Argv& operator=(Argv const& other);
-
-public:
-
-    char** array = NULL;
-    int64_t size = 0;
-
-    Argv(vector<string> v){
-        array = (char**)malloc(sizeof(char*) * v.size());
-        // Copy contents of v into array
-        for(int64_t i = 0; i < v.size(); i++){
-            char* s = (char*)malloc(sizeof(char) * (v[i].size() + 1)); // +1: space for '\0' at the end
-            for(int64_t j = 0; j < v[i].size(); j++){
-                s[j] = v[i][j]; // Can't use strcpy because s.c_str() is const
-            }
-            s[v[i].size()] = '\0';
-            array[i] = s;
-        }
-        size = v.size();
-    }
-
-    ~Argv(){
-        for(int64_t i = 0; i < size; i++) free(array[i]);
-        free(array);
-    }
-
-};
 
 template <typename S, typename T>
 ostream& operator<<(ostream& os, const unordered_map<S,T>& v){

@@ -10,6 +10,7 @@ struct Config{
     vector<string> outfiles;
     string index_dir;
     string temp_dir;
+    LL memory_megas = 1000;
     
     bool reverse_complements = false;
     LL n_threads = 1;
@@ -86,6 +87,8 @@ int main(int argc, char** argv){
         cerr << "  --rc (optional, aligns with the reverse complement also)" << endl;
         cerr << "The number of worked threads is given with the following option: " << endl;
         cerr << "  --threads (optional, default 1)" << endl;
+        cerr << "Additional memory allowed on top of the index structure:" << endl;
+        cerr << "  --mem-megas [number] (optional. Default: 1000)" << endl;
         cerr << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
@@ -122,6 +125,9 @@ int main(int argc, char** argv){
         } else if(option == "--threads"){
             assert(values.size() == 1);
             C.n_threads = stoll(values[0]);
+        } else if(option == "--mem-megas"){
+            assert(values.size() == 1);
+            C.memory_megas = std::stoll(values[0]);
         } else{
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
             exit(1);
@@ -141,6 +147,7 @@ int main(int argc, char** argv){
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
+        // TODO: RESPECT RAM BOUND
         kl.pseudoalign_parallel(C.n_threads, C.query_files[i], C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }

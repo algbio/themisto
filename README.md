@@ -1,12 +1,24 @@
-Compiling:
+External dependencies: libz and libbz2
 
+Compiling (todo: better instructions and/or build process):
+
+First, install libz and libbz2 if your system does not already have those. Then:
+
+    # Compile sdsl-lite
     cd sdsl-lite
     sh install.sh
-    cd ..
-    cd BD_BWT_index
+    
+    # Compile BD_BWT_index
+    cd ../BD_BWT_index
     cmake .
     make
+
+    # Compile KMC
+    cd ../../KMC
+    make
     cd ..
+
+    # Compile the main executables
     make tests build_index pseudoalign
 
 To run tests, run:

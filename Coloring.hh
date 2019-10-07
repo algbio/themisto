@@ -3,6 +3,8 @@
 #include "BOSS.hh"
 #include "TempFileManager.hh"
 #include "BD_BWT_index.hh"
+#include "EM_algorithms.hh"
+#include "WorkDispatcher.hh"
 #include <algorithm>
 
 class Coloring{
@@ -54,16 +56,107 @@ public:
 
     Coloring() {}
 
+    class AlignerThread : public DispatcherConsumerCallback{
+
+        private:
+
+        AlignerThread(const AlignerThread&); // No copying
+        AlignerThread& operator=(const AlignerThread&); // No copying
+
+        public:
+
+        vector<LL>* seq_id_to_color_id;
+        ParallelBinaryOutputWriter* out;
+        LL output_buffer_max_size;
+        LL output_buffer_size;
+        char* output_buffer;
+        BOSS* boss;
+        Coloring* coloring;
+
+        AlignerThread(vector<LL>* seq_id_to_color_id, ParallelBinaryOutputWriter* out, LL output_buffer_max_size, BOSS* boss, Coloring* coloring) 
+        : seq_id_to_color_id(seq_id_to_color_id), out(out), output_buffer_max_size(output_buffer_max_size),       output_buffer_size(0), boss(boss), coloring(coloring){
+            output_buffer = (char*)malloc(output_buffer_max_size);
+        }
+
+        void write(LL node_id, LL color_id){
+            LL space_left = output_buffer_max_size - output_buffer_size;
+
+            if(space_left < 8+8){
+                // Flush buffer
+                out->write(output_buffer, output_buffer_size);
+                output_buffer_size = 0;
+            }
+            
+            write_big_endian_LL(output_buffer + output_buffer_size, node_id);
+            write_big_endian_LL(output_buffer + output_buffer_size + 8, color_id);
+            output_buffer_size += 8+8;
+            
+        }
+
+        virtual void callback(const char* S, LL S_size, int64_t seq_id){
+            LL color = (*seq_id_to_color_id)[seq_id];
+            write_log("Adding colors for sequence " + std::to_string(seq_id));
+            if(S_size >= boss->get_k()){
+                LL node = boss->search(S);
+                assert(node >= 0);
+                write(node, color);
+                for(LL i = boss->get_k(); i < S_size; i++){
+                    node = boss->walk(node, S[i]);
+                    assert(node >= 0);
+                    if(coloring->redundancy_marks[node] == 0){
+                        write(node,color);
+                    }
+                }
+            }
+        }
+
+        virtual void finish(){
+            if(output_buffer_size > 0){
+                // Flush buffer
+                out->write(output_buffer, output_buffer_size);
+                output_buffer_size = 0;
+            }
+            free(output_buffer);
+        }
+    };
+
     // fastafile: the file containing the reference sequences in FASTA format
     // colors_assignments: for each sequence in the fastafile, an integer representing
     // the color of that sequence. The distinct colors should be a contiguous range of
     // integers from 0 to (number of colors -1).
-    void add_colors(BOSS& boss, string fastafile, vector<LL> colors_assignments, LL k){
+    void add_colors(BOSS& boss, string fastafile, vector<LL> colors_assignments, LL ram_bytes, LL n_threads){
+
         n_colors = *std::max_element(colors_assignments.begin(), colors_assignments.end()) + 1;
         assert(is_contiguous_integer_range(colors_assignments, 0,n_colors-1));
-        vector<pair<LL,LL> > node_color_pairs = get_node_color_pairs(boss, fastafile, colors_assignments, k);
+
+        write_log("Marking redundant color sets");
         mark_redundant_color_sets(fastafile, boss);
-        build_packed_representation(node_color_pairs, boss);
+
+        write_log("Getting (node,color) pairs");
+        string node_color_pairs_file = get_node_color_pairs(boss, fastafile, colors_assignments, n_threads);
+
+        write_log("Sorting (node,color) pairs");
+        string sorted = EM_sort_big_endian_LL_pairs(node_color_pairs_file, ram_bytes, 0, n_threads);
+        temp_file_manager.delete_file(node_color_pairs_file);
+
+        write_log("Deleting duplicate (node,color) pairs");
+        string filtered_binary = EM_delete_duplicate_LL_pair_records(sorted);
+        temp_file_manager.delete_file(sorted);
+
+        write_log("Collecting color sets");
+        string collected = EM_collect_colorsets_binary(filtered_binary);
+        temp_file_manager.delete_file(filtered_binary);
+
+        write_log("Sorting color sets");
+        string by_colorsets = EM_sort_by_colorsets_binary(collected, ram_bytes, n_threads);
+        temp_file_manager.delete_file(collected);
+
+        write_log("Collecting node sets");
+        string collected2 = EM_collect_nodes_by_colorset_binary(by_colorsets);
+        temp_file_manager.delete_file(by_colorsets);
+
+        write_log("Building packed representation");
+        build_packed_representation(collected2, ram_bytes, boss, n_threads);
     }
 
     bool is_redundant(LL node){
@@ -180,37 +273,25 @@ private:
         return *S.begin() >= from && *S.rbegin() <= to && S.size() == to - from + 1;
     }
 
-    vector<pair<LL,LL> > get_node_color_pairs(BOSS& boss, string fastafile, vector<LL>& seq_id_to_color_id, LL k){
-        write_log("Getting (node,color) pairs");
-        vector<pair<LL,LL> > node_color_pairs;
-        FASTA_reader fr(fastafile);
-        LL n_processed = 0;
-        while(!fr.done()){
-            LL color = seq_id_to_color_id[n_processed];
-            Read_stream rs = fr.get_next_query_stream();
-            string seq = rs.get_all();
-            write_log("Adding colors for sequence " + std::to_string(n_processed));
-            if(seq.size() >= k){
-                LL node = boss.search(seq.substr(0,k));
-                node_color_pairs.push_back({node,color});
-                //color_sets[node].insert(color);
-                for(LL i = k; i < seq.size(); i++){
-                    node = boss.walk(node, seq[i]);
-                    assert(node != -1);
-                    //color_sets[node].insert(color);
-                    node_color_pairs.push_back({node,color});
-                }
-            }
-            n_processed++;
+    // Returns a file of pairs (node, color), sorted by node, with possible duplicates
+    string get_node_color_pairs(BOSS& boss, string fastafile, vector<LL>& seq_id_to_color_id, LL n_threads){
+        //vector<pair<LL,LL> > node_color_pairs;
+        string node_color_pair_filename = temp_file_manager.get_temp_file_name("");
+        ParallelBinaryOutputWriter writer(node_color_pair_filename);
+
+        vector<DispatcherConsumerCallback*> threads;
+        for(LL i = 0; i < n_threads; i++){
+            AlignerThread* T = new AlignerThread(&seq_id_to_color_id, &writer, 1024*1024, &boss, this);
+            threads.push_back(T);
         }
+        run_dispatcher(threads, fastafile, 1024*1024);
 
-        node_color_pairs.shrink_to_fit();
-        write_log("Sorting (node,color) pairs");
-        std::sort(node_color_pairs.begin(), node_color_pairs.end());
-        node_color_pairs.erase(std::unique(node_color_pairs.begin(), node_color_pairs.end()), 
-                               node_color_pairs.end()); // Delete duplicates
+        // Clean up
+        for(DispatcherConsumerCallback* t : threads) delete t;
+        writer.flush();
 
-        return node_color_pairs;
+        return node_color_pair_filename;
+
     }
 
     map<vector<LL>, vector<LL> > get_color_classes(const vector<pair<LL,LL> >& node_color_pairs){
@@ -229,23 +310,49 @@ private:
             for(LL i = run_start; i <= run_end; i++){
                 color_class.push_back(node_color_pairs[i].second);
             }
-            class_to_nodes[color_class].push_back(node);
+            if(!redundancy_marks[node])
+                class_to_nodes[color_class].push_back(node);
             color_class.clear();
             run_start = run_end + 1;
         }
         return class_to_nodes;
     }
 
-    void build_packed_representation(const vector<pair<LL,LL> >& node_color_pairs, BOSS& boss){
-        // todo: make these private functions return stuff instead of modifying the object state
-        write_log("Building the packed representation");
-        
-        map<vector<LL>, vector<LL> > color_set_to_nodes = get_color_classes(node_color_pairs);
+    // Returns pair (number of colorsets, total number of elements in all colorsets)
+    pair<LL,LL> count_colorsets(string infile){
+        ifstream in(infile, ios::binary);
+        LL n_sets = 0;
+        LL total_size = 0;
+        vector<char> buffer(16);
+        while(true){
+            in.read(buffer.data(), 16);
+            if(!in.good()) break;
 
-        LL n_classes = color_set_to_nodes.size();
-        LL total_size_of_color_sets = 0;
-        for(auto& P : color_set_to_nodes)
-            total_size_of_color_sets += P.first.size();
+            LL record_length = parse_big_endian_LL(buffer.data() + 0);
+            LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
+            LL number_of_colors = (record_length - 16 - number_of_nodes*8)/8;
+            n_sets++;
+            total_size += number_of_colors;
+
+            // Read the rest (not used)
+            while(buffer.size() < record_length)
+                buffer.resize(buffer.size() * 2);
+            in.read(buffer.data(), record_length - 16); 
+        }
+
+        return {n_sets, total_size};
+    }
+
+    // Input: pairs (node set, color set)
+    void build_packed_representation(string infile, LL ram_bytes, BOSS& boss, LL n_threads){
+
+        // todo: make these private functions return stuff instead of modifying the object state?
+
+        // Concatenate the colorsets and mark the borders
+        // Write pairs (node, color set id) to disk.
+
+        LL n_classes, total_size_of_color_sets;
+        tie(n_classes, total_size_of_color_sets) = count_colorsets(infile);
 
         color_sets = sdsl::int_vector<>(total_size_of_color_sets, 0, ceil(log2(n_colors)));
         color_set_starts.resize(color_sets.size());
@@ -257,16 +364,46 @@ private:
         nonempty_and_nonredundant.resize(boss.get_number_of_nodes());
         sdsl::util::set_to_value(nonempty_and_nonredundant,0);
 
-        node_to_color_set_id = sdsl::int_vector<>(boss.get_number_of_nodes(), 0, ceil(log2(n_classes)));
-
         LL index_in_color_sets = 0;
         LL class_id = 0;
 
-        // Iterate all distinct color set
-        for(auto& P : color_set_to_nodes){
-            const vector<LL>& color_set = P.first;
+        // Iterate all distinct color sets
+        //string line;
+        ifstream in(infile, ios::binary);
+        string node_to_color_id_pairs_filename = temp_file_manager.get_temp_file_name("");
+        ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
+        LL n_marks = 0;
+        vector<char> buffer(16);
 
-            // Store the colors ids in the color set
+        vector<LL> node_set; // Reusable space
+        vector<LL> color_set; // Reusable space
+        while(true){
+
+            node_set.clear();
+            color_set.clear();
+
+            in.read(buffer.data(), 16);
+            if(!in.good()) break;
+
+            LL record_length = parse_big_endian_LL(buffer.data() + 0);
+            LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
+            while(buffer.size() < record_length)
+                buffer.resize(buffer.size() * 2);
+            in.read(buffer.data() + 16, record_length - 16); // Read the rest
+
+            
+            for(LL i = 0; i < number_of_nodes; i++){
+                LL node = parse_big_endian_LL(buffer.data() + 16 + i*8);
+                node_set.push_back(node);
+            }
+            
+            LL number_of_colors = (record_length - 16 - number_of_nodes*8) / 8;
+            for(LL i = 0; i < number_of_colors; i++){
+                LL color = parse_big_endian_LL(buffer.data() + 16 + number_of_nodes*8 + i*8);
+                color_set.push_back(color);
+            }
+
+            // Store the color ids in the color set
             color_set_starts[index_in_color_sets] = 1;
             for(LL x : color_set){
                 color_sets[index_in_color_sets] = x;
@@ -274,25 +411,38 @@ private:
             }
 
             // Mark the nodes with this colorset to have a nonempty color set.
-            for(LL node : P.second){
+            for(LL node : node_set){
                 nonempty[node] = 1;
-                if(redundancy_marks[node] == 0){
+                if(redundancy_marks[node] == 0){ // This should be always true
                     nonempty_and_nonredundant[node] = 1;
-                    node_to_color_set_id[node] = class_id;
+                    n_marks++;
+                    write_big_endian_LL(node_to_color_id_pairs_out, node);
+                    write_big_endian_LL(node_to_color_id_pairs_out, class_id);
+                } else{
+                    cerr << "Error: this code line should never be reached" << endl; exit(1);
                 }
             }
             class_id++;
         }
 
-        // Compactify node_to_color_set_id
-        LL p = 0;
-        for(LL i = 0; i < boss.get_number_of_nodes(); i++){
-            if(nonempty_and_nonredundant[i]){
-                node_to_color_set_id[p] = node_to_color_set_id[i];
-                p++;
-            }
+        node_to_color_id_pairs_out.close();
+        
+        // Build node_to_color_set_id
+        node_to_color_set_id = sdsl::int_vector<>(n_marks, 0, ceil(log2(n_classes)));
+        string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
+        temp_file_manager.delete_file(node_to_color_id_pairs_filename);
+        ifstream sorted_in(sorted_out);
+        vector<char> buffer2(8+8);
+        LL idx = 0;
+        while(true){
+            sorted_in.read(buffer.data(), 8+8);
+            if(!sorted_in.good()) break;
+            LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
+            node_to_color_set_id[idx] = color_set_id;
+            idx++;
         }
-        node_to_color_set_id.resize(p);
+
+        temp_file_manager.delete_file(sorted_out);
 
         sdsl::util::init_support(nonempty_rs, &nonempty);
         sdsl::util::init_support(color_set_starts_ss, &color_set_starts);
@@ -315,8 +465,6 @@ private:
 
         // todo: this is expensive because it scans the whole reference data
         vector<string> first_and_last_kmers = get_first_and_last_kmers(fastafile, boss.get_k());
-
-        write_log("Marking redundant color sets");
 
         redundancy_marks.resize(boss.get_number_of_nodes());
         sdsl::util::set_to_value(redundancy_marks,1); // 1 = redundant, 0 = non-redundant
@@ -394,7 +542,7 @@ public:
         tcase.k = k;
         tcase.references = refs;
         for(LL i = 0; i < refs.size(); i++){    
-            tcase.concat += tcase.references[i] + read_separator;
+            tcase.concat += read_separator + tcase.references[i];
             tcase.seq_id_to_color_id.push_back(colors[i]);
             tcase.fasta_data += ">\n" + tcase.references[i] + "\n";
         }
@@ -436,7 +584,7 @@ public:
                     if(rep % 2 == 0 && i == 10) // Add a duplicate to get redundant nodes
                         refs.push_back(refs.back());
                     else
-                        refs.push_back(get_random_string(30, 2));
+                        refs.push_back(get_random_dna_string(30, 2));
                 }
                 cases.push_back(generate_testcase(refs, k));
             }
@@ -452,10 +600,10 @@ public:
         fastafile.close();
         BOSS boss = build_BOSS_with_bibwt(tcase.concat, tcase.k);
         Coloring coloring;
-        coloring.add_colors(boss, fastafilename, tcase.seq_id_to_color_id, tcase.k);
+        coloring.add_colors(boss, fastafilename, tcase.seq_id_to_color_id, 1000, 3);
 
-        cout << tcase.colex_kmers << endl;
-        cout << coloring.to_string_internals() << endl;
+        //cout << tcase.colex_kmers << endl;
+        //cout << coloring.to_string_internals() << endl;
 
         /*cout << tcase.references << endl;
         cout << coloring.to_string(boss) << endl;

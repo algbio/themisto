@@ -14,6 +14,7 @@
 #include "Coloring.hh"
 #include "NameMapping.hh"
 #include "WorkDispatcher.hh"
+#include "EM_sort.hh"
 
 using namespace std;
 
@@ -152,24 +153,46 @@ public:
     NameMapping name_mapping; // color name <-> color id
     vector<string> colors; // sequence id -> color name
 
-    void construct_boss(string fastafile, LL k){
-        string concat;
-        FASTA_reader fr(fastafile);
-        while(!fr.done()){
-            Read_stream rs = fr.get_next_query_stream();
-            concat += rs.get_all() + read_separator;
-        }
+    void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads){
 
-        boss = build_BOSS_with_bibwt(concat, k);
+        write_log("Listing k-mers");
+
+        // List
+        string kmers_outfile = temp_file_manager.get_temp_file_name("kmers_out");
+        list_all_distinct_cyclic_kmers_in_external_memory(fastafile, kmers_outfile, k+2, memory_bytes, n_threads);
+        write_log("Sorting k-mers");
+
+        // Sort
+        string sorted_out = temp_file_manager.get_temp_file_name("kmers_sorted");
+        EM_sort(kmers_outfile, sorted_out, colex_compare_cstrings, memory_bytes, 4, n_threads, EM_LINES); // 4-way merges
+        temp_file_manager.delete_file(kmers_outfile);
+
+        write_log("Building BOSS from sorted k-mers");
+        boss = build_BOSS_from_kplus2_mers(sorted_out, k);
 
     }
 
+    string generate_colorfile(string fastafile){
+        string colorfile = temp_file_manager.get_temp_file_name("");
+        ofstream out(colorfile);
+        FASTA_reader fr(fastafile);
+        LL seq_id = 0;
+        while(!fr.done()){
+            fr.get_next_query_stream().get_all();
+            out << seq_id << "\n";
+            seq_id++;
+        }
+        return colorfile;
+    }
+
     // Assumes boss has been built
-    // colorfile: one line for each sequence in fastafile. The line has the name of the color (a string).
-    void construct_colors(string fastafile, string colorfile){
+    // colorfile: A filename for a file with one line for each sequence in fastafile. The line has the name of the color (a string).
+    // If colorfile is emptry string, generates colors automatically
+    void construct_colors(string fastafile, string colorfile, LL ram_bytes, LL n_threads){
+        if(colorfile == "") colorfile = generate_colorfile(fastafile);
         colors = parse_color_name_vector(colorfile);
         name_mapping.build_from_namefile(colorfile);
-        coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), boss.get_k());
+        coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), ram_bytes, n_threads);
     }
 
     void save_boss(string path_prefix){
@@ -393,12 +416,12 @@ public:
 
                 vector<string> distinct_color_names;
                 for(LL i = 0; i < n_colors; i++){
-                    distinct_color_names.push_back(get_random_string(10,2) + to_string(i));
+                    distinct_color_names.push_back(get_random_dna_string(10,2) + to_string(i));
                 }
 
                 // Build genomes and assign color ids
                 for(LL i = 0; i < n_genomes; i++){
-                    tcase.genomes.push_back(get_random_string(genome_length,2));
+                    tcase.genomes.push_back(get_random_dna_string(genome_length,2));
                     tcase.colors.push_back(distinct_color_names[rand() % n_colors]);
                 }
 
@@ -437,7 +460,7 @@ public:
                 
 
                 // Build queries
-                for(LL i = 0; i < n_queries; i++) tcase.queries.push_back(get_random_string(query_length,2));
+                for(LL i = 0; i < n_queries; i++) tcase.queries.push_back(get_random_dna_string(query_length,2));
 
                 testcases.push_back(tcase);
             }
@@ -488,8 +511,8 @@ public:
             NameMapping nm(temp_dir + "/colors.txt");
 
             KallistoLite kl_build;
-            kl_build.construct_boss(temp_dir + "/genomes.fna", tcase.k);
-            kl_build.construct_colors(temp_dir + "/genomes.fna", temp_dir + "/colors.txt");
+            kl_build.construct_boss(temp_dir + "/genomes.fna", tcase.k, 1000, 2);
+            kl_build.construct_colors(temp_dir + "/genomes.fna", temp_dir + "/colors.txt", 1000, 3);
             kl_build.save_boss(temp_dir + "/boss-");
             kl_build.save_colors(temp_dir + "/colors-");
 
@@ -500,6 +523,10 @@ public:
             // Check that serialization worked
             assert(kl_build.coloring.get_all_colorsets(kl_build.boss) == kl.coloring.get_all_colorsets(kl.boss));
 
+            // Check against reference boss
+            BOSS ref_boss = build_BOSS_with_bibwt_from_fasta(temp_dir + "/genomes.fna", tcase.k);
+            assert(ref_boss == kl.boss);
+
             // Check that the colors are right
             vector<set<LL> > correct_coloring_ids = ct_testcase.color_sets;
             //cout << "ref colors " << tcase.colors << endl;
@@ -509,6 +536,8 @@ public:
             //cout << "Correct coloring: " << endl << correct_coloring_ids << endl;
             //cout << "Our coloring: " << endl << kl.coloring.get_all_colorsets(kl.boss) << endl;
             //cout << "k " << kl.boss.get_k() << endl;
+            //cout << kl.coloring.get_all_colorsets(kl.boss) << endl;
+            //cout << correct_coloring_ids << endl;
             assert(kl.coloring.get_all_colorsets(kl.boss) == correct_coloring_ids);
 
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
@@ -516,7 +545,7 @@ public:
 
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 
-            cout << our_results << endl;
+            //cout << our_results << endl;
 
             for(LL i = 0; i < tcase.queries.size(); i++){
                 string query = tcase.queries[i];
@@ -526,7 +555,7 @@ public:
                 for(LL id : our_results[i])
                     nonbrute.insert(nm.id_to_name[id]);
 
-                cout << brute << " " << nonbrute << endl;
+                //cout << brute << " " << nonbrute << endl;
                 assert(brute == nonbrute);
             }
         }

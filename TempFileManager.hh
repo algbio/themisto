@@ -6,15 +6,19 @@
 #include <random>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <thread>
 #include <mutex>
 #include <cstring>
+#include <set>
 
 using namespace std;
 
 class Temp_File_Manager{
+
+// Cleans up all allocated files in the end automatically
 
 private:
 
@@ -30,7 +34,7 @@ private:
     std::random_device urandom;
     string temp_dir;
     vector<char> alphabet;
-    vector<string> used_names;
+    set<string> used_names;
     std::mutex mutex;
 
     void check_dir_exists(string path){
@@ -63,6 +67,10 @@ public:
         this->temp_dir = temp_dir;
     }
 
+    string get_dir(){
+        return this->temp_dir;
+    }
+
     string get_temp_file_name(string prefix){
         // Make sure only one thread runs in this function at once
         std::lock_guard<std::mutex> lg(mutex);
@@ -74,18 +82,31 @@ public:
             string name = temp_dir + "/" + prefix + get_random_string(25); // 62^25 >= 10^44 different possibilities
             auto desc = open(name.c_str(), O_CREAT | O_EXCL, S_IRWXU); // Fails if file exists, otherwise creates it
             if(desc != -1){
-                used_names.push_back(name);
+                used_names.insert(name);
+                close(desc);
                 return name;
             } else if(errno != EEXIST){
                 cerr << std::strerror(errno) << " " << name << endl;
+                close(desc);
                 exit(1);
             }
+            
         }
     } // The lock guard goes out of scope and is destructed
 
+    // delete_file: delete a file before the end of the lifetime of the manager
+    void delete_file(string filename){
+        if(used_names.count(filename) == 0){
+            cerr << "Error: tried to delete a file that does not exist: " << filename << endl;
+            exit(1);
+        }
+        remove(filename.c_str());
+        used_names.erase(filename);
+    }
+
     void clean_up(){
         for(string name : used_names) remove(name.c_str());
-        used_names.resize(0);
+        used_names.clear();
     }
 
     ~Temp_File_Manager(){

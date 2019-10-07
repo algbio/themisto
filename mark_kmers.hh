@@ -137,7 +137,7 @@ void mark_kmers_tests(){
     cerr << "mark kmers for all binary string up to length " << maxlen << " ok" << endl;
 
     for(LL rep = 0; rep < 100; rep++){
-        string S = get_random_string(40, 3);
+        string S = get_random_dna_string(40, 3);
         cout << S << endl;
         LL k = rand() % 5 + 1;
         BD_BWT_index<> bibwt((const uint8_t*)(S.c_str()));

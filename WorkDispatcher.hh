@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "ParallelQueue.hh"
+#include "ParallelBoundedQueue.hh"
 #include "input_reading.hh"
 #include "globals.hh"
 
@@ -22,6 +22,28 @@ class ParallelOutputWriter{
     void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
         outstream << result;
+    }
+
+    void flush(){
+        outstream.flush();
+    }
+};
+
+class ParallelBinaryOutputWriter{
+    public:
+
+    string outfile;
+    ofstream outstream;
+    std::mutex mutex;
+
+    ParallelBinaryOutputWriter(string outfile) : outfile(outfile, ios::binary){
+        check_writable(outfile);
+        outstream.open(outfile);
+    }
+
+    void write(const char* data, LL n_bytes){
+        std::lock_guard<std::mutex> lg(mutex);
+        outstream.write(data,n_bytes);
     }
 
     void flush(){
@@ -69,11 +91,12 @@ public:
     virtual ~DispatcherConsumerCallback() {} 
 };
 
-void dispatcher_consumer(ParallelQueue<Read_Batch>& Q, DispatcherConsumerCallback* cb){
+void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumerCallback* cb, LL thread_id){
+    write_log("Starting thread " + to_string(thread_id));
     while(true){
         Read_Batch batch  = Q.pop();
         if(batch.data.size() == 0){
-            Q.push(batch);
+            Q.push(batch,0);
             break; // No more work available
         }
         
@@ -88,10 +111,10 @@ void dispatcher_consumer(ParallelQueue<Read_Batch>& Q, DispatcherConsumerCallbac
             read_id++;
         }
     }
+    write_log("Thread " + to_string(thread_id) + " done");
 }
 
-void dispatcher_producer(ParallelQueue<Read_Batch>& Q, string query_file, int64_t buffer_size){
-    // Todo: Q should have limited size?
+void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file, int64_t buffer_size){
     // Push work in batches of approximately buffer_size base pairs
 
     FASTA_reader fr(query_file);
@@ -113,7 +136,7 @@ void dispatcher_producer(ParallelQueue<Read_Batch>& Q, string query_file, int64_
         read_id_of_next++;
         
         if(rb.data.size() > buffer_size || fr.done()){
-            Q.push(rb);
+            Q.push(rb,rb.data.size());
             
             // Clear the batch
             rb.data = "";
@@ -122,16 +145,16 @@ void dispatcher_producer(ParallelQueue<Read_Batch>& Q, string query_file, int64_
         }
     }
 
-    Q.push(rb); // Empty batch in the end signifies end of the queue
+    Q.push(rb,0); // Empty batch in the end signifies end of the queue
 }
 
 void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, string fastafile, LL buffer_size){
     vector<std::thread> threads;
-    ParallelQueue<Read_Batch> Q;
+    ParallelBoundedQueue<Read_Batch> Q(buffer_size);
 
     // Create consumers
     for(int64_t i = 0; i < callbacks.size(); i++){
-        threads.push_back(std::thread(dispatcher_consumer,std::ref(Q),callbacks[i]));
+        threads.push_back(std::thread(dispatcher_consumer,std::ref(Q),callbacks[i], i));
     }
 
     // Create producer
