@@ -14,7 +14,7 @@ First, install libz and libbz2 if your system does not already have those. Then:
     make
 
     # Compile KMC
-    cd ../../KMC
+    cd ../KMC
     make
     cd ..
 
