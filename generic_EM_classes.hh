@@ -51,10 +51,6 @@ public:
 
 };
 
-//
-// Constant record classes below
-//
-
 class Block_Consumer : public Generic_Block_Consumer{ // Works for any type of block
 public:
 
@@ -83,6 +79,9 @@ public:
     }
 };
 
+//
+// Constant record classes below
+//
 
 class Constant_Block_Producer : public Generic_Block_Producer{
     public:

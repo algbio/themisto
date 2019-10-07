@@ -1,11 +1,5 @@
 #pragma once
 
-//
-// Copyright (c) 2013 Juan Palacios juan.palacios.puyana@gmail.com
-// Subject to the BSD 2-Clause License
-// - see < http://opensource.org/licenses/BSD-2-Clause>
-//
-
 #include <queue>
 #include <thread>
 #include <mutex>
