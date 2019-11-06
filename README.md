@@ -38,3 +38,5 @@ To pseudoalign against the index, run:
     ./pseudoalign
 
 The program will then print instructions on how to use it.
+
+This software is licensed under GPLv2. See LICENSE.txt.
