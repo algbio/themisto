@@ -1,9 +1,8 @@
 CXX = g++
 STD = -std=c++14
 
-.PHONY: tests build_index pseudoalign count_pseudoalignments statistics test_delta_coding count_hits_to_clusters KMC_test KMC_tester
-all: tests build_index pseudoalign count_pseudoalignments statistics test_delta_coding count_hits_to_clusters KMC_test
-essentials: tests build_index pseudoalign
+.PHONY: tests build_index pseudoalign
+all: tests build_index pseudoalign
 
 libraries = BD_BWT_index/lib/*.a sdsl-lite/build/lib/libsdsl.a sdsl-lite/build/external/libdivsufsort/lib/libdivsufsort64.a
 includes = -I BD_BWT_index/include -I sdsl-lite/include -I KMC -I KMC/kmer_counter/ 
@@ -17,18 +16,6 @@ build_index: build/KMC_wrapper.o build/KMC.a
 
 pseudoalign:
 	$(CXX) $(STD) pseudoalign.cpp build/KMC_wrapper.o build/KMC.a $(libraries) -lz -lbz2 -o pseudoalign -Wall -Wno-sign-compare -Wextra $(includes) -g -O3 -fopenmp -pthread
-	
-count_hits_to_clusters:
-	$(CXX) $(STD) count_hits_to_clusters.cpp $(libraries) -o count_hits_to_clusters -Wall -Wno-sign-compare -Wextra $(includes) -g -O3 -pthread
-
-count_pseudoalignments:
-	$(CXX) $(STD) count_pseudoalignments.cpp $(libraries) -o count_pseudoalignments -Wall -Wno-sign-compare -Wextra $(includes) -g -O3 -pthread
-
-statistics:
-	$(CXX) $(STD) statistics.cpp $(libraries) -o statistics -Wall -Wno-sign-compare -Wextra $(includes) -g -O3 -pthread	
-
-test_delta_coding:
-	$(CXX) $(STD) test_delta_coding.cpp $(libraries) -o test_delta_coding -Wall -Wno-sign-compare -Wextra $(includes) -g -O3 -pthread
 
 build/KMC.a: # NOT a .PHONY target
 	ar r build/KMC.a $(KMC_objects)
@@ -38,10 +25,4 @@ build/KMC_counter.o: # NOT a .PHONY target
 
 build/KMC_wrapper.o:  # NOT a .PHONY target
 	$(CXX) $(STD) KMC_wrapper.cpp -lz -lbz2 -o build/KMC_wrapper.o -c -Wall -Wno-sign-compare -Wno-implicit-fallthrough -Wextra $(includes) -g -fopenmp -pthread -no-pie
-	
-KMC_test: build/KMC_wrapper.o build/KMC.a 
-	$(CXX) $(STD) KMC_test.cpp build/KMC_wrapper.o build/KMC.a  $(libraries) -lz -lbz2 -o KMC_test -Wall -Wno-sign-compare -Wno-implicit-fallthrough -Wextra $(includes) -g -fopenmp -pthread -no-pie
-	
-KMC_tester: build/KMC_wrapper.o build/KMC.a 
-	$(CXX) $(STD) KMC_tester.cpp build/KMC_wrapper.o build/KMC.a  $(libraries) -lz -lbz2 -o KMC_tester -Wall -Wno-sign-compare -Wno-implicit-fallthrough -Wextra $(includes) -g -fopenmp -pthread -no-pie
 
