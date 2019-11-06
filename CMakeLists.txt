@@ -11,6 +11,26 @@ find_package(OpenMP REQUIRED)
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+## Get version number from git tags
+find_package(Git)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags
+    WORKING_DIRECTORY "${local_dir}"
+    OUTPUT_VARIABLE THEMISTO_BUILD_VERSION
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message( STATUS "Themisto version: ${THEMISTO_BUILD_VERSION}")
+else()
+  message(STATUS "GIT not found, version numbering disabled")
+  set(THEMISTO_BUILD_VERSION "unknown")
+endif()
+string(TIMESTAMP THEMISTO_BUILD_TIMESTAMP)
+
+## Generate a version.h file containing build version and timestamp
+configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_SOURCE_DIR}/version.h @ONLY)
+
 ## Add local dependencies as targets
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/sdsl-lite
                  ${CMAKE_CURRENT_BINARY_DIR}/sdsl-lite/build)
