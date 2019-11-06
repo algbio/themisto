@@ -320,13 +320,13 @@ private:
 
     // Returns pair (number of colorsets, total number of elements in all colorsets)
     pair<LL,LL> count_colorsets(string infile){
-        ifstream in(infile, ios::binary);
+        throwing_ifstream in(infile, ios::binary);
         LL n_sets = 0;
         LL total_size = 0;
         vector<char> buffer(16);
         while(true){
             in.read(buffer.data(), 16);
-            if(!in.good()) break;
+            if(in.stream.eof()) break;
 
             LL record_length = parse_big_endian_LL(buffer.data() + 0);
             LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
@@ -369,9 +369,9 @@ private:
 
         // Iterate all distinct color sets
         //string line;
-        ifstream in(infile, ios::binary);
+        throwing_ifstream in(infile, ios::binary);
         string node_to_color_id_pairs_filename = temp_file_manager.get_temp_file_name("");
-        ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
+        throwing_ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
         LL n_marks = 0;
         vector<char> buffer(16);
 
@@ -383,7 +383,7 @@ private:
             color_set.clear();
 
             in.read(buffer.data(), 16);
-            if(!in.good()) break;
+            if(in.stream.eof()) break;
 
             LL record_length = parse_big_endian_LL(buffer.data() + 0);
             LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
@@ -431,12 +431,12 @@ private:
         node_to_color_set_id = sdsl::int_vector<>(n_marks, 0, ceil(log2(n_classes)));
         string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
         temp_file_manager.delete_file(node_to_color_id_pairs_filename);
-        ifstream sorted_in(sorted_out);
+        throwing_ifstream sorted_in(sorted_out);
         vector<char> buffer2(8+8);
         LL idx = 0;
         while(true){
             sorted_in.read(buffer.data(), 8+8);
-            if(!sorted_in.good()) break;
+            if(sorted_in.stream.eof()) break;
             LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
             node_to_color_set_id[idx] = color_set_id;
             idx++;
@@ -595,7 +595,7 @@ public:
 
     void run_testcase(TestCase tcase){
         string fastafilename = temp_file_manager.get_temp_file_name("ctest");
-        ofstream fastafile(fastafilename);
+        throwing_ofstream fastafile(fastafilename);
         fastafile << tcase.fasta_data;
         fastafile.close();
         BOSS boss = build_BOSS_with_bibwt(tcase.concat, tcase.k);

@@ -21,7 +21,7 @@ namespace EM_sort_tests{
 // Returns filename
 string generate_line_based_testcase(LL n_lines, LL line_length){
     string outfile = get_temp_file_name("");
-    ofstream out(outfile);
+    throwing_ofstream out(outfile);
     for(LL i = 0; i < n_lines; i++){
         out << get_random_string(line_length, 2) << "\n";
     }
@@ -37,7 +37,7 @@ string sort_lines_stdlib(string infile, const std::function<bool(const char* x, 
     vector<string> lines = get_all_lines(infile);
     sort(lines.begin(), lines.end(), cmp_wrap);
     string outfile = get_temp_file_name("");
-    ofstream out(outfile);
+    throwing_ofstream out(outfile);
     for(string line : lines) out << line << "\n";
     return outfile;
 }
@@ -72,7 +72,7 @@ void run_line_sort_testcases(){
 
 string generate_variable_binary_testcase(LL max_record_len_bytes, LL n_records){
     string outfile = temp_file_manager.get_temp_file_name("");
-    ofstream out(outfile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < n_records; i++){
         LL record_len = max((LL)8, rand() % (max_record_len_bytes + 1));
         //cout << "Add record of length " << record_len << endl;
@@ -87,7 +87,7 @@ string generate_variable_binary_testcase(LL max_record_len_bytes, LL n_records){
 
 string generate_constant_binary_testcase(LL record_len, LL n_records){
     string outfile = temp_file_manager.get_temp_file_name("");
-    ofstream out(outfile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < n_records; i++){
         for(LL b = 0; b < record_len; b++){
             char byte = static_cast<char>(rand() % 256);
@@ -111,7 +111,7 @@ string record_to_string(const char* rec){
 string binary_sort_stdlib(string infile, const std::function<bool(const char*, const char*)> & cmp){
     
     // Using the Block class to help reading in the records
-    ifstream in(infile);
+    throwing_ifstream in(infile);
     Variable_binary_block* block = get_next_variable_binary_block(in,(LL)1e16);
     auto cmp_wrap = [&](LL x, LL y){
         return cmp(block->data+x,block->data+y);
@@ -125,7 +125,7 @@ string binary_sort_stdlib(string infile, const std::function<bool(const char*, c
     }
 
     string outfile = temp_file_manager.get_temp_file_name("");
-    ofstream out(outfile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < block->starts.size(); i++){
         LL length = parse_big_endian_LL(block->data + block->starts[i]);
         out.write(block->data + block->starts[i], length);
@@ -137,7 +137,7 @@ string binary_sort_stdlib(string infile, const std::function<bool(const char*, c
 string constant_binary_sort_stdlib(string infile, LL rec_len, const std::function<bool(const char*, const char*)> & cmp){
     
     // Using the Block class to help reading in the records
-    ifstream in(infile);
+    throwing_ifstream in(infile);
     Constant_binary_block* block = get_next_constant_binary_block(in,(LL)1e16, rec_len);
     auto cmp_wrap = [&](LL x, LL y){
         return cmp(block->data+x,block->data+y);
@@ -151,7 +151,7 @@ string constant_binary_sort_stdlib(string infile, LL rec_len, const std::functio
     }
 
     string outfile = temp_file_manager.get_temp_file_name("");
-    ofstream out(outfile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < block->starts.size(); i++){
         out.write(block->data + block->starts[i], rec_len);
     }

@@ -21,6 +21,7 @@
 //#include "globals.hh"
 #include "Argv.hh"
 #include "TempFileManager.hh"
+#include "throwing_streams.hh"
 
 using namespace std;
 
@@ -382,15 +383,10 @@ bool parse_parameters(int argc, char *argv[])
 		Params.input_file_names.push_back(input_file_name);
 	else
 	{
-		ifstream in(input_file_name.c_str()+1);
-		if(!in.good())
-		{
-			cerr << "Error: No " << input_file_name.c_str()+1 << " file\n";
-			return false;
-		}
+		throwing_ifstream in(input_file_name.c_str()+1);
 
 		string s;
-		while(getline(in, s))
+		while(in.getline(s))
 			if(s != "")
 				Params.input_file_names.push_back(s);
 
@@ -491,9 +487,9 @@ void call_kmc(int argc, _TCHAR* argv[])
 void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string outfile, string tempdir){
 
 	// Check that the alphabet is {a,c,g,t,A,C,G,T} (otherwise k-mers would be dropped silently)
-	ifstream fasta_input(fastafile);
+	throwing_ifstream fasta_input(fastafile);
 	string line;
-	while(getline(fasta_input,line)){
+	while(fasta_input.getline(line)){
 		if(line.size() > 0 && line[0] != '>'){
 			for(char c : line){
 				if(c != 'a' && c != 'c' && c != 'g' && c != 't' &&
@@ -530,7 +526,7 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 	cerr << "Dumping k-mers to disk" << endl;
 
 	// Dump the database to text
-	ofstream out(outfile);
+	throwing_ofstream out(outfile);
 
 	CKMCFile kmer_database;
 	kmer_database.OpenForListing(KMC_database_file);

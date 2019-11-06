@@ -39,7 +39,7 @@ inline char get_byte(LL x, LL byte_idx){
 }
 
 
-inline void write_big_endian_LL(ofstream& out, LL x){
+inline void write_big_endian_LL(throwing_ofstream& out, LL x){
     char c;
 
     c = get_byte(x,0); out.write(&c,1);

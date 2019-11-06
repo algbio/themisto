@@ -15,7 +15,7 @@ LL count_zeros(sdsl::bit_vector& bv){
     return bv.size() - count_ones(bv);
 }
 
-int main(int argc, char** argv){
+int main2(int argc, char** argv){
 
     if(argc == 1){
         cerr << "Usage: ./program index_dir" << endl;
@@ -83,4 +83,13 @@ int main(int argc, char** argv){
     // Number of colors
     // Number of distinct color sets
 
+}
+
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
 }

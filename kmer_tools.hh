@@ -12,7 +12,7 @@ using namespace std;
 // Adds cyclic kmers that cross some separator.
 // APPENDS to outfile, does not overwrite
 void add_extra_kmers(string fastafile, string outfile, LL k){
-    ofstream kmerfile(outfile, std::ofstream::out | std::ofstream::app);
+    throwing_ofstream kmerfile(outfile, std::ofstream::out | std::ofstream::app);
     FASTA_reader fr(fastafile);
     string concat;
     while(!fr.done()){
@@ -46,7 +46,7 @@ void list_all_distinct_cyclic_kmers_in_memory(string input_fastafile, string out
     }
     concat += (char)0x01;
     set<string> kmers_set = get_all_distinct_cyclic_kmers(concat, k);
-    ofstream out(outputfile);
+    throwing_ofstream out(outputfile);
     for(string kmer : kmers_set){
         out << kmer << "\n";
     }
@@ -67,16 +67,16 @@ void list_all_distinct_cyclic_kmers_in_external_memory(string input_fastafile, s
 // in colexicographic order
 void colex_sort_kmers_in_memory(string kmerfile, string outfile){
     string line;
-    ifstream in(kmerfile);
+    throwing_ifstream in(kmerfile);
     vector<string> kmers;
-    while(getline(in,line)){
+    while(in.getline(line)){
         kmers.push_back(line);
     }
     in.close();
 
     sort(kmers.begin(), kmers.end(), colex_compare);
 
-    ofstream out(outfile);
+    throwing_ofstream out(outfile);
     for(string kmer : kmers){
         out << kmer << "\n";
     }

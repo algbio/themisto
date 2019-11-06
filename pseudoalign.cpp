@@ -58,15 +58,15 @@ string get_rc(string S){
 vector<string> read_lines(string filename){
     check_readable(filename);
     vector<string> lines;
-    ifstream in(filename);
+    throwing_ifstream in(filename);
     string line;
-    while(getline(in, line)){
+    while(in.getline(line)){
         lines.push_back(line);
     }
     return lines;
 }
 
-int main(int argc, char** argv){
+int main2(int argc, char** argv){
 
     if(argc == 1){
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
@@ -153,4 +153,15 @@ int main(int argc, char** argv){
     }
 
     write_log("Finished");
+
+    return 0;
+}
+
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
 }

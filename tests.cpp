@@ -14,9 +14,10 @@
 using namespace std;
 
 typedef int64_t LL; // long long
-// The BWT will be the concatenation of all reads in sample A and then sample B with all reads separated by read_separator.
 
-int main(){
+int main2(int argc, char** argv){
+
+    (void)argc; (void)argv; // not used
 
     if(system("mkdir -p temp") != 0){
         cerr << "Error creating directory ./temp" << endl;
@@ -34,13 +35,22 @@ int main(){
 
     //disable_logging();
 
-    test_coloring();
     test_pseudoalign("./temp");
-    test_EM_sort();    
     test_BOSS();    
-
-
+    test_coloring();
+    test_EM_sort();    
     write_log("All tests passed");
     
+    return 0;
 
+}
+
+int main(int argc, char** argv){
+    (void)argc; (void)argv; // not used
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
 }

@@ -86,7 +86,7 @@ public:
 class Constant_Block_Producer : public Generic_Block_Producer{
     public:
 
-    ifstream in;
+    throwing_ifstream in;
     LL record_size;
 
     Constant_Block_Producer(string infile, LL record_size) : in(infile, ios::binary), record_size(record_size) {}
@@ -106,7 +106,7 @@ class Constant_Block_Producer : public Generic_Block_Producer{
 class Constant_Record_Reader : public Generic_Record_Reader{
 public:
 
-    vector<ifstream> inputs;
+    vector<throwing_ifstream> inputs;
     LL record_size;
 
     Constant_Record_Reader(LL record_size) : record_size(record_size){}
@@ -120,7 +120,7 @@ public:
     }
 
     virtual void close_files(){
-        for(ifstream& in : inputs) in.close();
+        for(throwing_ifstream& in : inputs) in.close();
     }
 
     virtual LL get_num_files(){
@@ -132,17 +132,14 @@ public:
             *buffer = (char*)realloc(*buffer, record_size);
             *buffer_size = record_size;
         }
-        inputs[input_index].read(*buffer, record_size);
-
-        if(inputs[input_index]) return true;
-        else return false;
+        return inputs[input_index].read(*buffer, record_size);
     }
 
 };
 
 class Constant_Record_Writer : public Generic_Record_Writer{
 public:
-    ofstream out;
+    throwing_ofstream out;
     LL record_size;
 
     Constant_Record_Writer(LL record_size) : record_size(record_size){}
@@ -168,7 +165,7 @@ public:
 class Variable_Block_Producer : public Generic_Block_Producer{
     public:
 
-    ifstream in;
+    throwing_ifstream in;
 
     Variable_Block_Producer(string infile) : in(infile, ios::binary) {}
 
@@ -187,7 +184,7 @@ class Variable_Block_Producer : public Generic_Block_Producer{
 class Variable_Record_Reader : public Generic_Record_Reader{
 public:
 
-    vector<ifstream> inputs;
+    vector<throwing_ifstream> inputs;
 
     Variable_Record_Reader() {}
 
@@ -200,7 +197,7 @@ public:
     }
 
     virtual void close_files(){
-        for(ifstream& in : inputs) in.close();
+        for(throwing_ifstream& in : inputs) in.close();
     }
 
     virtual LL get_num_files(){
@@ -215,7 +212,7 @@ public:
 
 class Variable_Record_Writer : public Generic_Record_Writer{
 public:
-    ofstream out;
+    throwing_ofstream out;
 
     Variable_Record_Writer() {}
 
@@ -243,7 +240,7 @@ public:
 class Line_Block_Producer : public Generic_Block_Producer{
 public:
 
-    ifstream in;
+    throwing_ifstream in;
 
     Line_Block_Producer(string infile) : in(infile) {}
 
@@ -262,7 +259,7 @@ public:
 class Line_Record_Reader : public Generic_Record_Reader{
 public:
 
-    vector<ifstream> inputs;
+    vector<throwing_ifstream> inputs;
     string line; // Reusable buffer
 
     Line_Record_Reader() {}
@@ -276,7 +273,7 @@ public:
     }
 
     virtual void close_files(){
-        for(ifstream& in : inputs) in.close();
+        for(throwing_ifstream& in : inputs) in.close();
     }
 
     virtual LL get_num_files(){
@@ -284,7 +281,7 @@ public:
     }
 
     virtual bool read_record(LL input_index, char** buffer, LL* buffer_size){
-        if(getline(inputs[input_index], line)){
+        if(inputs[input_index].getline(line)){
             while(*buffer_size < line.size() + 1){ // +1: null terminator
                 *buffer = (char*)realloc(*buffer, (*buffer_size)*2);
                 *buffer_size *= 2;
@@ -299,7 +296,7 @@ public:
 
 class Line_Record_Writer : public Generic_Record_Writer{
 public:
-    ofstream out;
+    throwing_ofstream out;
 
     Line_Record_Writer() {}
 

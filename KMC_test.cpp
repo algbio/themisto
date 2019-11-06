@@ -61,7 +61,7 @@ struct colex_sort{
 // Adds cyclic kmers that cross some separator.
 // APPENDS to outfile, does not overwrite
 void add_extra_kmers(string fastafile, string outfile, LL k){
-    ofstream kmerfile(outfile, std::ofstream::out | std::ofstream::app);
+    throwing_ofstream kmerfile(outfile, std::ofstream::out | std::ofstream::app);
     FASTA_reader fr(fastafile);
     string concat;
     while(!fr.done()){
@@ -123,7 +123,7 @@ void test_list_kmers(){
 
         // Write reads out in fasta
         string fastafile = temp_file_manager.get_temp_file_name("fasta");
-        ofstream fasta_out(fastafile);
+        throwing_ofstream fasta_out(fastafile);
         
         for(string read : reads){
             fasta_out << ">\n" << read << "\n";
@@ -137,8 +137,8 @@ void test_list_kmers(){
         // Read result
         vector<string> listed_kmers;
         string line;
-        ifstream listed_in(sorted_out);
-        while(getline(listed_in, line)){
+        throwing_ifstream listed_in(sorted_out);
+        while(listed_in.getline(line)){
             listed_kmers.push_back(line);
         }
 
@@ -155,17 +155,18 @@ void test_list_kmers(){
 }
 
 
-int main(int argc, char** argv){
+int main2(int argc, char** argv){
 
     set_temp_dir("temp");
     test_list_kmers();
-
-//    LL ram_gigas = 1;
-
-//    set_temp_dir("temp");
-//    list_kmers(31, ram_gigas, 2, "../KallistoLiteExtra/from_ukko2/ICE102_1.fna", "temp/KMC_dump.txt", "temp");
-
-//    colex_sort cmp;
-//    external_memory_sort<Kmer, colex_sort>("temp/KMC_dump.txt","temp/KMC_sorted.txt", cmp, 1024*1024*2014*ram_gigas);
+    
 }
 
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
+}

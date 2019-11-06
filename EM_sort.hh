@@ -80,8 +80,8 @@ bool memcmp_variable_binary_records(const char* x, const char* y){
 }
 
 void copy_file(string infile, string outfile, LL buf_size){
-    ifstream in(infile, ios::binary);
-    ofstream out(outfile, ios::binary);
+    throwing_ifstream in(infile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
 
     vector<char> buf(buf_size);
     while(true){

@@ -11,11 +11,10 @@ class ParallelOutputWriter{
     public:
 
     string outfile;
-    ofstream outstream;
+    throwing_ofstream outstream;
     std::mutex mutex;
 
     ParallelOutputWriter(string outfile) : outfile(outfile){
-        check_writable(outfile);
         outstream.open(outfile);
     }
 
@@ -33,11 +32,10 @@ class ParallelBinaryOutputWriter{
     public:
 
     string outfile;
-    ofstream outstream;
+    throwing_ofstream outstream;
     std::mutex mutex;
 
     ParallelBinaryOutputWriter(string outfile) : outfile(outfile, ios::binary){
-        check_writable(outfile);
         outstream.open(outfile);
     }
 
@@ -114,6 +112,8 @@ void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumer
     write_log("Thread " + to_string(thread_id) + " done");
 }
 
+// Will run characters through fix_char, which at the moment of writing this comment
+// upper-cases the character and further the result is not A, C, G or T, changes it to A.
 void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file, int64_t buffer_size){
     // Push work in batches of approximately buffer_size base pairs
 

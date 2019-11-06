@@ -155,7 +155,7 @@ public:
 
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads){
 
-        write_log("Listing k-mers");
+        write_log("Listing (k+2)-mers");
 
         // List
         string kmers_outfile = temp_file_manager.get_temp_file_name("kmers_out");
@@ -174,7 +174,7 @@ public:
 
     string generate_colorfile(string fastafile){
         string colorfile = temp_file_manager.get_temp_file_name("");
-        ofstream out(colorfile);
+        throwing_ofstream out(colorfile);
         FASTA_reader fr(fastafile);
         LL seq_id = 0;
         while(!fr.done()){
@@ -202,11 +202,7 @@ public:
     void save_colors(string path_prefix){
         coloring.save_to_disk(path_prefix + "index-");
         name_mapping.save_to_disk(path_prefix + "mapping-");
-        ofstream out(path_prefix + "names.txt");
-        if(!out.good()){
-            cerr << "Error writing to file: " << path_prefix + "names.txt" << endl;
-            exit(1);
-        }
+        throwing_ofstream out(path_prefix + "names.txt");
         for(string name : colors) out << name << "\n"; 
     }
 
@@ -218,29 +214,20 @@ public:
         coloring.load_from_disk(path_prefix + "index-");
         name_mapping.load_from_disk(path_prefix + "mapping-");
 
-        ifstream in(path_prefix + "names.txt");
-        if(!in.good()){
-            cerr << "Error reading from file: " << path_prefix + "names.txt" << endl;
-            exit(1);
-        }
+        throwing_ifstream in(path_prefix + "names.txt");
 
         colors.clear();
         string name;
-        while(getline(in, name)){
+        while(in.getline(name)){
             colors.push_back(name);
         }
     }
 
     vector<string> parse_color_name_vector(string colorfile){
-        ifstream colorstream(colorfile);
-        if(!colorstream.good()){
-            cerr << "Error opening file " << colorfile << endl;
-            exit(0);
-        }
-
+        throwing_ifstream colorstream(colorfile);
         vector<string> result;
         string color_name;
-        while(getline(colorstream, color_name)){
+        while(colorstream.getline(color_name)){
             result.push_back(color_name);
         }
         return result;
@@ -319,6 +306,7 @@ public:
             AlignerThread* T = new AlignerThread(this, &out, reverse_complements, buffer_size);
             threads.push_back(T);
         }
+
         run_dispatcher(threads, fastafile, buffer_size);
 
         // Clean up
@@ -332,15 +320,15 @@ public:
     void sort_parallel_output_file(string infile, string outfile){
         check_readable(infile);
         check_writable(outfile);
-        ifstream instream(infile);
-        ofstream outstream(outfile);
+        throwing_ifstream instream(infile);
+        throwing_ofstream outstream(outfile);
 
         set<pair<LL, string> > Q; // Priority queue with pairs (priority, content)
         string line;
         vector<string> tokens;
         LL current_query_id = 0;
         
-        while(getline(instream, line)){
+        while(instream.getline(line)){
             stringstream ss(line);
             LL priority; ss >> priority;
             Q.insert({priority, line + "\n"});
@@ -364,11 +352,11 @@ public:
     vector<set<LL> > parse_output_format_from_disk(string filename){
         vector<set<LL> > results;
         check_readable(filename);
-        ifstream input(filename);
+        throwing_ifstream input(filename);
         string line;
         
         LL line_number = 0;
-        while(getline(input,line)){
+        while(input.getline(line)){
             vector<LL> tokens = parse_tokens<LL>(line);
             assert(tokens.size() >= 1);
             LL query_id = tokens[0];
@@ -490,19 +478,19 @@ public:
             ct.run_testcase(ct_testcase); // Check that this works
 
             cerr << "Running alignment testcase" << endl;
-            ofstream genomes_out(temp_dir + "/genomes.fna");
+            throwing_ofstream genomes_out(temp_dir + "/genomes.fna");
             for(string genome : tcase.genomes){
                 genomes_out << ">\n" << genome << "\n";
             }
             genomes_out.close();
 
-            ofstream colors_out(temp_dir + "/colors.txt");
+            throwing_ofstream colors_out(temp_dir + "/colors.txt");
             for(LL i = 0; i < tcase.colors.size(); i++){
                 colors_out << tcase.colors[i] << "\n";
             }
             colors_out.close();
 
-            ofstream queries_out(temp_dir + "/queries.fna");
+            throwing_ofstream queries_out(temp_dir + "/queries.fna");
             for(string query : tcase.queries){
                 queries_out << ">\n" << query << "\n";
             }
@@ -589,71 +577,3 @@ void test_pseudoalign(string temp_dir){
     KallistoLite_Tester tester;
     tester.test_pseudoalign(temp_dir);
 }
-
-
-/*
-    // Input: set of filenames such that each line of each file
-    // contains a space-separate pair of values: where the first the id of the query 
-    // and the rest are alignments for tht query id. The ids must be increasing
-    // in each file.
-    // Writes to the final output file the lines in all files sorted by the ids.
-    void merge_results(vector<string> resultfilenames, string final_file){
-        vector<ifstream*> inputs;
-
-        check_writable(final_file);
-        ofstream output_stream(final_file);
-        // Open files
-        for(int64_t i = 0; i < resultfilenames.size(); i++) {
-            ifstream* input = new ifstream(resultfilenames[i]);
-            if(!input->good()){
-                cerr << "Error opening file: " << resultfilenames[i] << endl;
-                exit(1);
-            }
-
-            if (get_file_size(resultfilenames[i].c_str()) != 0){ // Make sure that the file is non-empty
-                //cerr << "opened " << resultfilenames[i] << endl; // commented out because for some reason this ends in stdout
-                inputs.push_back(input);
-            } else delete input;
-        }
-
-        set<tuple<int64_t, int64_t, vector<LL> > > Q; // Priority queue: (startpos, file index, alignments). Sorted by startpos
-
-        // Initialize priority queue
-        string line;
-        for(int64_t i = 0; i < inputs.size(); i++){
-            getline(*(inputs[i]), line);
-            vector<LL> tokens = parse_tokens<LL>(line);
-            assert(tokens.size() >= 1);
-            LL id = tokens[0];
-            vector<LL> alignments;
-            for(LL i = 1; i < tokens.size(); i++)
-                alignments.push_back(tokens[i]);
-            Q.insert(make_tuple(id, i, alignments));
-        }
-
-        // Do the merge
-        while(!Q.empty()){
-            LL read_id; LL stream_idx; vector<LL> alignments;
-            std::tie(read_id, stream_idx, alignments) = *(Q.begin());
-            Q.erase(Q.begin()); // pop
-
-            output_stream << read_id << " ";
-            for(auto x : alignments)
-                output_stream << x << " ";
-            output_stream << "\n";
-
-            // Read next value from the file
-            if(getline(*(inputs[stream_idx]), line)){
-                vector<LL> tokens = parse_tokens<LL>(line);
-                assert(tokens.size() >= 1);
-                LL id = tokens[0];
-                vector<LL> alignments;
-                for(LL i = 1; i < tokens.size(); i++)
-                    alignments.push_back(tokens[i]);
-                Q.insert(make_tuple(id, stream_idx, alignments));
-            }
-        }
-
-        for(ifstream* input : inputs) delete input; // Clean up
-    }
-    */

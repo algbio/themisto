@@ -51,7 +51,7 @@ struct Config{
     }
 };
 
-int main(int argc, char** argv){
+int main2(int argc, char** argv){
     KallistoLite kl;
     if(argc == 1){
         cerr << "Options: " << endl;
@@ -117,7 +117,7 @@ int main(int argc, char** argv){
 
     cerr << C.to_string() << endl;
     write_log("Starting");
-    C.fastafile = fix_alphabet(C.fastafile);
+    C.fastafile = fix_FASTA_alphabet(C.fastafile);
 
     if(C.load_boss){
         write_log("Loading BOSS");
@@ -136,4 +136,15 @@ int main(int argc, char** argv){
     }
 
     write_log("Finished");
+
+    return 0;
+}
+
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
 }

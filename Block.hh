@@ -25,7 +25,7 @@ class Generic_Block{
 // Takes a pointer to a buffer. Read to the buffer the whole record including the 8-byte size value.
 // The buffer might be realloc'd. Returns a bool whether read was successful.
 // buffer_len must be greater than 0 (otherwise buffer doubling does not work)
-bool read_variable_binary_record(ifstream& input, char** buffer, LL* buffer_len){
+bool read_variable_binary_record(throwing_ifstream& input, char** buffer, LL* buffer_len){
     assert(*buffer_len > 0);
     char rec_len_buf[8];
     input.read(rec_len_buf, 8); // Try to read the length of the record
@@ -90,7 +90,7 @@ class Variable_binary_block : public Generic_Block{
     }
 
     virtual void write_to_file(string filename){
-        ofstream out(filename, ios::binary);
+        throwing_ofstream out(filename, ios::binary);
         for(LL i = 0; i < starts.size(); i++){
             LL length = parse_big_endian_LL(data + starts[i]);
             out.write(data + starts[i], length);
@@ -103,7 +103,7 @@ class Variable_binary_block : public Generic_Block{
 };
 
 // RETURN VALUE MUST BE FREED BY CALLER
-Variable_binary_block* get_next_variable_binary_block(ifstream& input, LL B){
+Variable_binary_block* get_next_variable_binary_block(throwing_ifstream& input, LL B){
     LL buffer_len = 1024; // MUST HAVE AT LEAST 8 BYTES
     char* buffer = (char*)malloc(buffer_len);
     Variable_binary_block* block = new Variable_binary_block();
@@ -164,7 +164,7 @@ public:
     }
 
     virtual void write_to_file(string filename){
-        ofstream out(filename, ios::binary);
+        throwing_ofstream out(filename, ios::binary);
         for(LL i = 0; i < starts.size(); i++){
             out.write(data + starts[i], record_size);
         }
@@ -178,7 +178,7 @@ public:
 
 // Reads up to B bytes into a new block
 // THE RETURN VALUE MUST BE FREED BY THE CALLER
-Constant_binary_block* get_next_constant_binary_block(ifstream& input, LL B, LL record_size){
+Constant_binary_block* get_next_constant_binary_block(throwing_ifstream& input, LL B, LL record_size){
     Constant_binary_block* block = new Constant_binary_block(record_size);
     char* buf = (char*)malloc(record_size);
     while(true){
@@ -240,7 +240,7 @@ class Line_block : public Generic_Block{
     }
 
     virtual void write_to_file(string filename){
-        ofstream out(filename);
+        throwing_ofstream out(filename);
         for(LL i = 0; i < starts.size(); i++){
             string S(data + starts[i]);
             out << S << "\n";
@@ -254,11 +254,11 @@ class Line_block : public Generic_Block{
 };
 
 // Returns a heap object. MUST BE FREED BY THE CALLER
-Line_block* get_next_line_block(ifstream& input, LL B){
+Line_block* get_next_line_block(throwing_ifstream& input, LL B){
     string line;
     Line_block* block = new Line_block();
 
-    while(getline(input,line)){
+    while(input.getline(line)){
         block->add_record(line);
         if(block->estimate_size_in_bytes() > B) break;
     }

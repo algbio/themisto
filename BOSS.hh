@@ -13,6 +13,7 @@
 #include "mark_kmers.hh"
 #include "kmer_tools.hh"
 #include "EM_sort.hh"
+#include "throwing_streams.hh"
 
 using namespace std;
 
@@ -60,8 +61,8 @@ public:
 
     void load_from_disk(string path_prefix){
         check_readable(path_prefix + "wt");
-        ifstream input(path_prefix + "wt");
-        wt.load(input);
+        throwing_ifstream input(path_prefix + "wt");
+        wt.load(input.stream);
     }
 
 };
@@ -122,13 +123,13 @@ public:
         check_writable(path_prefix + "constants");
         check_writable(path_prefix + "alphabet");
 
-        ofstream C_out(path_prefix + "C");
+        throwing_ofstream C_out(path_prefix + "C");
         for(auto x : C) C_out << x << " ";
-        C_out << endl;
+        C_out << "\n";
         C_out.close();
 
-        ofstream constants_out(path_prefix + "constants");
-        constants_out << n_nodes << " " << k << endl;
+        throwing_ofstream constants_out(path_prefix + "constants");
+        constants_out << n_nodes << " " << k << "\n";
         constants_out.close();
     }
 
@@ -147,61 +148,57 @@ public:
         check_readable(path_prefix + "constants");
 
         {
-            ifstream input(path_prefix + "indegs");
-            indegs.load(input);
+            throwing_ifstream input(path_prefix + "indegs");
+            indegs.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "outdegs");
-            outdegs.load(input);
+            throwing_ifstream input(path_prefix + "outdegs");
+            outdegs.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "indegs_rs");
-            indegs_rs.load(input);
+            throwing_ifstream input(path_prefix + "indegs_rs");
+            indegs_rs.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "indegs_ss1");
-            indegs_ss1.load(input);
+            throwing_ifstream input(path_prefix + "indegs_ss1");
+            indegs_ss1.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "indegs_ss0");
-            indegs_ss0.load(input);
+            throwing_ifstream input(path_prefix + "indegs_ss0");
+            indegs_ss0.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "outdegs_rs");
-            outdegs_rs.load(input);
+            throwing_ifstream input(path_prefix + "outdegs_rs");
+            outdegs_rs.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "outdegs_ss1");
-            outdegs_ss1.load(input);
+            throwing_ifstream input(path_prefix + "outdegs_ss1");
+            outdegs_ss1.load(input.stream);
         }
 
         {
-            ifstream input(path_prefix + "outdegs_ss0");
-            outdegs_ss0.load(input);
+            throwing_ifstream input(path_prefix + "outdegs_ss0");
+            outdegs_ss0.load(input.stream);
         }
 
         {
             C.resize(256);
-            ifstream input(path_prefix + "C");
+            throwing_ifstream input(path_prefix + "C");
             for(LL i = 0; i < 256; i++){
-                if(!input.good()){
-                    cerr << "Error eading file: " << path_prefix + "C" << endl;
-                    exit(1);
-                }
                 LL x; input >> x; 
                 C[i] = x;
             }
         }
 
         {
-            ifstream input(path_prefix + "constants");
-            input >> n_nodes >> k; // todo: error handling
+            throwing_ifstream input(path_prefix + "constants");
+            input >> n_nodes >> k;
         }
 
         alphabet.clear();
@@ -559,19 +556,19 @@ vector<LL> char_counts_to_C_array(vector<LL> counts){
 // Input: a file with all cyclic k-mers, one on each line, colex-sorted
 // Splits the file by the last character of each kmer
 vector<string> split_kmerfile(string kmerfile){
-    map<char, ofstream*> out_streams;
+    map<char, throwing_ofstream*> out_streams;
     vector<string> filenames;
 
     string line;
-    ifstream in(kmerfile);
-    while(getline(in, line)){
+    throwing_ifstream in(kmerfile);
+    while(in.getline(line)){
         char last = line[line.size()-1];
 
         // If this is the first occurrence of character 'last'. create a new file for it
         if(out_streams.find(last) == out_streams.end()){
             string filename = get_temp_file_name("split");
             filenames.push_back(filename);
-            ofstream* new_stream = new ofstream(filename);
+            throwing_ofstream* new_stream = new throwing_ofstream(filename);
             out_streams[last] = new_stream;
         }
 
@@ -605,15 +602,11 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
     vector<string> kmerfiles = split_kmerfile(kmerfile);
     temp_file_manager.delete_file(kmerfile);
 
-    vector<ifstream*> inputs;
+    vector<throwing_ifstream*> inputs;
 
     // Open files
     for(int64_t i = 0; i < kmerfiles.size(); i++) {
-        ifstream* input = new ifstream(kmerfiles[i]);
-        if(!input->good()){
-            cerr << "Error opening file: " << kmerfiles[i] << endl;
-            exit(1);
-        }
+        throwing_ifstream* input = new throwing_ifstream(kmerfiles[i]);
         inputs.push_back(input);
     }
 
@@ -629,7 +622,7 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
     // Initialize priority queue
     string line;
     for(int64_t i = 0; i < inputs.size(); i++){
-        getline(*(inputs[i]), line);
+        inputs[i]->getline(line);
         assert(line.size() == k+2);
         Q.insert({line, i});
     }
@@ -650,7 +643,7 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
         cur_outlabels.insert(kmer.back());
 
         // Read next value from the file
-        if(getline(*(inputs[stream_idx]), line)){
+        if(inputs[stream_idx]->getline(line)){
             assert(line.size() == k+2);
             Q.insert(make_pair(line, stream_idx));
         }
@@ -663,7 +656,7 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
             Q.erase(Q.begin()); // pop
 
             // Read next value from the file
-            if(getline(*(inputs[next_stream_idx]), line)){
+            if(inputs[next_stream_idx]->getline(line)){
                 assert(line.size() == k+2);
                 Q.insert(make_pair(line, next_stream_idx));
             }
@@ -686,7 +679,7 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
 
     }
 
-    for(ifstream* input : inputs) delete input; // Clean up
+    for(throwing_ifstream* input : inputs) delete input; // Clean up
     for(string filename : kmerfiles) temp_file_manager.delete_file(filename); // Clean up
 
     // Put the data into the format that the BOSS constructor wants
@@ -697,6 +690,7 @@ BOSS build_BOSS_from_kplus2_mers(string kmerfile, LL k){
     
     return BOSS(boss_outlabels, sdsl_indegs, sdsl_outdegs, boss_C, k);
 }
+
 
 BOSS build_BOSS_with_maps(const string& S, LL k){
     map<string, LL> k_counts; // k-mer counts. Keys are reverses of the k-mers so that the order is colexicographic
@@ -932,7 +926,7 @@ public:
 
         // Write reads out in fasta
         string fastafile = temp_file_manager.get_temp_file_name("fasta");
-        ofstream fasta_out(fastafile);
+        throwing_ofstream fasta_out(fastafile);
         
         for(string read : tcase.reads){
             fasta_out << ">\n" << read << "\n";

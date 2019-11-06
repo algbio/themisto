@@ -15,6 +15,7 @@
 #include "TempFileManager.hh"
 #include <signal.h>
 #include "input_reading.hh"
+#include "throwing_streams.hh"
 #include <chrono>
 #include <iomanip>
 
@@ -88,26 +89,39 @@ map<string,vector<string> > parse_args(int argc, char** argv){
     return M;
 }
 
+char fix_char(char c){
+    char c_new = toupper(c);
+    if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
+        c_new = 'A';
+    }
+    return c_new;
+}
 
-string fix_alphabet(string fastafile){
+// Returns number of chars replaced
+LL fix_alphabet(string& S){
+    LL chars_replaced = 0;
+    for(LL i = 0; i < S.size(); i++){
+        char c = S[i];
+        char c_new = fix_char(c);
+        if(c_new != c){
+            S[i] = c_new;
+            chars_replaced++;
+        }
+    }
+    return chars_replaced;
+}
+
+
+// Makes a copy of the file and replaces a bad characters. Returns the new filename
+string fix_FASTA_alphabet(string fastafile){
     write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with 'A'");
     FASTA_reader fr(fastafile);
     string new_filename = temp_file_manager.get_temp_file_name("seqs-");
-    ofstream out(new_filename);
+    throwing_ofstream out(new_filename);
     LL chars_replaced = 0;
     while(!fr.done()){
         string read = fr.get_next_query_stream().get_all();
-        for(LL i = 0; i < read.size(); i++){
-            char c = read[i];
-            char c_new = toupper(c);
-            if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
-                c_new = 'A';
-            }
-            if(c_new != c){
-                read[i] = c_new;
-                chars_replaced++;
-            }
-        }
+        chars_replaced += fix_alphabet(read);
         out << ">\n" << read << "\n";
     }
     write_log("Replaced " + to_string(chars_replaced) + " characters");
@@ -253,59 +267,42 @@ void check_dir_exists(string path){
 }
 
 void check_readable(string filename){
-    ifstream F(filename);
-    if(!F.good()){
-        cerr << "Error reading file: " << filename << endl;
-        exit(1);
-    }
+    throwing_ifstream F(filename); // Throws on failure
 }
 
 // Also clears the file
 void check_writable(string filename){
-    ofstream F(filename, std::ofstream::out | std::ofstream::app);
-    if(!F.good()){
-        cerr << "Error writing to file: " << filename << endl;
-        exit(1);
-    }
+    throwing_ofstream F(filename, std::ofstream::out | std::ofstream::app); // Throws on failure
 }
 
 
 template <typename T>
 void write_to_file(string path, T& thing){
-    ofstream out(path);
-    if(!out.good()){
-        cerr << "Error writing to " << path << endl;
-        exit(1);
-    }
+    throwing_ofstream out(path);
     out << thing << endl;
 }
 
 
 template <typename T>
 void read_from_file(string path, T& thing){
-    ifstream input(path);
-    if(!input.good()){
-        cerr << "Error reading file: " << path << endl;
-        exit(1);
-    } else{
-        input >> thing;
-    }    
+    throwing_ifstream input(path);
+    input >> thing;
 }
 
 vector<string> get_all_lines(string infile){
     vector<string> lines;
     string line;
-    ifstream in(infile);
-    while(getline(in,line)){
+    throwing_ifstream in(infile);
+    while(in.getline(line)){
         lines.push_back(line);
     }
     return lines;
 }
 
 vector<char> read_binary_file(string infile){
-    std::ifstream file(infile, std::ios::binary | std::ios::ate);
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
+    throwing_ifstream file(infile, std::ios::binary | std::ios::ate);
+    std::streamsize size = file.stream.tellg();
+    file.stream.seekg(0, std::ios::beg);
 
     std::vector<char> buffer(size);
     if (file.read(buffer.data(), size)){
@@ -318,24 +315,19 @@ vector<char> read_binary_file(string infile){
 
 bool files_are_equal(const std::string& p1, const std::string& p2) {
   //https://stackoverflow.com/questions/6163611/compare-two-files/6163627
-    std::ifstream f1(p1, std::ifstream::binary|std::ifstream::ate);
-    std::ifstream f2(p2, std::ifstream::binary|std::ifstream::ate);
+    throwing_ifstream f1(p1, std::ifstream::binary|std::ifstream::ate);
+    throwing_ifstream f2(p2, std::ifstream::binary|std::ifstream::ate);
 
-    if (f1.fail() || f2.fail()) {
-        assert(false);
-        return false; //file problem
-    }
-
-    if (f1.tellg() != f2.tellg()) {
+    if (f1.stream.tellg() != f2.stream.tellg()) {
       return false; //size mismatch
     }
 
     //seek back to beginning and use std::equal to compare contents
-    f1.seekg(0, std::ifstream::beg);
-    f2.seekg(0, std::ifstream::beg);
-    return std::equal(std::istreambuf_iterator<char>(f1.rdbuf()),
+    f1.stream.seekg(0, std::ifstream::beg);
+    f2.stream.seekg(0, std::ifstream::beg);
+    return std::equal(std::istreambuf_iterator<char>(f1.stream.rdbuf()),
                     std::istreambuf_iterator<char>(),
-                    std::istreambuf_iterator<char>(f2.rdbuf()));
+                    std::istreambuf_iterator<char>(f2.stream.rdbuf()));
 }
 
 class Progress_printer{

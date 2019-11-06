@@ -19,19 +19,19 @@ extern void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads,
 // Also deletes leading empty lines as a side effect
 void EM_delete_duplicate_lines(string infile, string outfile){
 
-    ifstream in(infile);
-    ofstream out(outfile);
+    throwing_ifstream in(infile);
+    throwing_ofstream out(outfile);
 
     string prev;
     string line;
-    while(getline(in, line)){
+    while(in.getline(line)){
         if(line != prev) out << line << "\n";
         prev = line;
     }
 }
 
 
-int main(int argc, char** argv){
+int main2(int argc, char** argv){
 
     string fastafile = argv[1];
     string tempdir = argv[2];
@@ -41,7 +41,7 @@ int main(int argc, char** argv){
 
     set_temp_dir(tempdir);
 
-    fastafile = fix_alphabet(fastafile);
+    fastafile = fix_FASTA_alphabet(fastafile);
 
     string KMC_file = temp_file_manager.get_temp_file_name("");
 
@@ -55,7 +55,7 @@ int main(int argc, char** argv){
 
     write_log("Listing by brute");
     string brute_file = temp_file_manager.get_temp_file_name("");
-    ofstream brute_out(brute_file);
+    throwing_ofstream brute_out(brute_file);
     FASTA_reader fr(fastafile);
     while(!fr.done()){
         string seq = fr.get_next_query_stream().get_all();
@@ -79,13 +79,13 @@ int main(int argc, char** argv){
     write_log("Comparing KMC and brute");
 
     string brute_line, kmc_line;
-    ifstream brute_in(brute_uniques);
-    ifstream KMC_in(KMC_sorted);
+    throwing_ifstream brute_in(brute_uniques);
+    throwing_ifstream KMC_in(KMC_sorted);
     while(KMC_in || brute_in){
-        getline(KMC_in, kmc_line);
-        getline(brute_in, brute_line);
-        if(!KMC_in) assert(!brute_in);
-        if(!brute_in) assert(!KMC_in);
+        KMC_in.getline(kmc_line);
+        brute_in.getline(brute_line);
+        if(!KMC_in.stream) assert(!brute_in.stream);
+        if(!brute_in.stream) assert(!KMC_in.stream);
         if(kmc_line != brute_line){
             cout << "mismatch " << kmc_line << " " << brute_line << endl;
         }
@@ -93,3 +93,11 @@ int main(int argc, char** argv){
 
 }
 
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
+}

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int main(){
+int main2(int argc, char** argv){
     // Reads input in the output format of the pseudoalign program from stdin, i.e.
     // On each line there is a list of numbers. The first is the sequence
     // id of the query read, and the rest are sequence ids of the references
@@ -29,4 +29,13 @@ int main(){
         cout << ref_id << " " << count << endl;
     }
 
+}
+
+int main(int argc, char** argv){
+    try{
+        return main2(argc, argv);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    }
 }

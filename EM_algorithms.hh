@@ -53,13 +53,13 @@ string EM_line_sort_pairs(string infile, int (*cmp_1) (const char* x_1, const ch
 string EM_delete_duplicate_lines_from_sorted_file(string infile){
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile);
-    ofstream out(outfile);
+    throwing_ifstream in(infile);
+    throwing_ofstream out(outfile);
 
     LL line_count = 0;
     string line;
     string prev_line;
-    while(getline(in,line)){
+    while(in.getline(line)){
         if(line_count == 0 || line != prev_line)
             out << line << "\n";
         prev_line = line;
@@ -72,8 +72,8 @@ string EM_delete_duplicate_lines_from_sorted_file(string infile){
 string debug_binary_to_string_form(string infile){
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile,ios::binary);
-    ofstream out(outfile);
+    throwing_ifstream in(infile,ios::binary);
+    throwing_ofstream out(outfile);
 
     char cur[8+8+8]; // size parameter and two long longs
     
@@ -90,8 +90,8 @@ string debug_binary_to_string_form(string infile){
 string EM_delete_duplicate_LL_pair_records(string infile){
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile, ios::binary);
-    ofstream out(outfile, ios::binary);
+    throwing_ifstream in(infile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
 
     char prev[8+8]; // two long longs
     char cur[8+8]; // two long longs
@@ -115,8 +115,8 @@ string EM_delete_duplicate_LL_pair_records(string infile){
 string EM_collect_colorsets_binary(string infile){
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile, ios::binary);
-    ofstream out(outfile, ios::binary);
+    throwing_ifstream in(infile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
 
     LL active_key = -1;
     vector<LL> cur_value_list;
@@ -125,7 +125,7 @@ string EM_collect_colorsets_binary(string infile){
 
     while(true){
         in.read(buffer,8+8);
-        if(!in.good()) break;
+        if(in.stream.eof()) break;
 
         LL key = parse_big_endian_LL(buffer + 0);
         LL value = parse_big_endian_LL(buffer + 8);
@@ -184,8 +184,8 @@ string EM_sort_by_colorsets_binary(string infile, LL ram_bytes, LL n_threads){
 string EM_collect_nodes_by_colorset_binary(string infile){
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile, ios::binary);
-    ofstream out(outfile, ios::binary);
+    throwing_ifstream in(infile, ios::binary);
+    throwing_ofstream out(outfile, ios::binary);
 
     vector<LL> active_key;
     vector<LL> cur_value_list;
@@ -195,7 +195,7 @@ string EM_collect_nodes_by_colorset_binary(string infile){
     while(true){
         key.clear();
         in.read(buffer.data(),8);
-        if(!in.good()) break;
+        if(in.stream.eof()) break;
         LL record_len = parse_big_endian_LL(buffer.data());
         assert(record_len >= 8+8+8);
         while(buffer.size() < record_len)
@@ -260,14 +260,14 @@ string EM_collect(string infile, LL key_pos){
 
     string outfile = temp_file_manager.get_temp_file_name("");
 
-    ifstream in(infile);
-    ofstream out(outfile);
+    throwing_ifstream in(infile);
+    throwing_ofstream out(outfile);
 
     string line;
     string cur_key = "";
     vector<string> cur_value_list;
 
-    while(getline(in,line)){
+    while(in.getline(line)){
         vector<string> tokens = split(line,';');
         assert(tokens.size() == 2);
         string key, value;

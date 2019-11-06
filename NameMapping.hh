@@ -67,7 +67,7 @@ public:
 
     void save_to_disk(string path_prefix){
         check_writable(path_prefix + "id_to_name");
-        ofstream id_to_name_out(path_prefix + "id_to_name");
+        throwing_ofstream id_to_name_out(path_prefix + "id_to_name");
         for(auto keyvalue : id_to_name){
             id_to_name_out << keyvalue.first << " " << keyvalue.second << "\n";
         }
@@ -78,9 +78,9 @@ public:
         name_to_id.clear();
 
         check_readable(path_prefix + "id_to_name");    
-        ifstream input(path_prefix + "id_to_name");
+        throwing_ifstream input(path_prefix + "id_to_name");
         string line;
-        while(getline(input, line)){
+        while(input.getline(line)){
             vector<string> tokens = parse_tokens<string>(line);
             assert(tokens.size() == 2);
             LL id = stoll(tokens[0]);
@@ -93,15 +93,11 @@ public:
 private:
 
     vector<string> read_namefile(string namefile){
-        ifstream namestream(namefile);
-        if(!namestream.good()){
-            cerr << "Error opening file " << namefile << endl;
-            exit(0);
-        }
+        throwing_ifstream namestream(namefile);
 
         vector<string> naming;
         string name;
-        while(getline(namestream, name)){
+        while(namestream.getline(name)){
             naming.push_back(name);
         }
 
