@@ -20,9 +20,6 @@ pseudoalign:
 build/KMC.a: # NOT a .PHONY target
 	ar r build/KMC.a $(KMC_objects)
 
-build/KMC_counter.o: # NOT a .PHONY target
-	$(CXX) $(STD) KMC/kmer_counter/kmer_counter.cpp -lz -lbz2 -o build/KMC_counter.o -c -Wall -Wno-sign-compare -Wno-implicit-fallthrough -Wextra $(includes) -g -fopenmp -pthread -no-pie
-
 build/KMC_wrapper.o:  # NOT a .PHONY target
 	$(CXX) $(STD) KMC_wrapper.cpp -lz -lbz2 -o build/KMC_wrapper.o -c -Wall -Wno-sign-compare -Wno-implicit-fallthrough -Wextra $(includes) -g -fopenmp -pthread -no-pie
 
