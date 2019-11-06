@@ -58,12 +58,12 @@ int main2(int argc, char** argv){
         cerr << "  --load-boss (if given, loads a precomputed boss from the index directory)" << endl;
         cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;
         cerr << "  --fasta-file [filename] (always required)" << endl,
-        cerr << "  --color-file [filename] (required only if you want to build the colors)" << endl;
+        cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line)" << endl;
+        cerr << "                          (required only if you want to build the colors)" << endl;
         cerr << "  --auto-colors (instead of color file let the program automatically give colors integer names)" << endl;
         cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
         cerr << "  --temp-dir [path] (always required, directory must exist before running)" << endl;
         cerr << "  --mem-megas [number] (Number of megabytes allowed for external memory algorithms. Default: 1000)" << endl;
-        cerr << "  --disk-megas [number] (megabytes of disk space allocated for stxll library. Default: 10000)" << endl;
         cerr << "  --n-threads [number] (number of parallel threads to use. Default: 1)" << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
