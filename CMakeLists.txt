@@ -2,6 +2,14 @@ cmake_minimum_required (VERSION 3.1)
 project (Themisto)
 include(ExternalProject)
 
+## Determine build type and set flags accordingly
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release) ## Build Release by default
+endif()
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 ## Get version number from git tags
 find_package(Git)
 if(GIT_FOUND)
@@ -31,9 +39,6 @@ find_package(OpenMP REQUIRED)
 ## Require c++14
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Enable optimization flags
-set(CMAKE_BUILD_TYPE Release)
 
 ## Build KMC during the configure step (it has no CMakeLists.txt)
 configure_file(CMakeLists.txt.in KMC/CMakeLists.txt)
