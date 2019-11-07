@@ -63,7 +63,7 @@ LL union_buffers(vector<LL>& buf1, LL buf1_len, vector<LL>& buf2, LL buf2_len, v
     return end - result_buf.begin();
 }
 
-class KallistoLite{
+class Themisto{
 
 public:
 
@@ -94,7 +94,7 @@ public:
 
     public:
 
-        KallistoLite* kl;
+        Themisto* kl;
         ParallelOutputWriter* out;
         bool reverse_complements;
         LL output_buffer_size;
@@ -105,7 +105,7 @@ public:
         vector<LL> union_buffer;
         string rc_buffer;
 
-        AlignerThread(KallistoLite* kl, ParallelOutputWriter* out, bool reverse_complements, LL output_buffer_size){
+        AlignerThread(Themisto* kl, ParallelOutputWriter* out, bool reverse_complements, LL output_buffer_size){
             this->kl = kl;
             this->out = out;
             this->reverse_complements = reverse_complements;
@@ -498,13 +498,13 @@ public:
 
             NameMapping nm(temp_dir + "/colors.txt");
 
-            KallistoLite kl_build;
+            Themisto kl_build;
             kl_build.construct_boss(temp_dir + "/genomes.fna", tcase.k, 1000, 2);
             kl_build.construct_colors(temp_dir + "/genomes.fna", temp_dir + "/colors.txt", 1000, 3);
             kl_build.save_boss(temp_dir + "/boss-");
             kl_build.save_colors(temp_dir + "/colors-");
 
-            KallistoLite kl;
+            Themisto kl;
             kl.load_boss(temp_dir + "/boss-");
             kl.load_colors(temp_dir + "/colors-");
             

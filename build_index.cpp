@@ -1,4 +1,4 @@
-#include "KallistoLite.hh"
+#include "Themisto.hh"
 #include "globals.hh"
 #include <string>
 #include <cstring>
@@ -52,7 +52,7 @@ struct Config{
 };
 
 int main2(int argc, char** argv){
-    KallistoLite kl;
+    Themisto themisto;
     if(argc == 1){
         cerr << "Options: " << endl;
         cerr << "  --load-boss (if given, loads a precomputed boss from the index directory)" << endl;
@@ -121,18 +121,18 @@ int main2(int argc, char** argv){
 
     if(C.load_boss){
         write_log("Loading BOSS");
-        kl.load_boss(C.index_dir + "/boss-");
+        themisto.load_boss(C.index_dir + "/boss-");
     } else{
         write_log("Building BOSS");
-        kl.construct_boss(C.fastafile, C.k, C.memory_megas * 1e6, C.n_threads);
-        kl.save_boss(C.index_dir + "/boss-");
-        write_log("Building BOSS finished (" + std::to_string(kl.boss.get_number_of_nodes()) + " nodes)");
+        themisto.construct_boss(C.fastafile, C.k, C.memory_megas * 1e6, C.n_threads);
+        themisto.save_boss(C.index_dir + "/boss-");
+        write_log("Building BOSS finished (" + std::to_string(themisto.boss.get_number_of_nodes()) + " nodes)");
     }
 
     if(C.colorfile != "" || C.auto_colors){
         write_log("Building colors");
-        kl.construct_colors(C.fastafile, C.auto_colors ? "" : C.colorfile, C.memory_megas * 1e6, C.n_threads);
-        kl.save_colors(C.index_dir + "/coloring-");
+        themisto.construct_colors(C.fastafile, C.auto_colors ? "" : C.colorfile, C.memory_megas * 1e6, C.n_threads);
+        themisto.save_colors(C.index_dir + "/coloring-");
     }
 
     write_log("Finished");

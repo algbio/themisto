@@ -1,4 +1,4 @@
-#include "KallistoLite.hh"
+#include "Themisto.hh"
 #include "input_reading.hh"
 #include <string>
 #include <cstring>
@@ -141,14 +141,14 @@ int main2(int argc, char** argv){
     temp_file_manager.set_dir(C.temp_dir);
 
     write_log("Loading the index");    
-    KallistoLite kl;
-    kl.load_boss(C.index_dir + "/boss-");
-    kl.load_colors(C.index_dir + "/coloring-");
+    Themisto themisto;
+    themisto.load_boss(C.index_dir + "/boss-");
+    themisto.load_colors(C.index_dir + "/coloring-");
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        kl.pseudoalign_parallel(C.n_threads, C.query_files[i], C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
+        themisto.pseudoalign_parallel(C.n_threads, C.query_files[i], C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 

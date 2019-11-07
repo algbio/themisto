@@ -7,7 +7,7 @@
 #include "input_reading.hh"
 #include "globals.hh"
 #include "BOSS.hh"
-#include "KallistoLite.hh"
+#include "Themisto.hh"
 #include <stdlib.h> 
 #include "EM_sort_tests.hh"
 
