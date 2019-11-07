@@ -87,7 +87,7 @@ find_library(BZIP2 bz2 PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs/)
 find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs/)
 
 ## Link
-target_link_libraries(kmc_wrapper Threads::Threads OpenMP::OpenMP_CXX ${OBJS} ${BZIP2} ${ZLIB})
+target_link_libraries(kmc_wrapper Threads::Threads OpenMP::OpenMP_CXX ${OBJS} ${BZIP2} ${ZLIB} -static)
 target_link_libraries(pseudoalign kmc_wrapper sdsl bdbwt divsufsort64 Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper sdsl bdbwt divsufsort64 Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(themisto_tests kmc_wrapper sdsl bdbwt divsufsort64 OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(themisto_tests kmc_wrapper sdsl bdbwt divsufsort64 Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
