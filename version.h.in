@@ -1,0 +1,9 @@
+#ifndef THEMISTO_VERSION_H
+#define THEMISTO_VERSION_H
+// *DON'T MODIFY MANUALLY*, CMake automatically updates this file!
+// Defines variables containing the build version and timestamp
+
+#define THEMISTO_BUILD_VERSION "@THEMISTO_BUILD_VERSION@"
+#define THEMISTO_BUILD_TIMESTAMP "@THEMISTO_BUILD_TIMESTAMP@"
+
+#endif

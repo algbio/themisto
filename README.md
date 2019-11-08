@@ -1,42 +1,40 @@
-External dependencies: libz and libbz2
+# Installation
+## Requirements
+External dependencies: libz and libbz2.
 
-Compiling (todo: better instructions and/or build process):
+Other requirements: C++14 compliant compiler, CMake v3.10 or newer.
 
-First, install libz and libbz2 if your system does not already have those. Then:
+## Compiling
+First, install libz and libbz2 if your system does not already have
+those. Then run:
 
-    # Compile sdsl-lite
-    cd sdsl-lite
-    sh install.sh
-    
-    # Compile BD_BWT_index
-    cd ../BD_BWT_index
-    cmake .
+	cmake .
     make
 
-    # Compile KMC
-    cd ../KMC
-    make
-    cd ..
+This will produce the build\_index, pseudoalignment, and
+themisto\_tests executables.
 
-    # Compile the main executables
-    make tests build_index pseudoalign
+(Optional) Check if everything installed correctly by running tests:
 
-To run tests, run:
+    ./themisto_tests
 
-    ./tests
+If there is a problem, the tests will terminate and report an error message.
 
-If there is a problem, it will terminate and report an error message.
-
+# Usage
+## Indexing
 To build the index, run:
 
     ./build_index
 
 The program will then print instructions on how to use it.
 
+## Pseudoalignment
 To pseudoalign against the index, run:
 
     ./pseudoalign
 
 The program will then print instructions on how to use it.
+
+# License
 
 This software is licensed under GPLv2. See LICENSE.txt.

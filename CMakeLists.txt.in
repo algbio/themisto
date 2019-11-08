@@ -1,0 +1,25 @@
+cmake_minimum_required (VERSION 3.1)
+include(ExternalProject)
+project(KMC-init)
+
+if(UNIX AND NOT APPLE)
+  ExternalProject_Add(KMC
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/KMC"
+    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/KMC"
+    BUILD_COMMAND     "makefile"
+    CONFIGURE_COMMAND ""
+    INSTALL_COMMAND   ""
+    UPDATE_COMMAND    ""
+    TEST_COMMAND      ""
+  )
+elseif(APPLE)
+  ExternalProject_Add(KMC
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/KMC"
+    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/KMC"
+    BUILD_COMMAND     "makefile_mac"
+    CONFIGURE_COMMAND ""
+    INSTALL_COMMAND   ""
+    UPDATE_COMMAND    ""
+    TEST_COMMAND      ""
+  )
+endif()
