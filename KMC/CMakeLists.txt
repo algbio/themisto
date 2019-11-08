@@ -39,7 +39,8 @@ add_library(kmcapi STATIC ${KMC_API_SOURCES})
 
 add_library(kmc STATIC ${KMER_COUNTER_SOURCES})
 
-target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${ZLIB} ${BZIP2})
 if(NOT APPLE)
-  target_link_options(kmc PRIVATE "-static")
+  target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${BZIP2} ${ZLIB} -static)
+else()
+  target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${BZIP2} ${ZLIB})
 endif()

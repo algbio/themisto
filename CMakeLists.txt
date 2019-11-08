@@ -67,9 +67,10 @@ add_dependencies(build_index kmc_wrapper bdbwt)
 add_dependencies(themisto_tests kmc_wrapper bdbwt)
 
 ## Link
-target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 if(NOT APPLE)
-  target_link_options(kmc_wrapper PRIVATE "-static")
+  target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} -static)
+else()
+  target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 endif()
 target_link_libraries(pseudoalign kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
