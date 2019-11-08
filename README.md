@@ -5,15 +5,16 @@ Compilation: C++14 compliant compiler with OpenMPI support, and CMake v3.1 or ne
 ## Compiling
 Enter the Themisto directory and run
 
-	cmake .
+	cd build
+	cmake ..
     make
 
 This will produce the build\_index, pseudoalignment, and
-themisto\_tests executables.
+themisto\_tests executables in the build/bin/ directory.
 
 (Optional) Check if everything installed correctly by running tests:
 
-    ./themisto_tests
+    bin/themisto_tests
 
 If there is a problem, the tests will terminate and report an error message.
 
@@ -25,21 +26,22 @@ newer from homebrew with
 
 Afterwards, Themisto can be compiled by entering the directory and running
 
-	cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) .
+	cd build
+	cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) ..
 	make
 
 # Usage
 ## Indexing
 To build the index, run:
 
-    ./build_index
+    build_index
 
 The program will then print instructions on how to use it.
 
 ## Pseudoalignment
 To pseudoalign against the index, run:
 
-    ./pseudoalign
+    pseudoalign
 
 The program will then print instructions on how to use it.
 
