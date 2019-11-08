@@ -18,8 +18,8 @@ find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(OpenMP REQUIRED)
 
-find_library(BZIP2 bz2 HINTS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
-find_library(ZLIB z HINTS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
+find_library(BZIP2 bz2 PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
+find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
 
 ## Get version number from git tags
 find_package(Git)
@@ -67,7 +67,10 @@ add_dependencies(build_index kmc_wrapper bdbwt)
 add_dependencies(themisto_tests kmc_wrapper bdbwt)
 
 ## Link
-target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} -static)
+target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+if(NOT APPLE)
+  target_link_options(kmc_wrapper PRIVATE "-static")
+endif()
 target_link_libraries(pseudoalign kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(themisto_tests kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})

@@ -13,8 +13,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_library(BZIP2 bz2 HINTS kmc_tools/libs/)
-find_library(ZLIB z HINTS kmc_tools/libs/)
+find_library(BZIP2 bz2 PATHS kmc_tools/libs/)
+find_library(ZLIB z PATHS kmc_tools/libs/)
 
 file(GLOB KMER_COUNTER_SOURCES kmer_counter/kmer_counter.cpp
 kmer_counter/mmer.cpp kmer_counter/mem_disk_file.cpp
@@ -39,4 +39,7 @@ add_library(kmcapi STATIC ${KMC_API_SOURCES})
 
 add_library(kmc STATIC ${KMER_COUNTER_SOURCES})
 
-target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${ZLIB} ${BZIP2} -static)
+target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${ZLIB} ${BZIP2})
+if(NOT APPLE)
+  target_link_options(kmc PRIVATE "-static")
+endif()
