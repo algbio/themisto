@@ -1,12 +1,9 @@
 # Installation
 ## Requirements
-External dependencies: libz and libbz2.
-
-Other requirements: C++14 compliant compiler, CMake v3.10 or newer.
+Compilation: C++14 compliant compiler, CMake v3.1 or newer.
 
 ## Compiling
-First, install libz and libbz2 if your system does not already have
-those. Then run:
+Enter the Themisto directory and run
 
 	cmake .
     make
