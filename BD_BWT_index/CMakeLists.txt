@@ -15,5 +15,5 @@ include_directories(include dbwt ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_S
 add_library(bdbwt ${LIBRARY_SOURCES} ${COMMON_SOURCES})
 target_link_libraries(bdbwt sdsl divsufsort64)
 
-add_executable(tests ${TEST_SOURCES} ${COMMON_SOURCES})
-target_link_libraries(tests sdsl divsufsort64)
+add_executable(bdbwt_tests ${TEST_SOURCES} ${COMMON_SOURCES})
+target_link_libraries(bdbwt_tests sdsl divsufsort64)
