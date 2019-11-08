@@ -1,6 +1,6 @@
 # Installation
 ## Requirements
-Compilation: C++14 compliant compiler, CMake v3.1 or newer.
+Compilation: C++14 compliant compiler with OpenMPI support, and CMake v3.1 or newer.
 
 ## Compiling
 Enter the Themisto directory and run
@@ -16,6 +16,17 @@ themisto\_tests executables.
     ./themisto_tests
 
 If there is a problem, the tests will terminate and report an error message.
+
+## Compiling on macOS
+Compiling Themisto on macOS requires users to first install gcc-6.1 or
+newer from homebrew with
+
+	brew install gcc@6
+
+Afterwards, Themisto can be compiled by entering the directory and running
+
+	cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) .
+	make
 
 # Usage
 ## Indexing
