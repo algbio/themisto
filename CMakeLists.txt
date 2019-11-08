@@ -10,8 +10,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 ## Require c++14
-set (CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Check dependencies
 find_package(Threads REQUIRED)
@@ -48,6 +48,12 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/BD_BWT_index
                  ${CMAKE_CURRENT_BINARY_DIR}/BD_BWT_index/build)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/KMC
                  ${CMAKE_CURRENT_BINARY_DIR}/KMC/build)
+
+## Don't build the parts that we won't need
+set_target_properties(divsufsort PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
+set_target_properties(bdbwt_tests PROPERTIES EXCLUDE_FROM_ALL 1)
 
 ## Set includes
 include_directories(BD_BWT_index/include sdsl-lite/include KMC/kmer_counter KMC)
