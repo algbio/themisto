@@ -12,7 +12,7 @@ Enter the Themisto directory and run
 This will produce the build\_index, pseudoalignment, and
 themisto\_tests executables in the build/bin/ directory.
 
-(Optional) Check if everything installed correctly by running tests:
+(Optional) Check if everything compiled correctly by running tests:
 
     bin/themisto_tests
 
@@ -29,6 +29,12 @@ Afterwards, Themisto can be compiled by entering the directory and running
 	cd build
 	cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) ..
 	make
+
+Note that macOS has a very small limit for the number of concurrently
+opened files. Themisto can use temporary files to conserve RAM, and
+may run into this limit. To increase the limit, run the command
+
+	ulimit -n 2048
 
 # Usage
 ## Indexing
