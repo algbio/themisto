@@ -18,6 +18,12 @@ themisto\_tests executables in the build/bin/ directory.
 
 If there is a problem, the tests will terminate and report an error message.
 
+If you run into problems involving zlib or bzip2, you can instruct the
+build process to download & compile them from source with
+
+	cmake -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 ..
+	make
+
 ## Compiling on macOS
 Compiling Themisto on macOS requires users to first install gcc-6.1 or
 newer from homebrew with

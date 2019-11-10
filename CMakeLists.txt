@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.1)
 project(Themisto)
+include(ExternalProject)
 
 ## Determine build type and set flags accordingly
 if(NOT CMAKE_BUILD_TYPE)
@@ -12,6 +13,53 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+## Check if we should compile zlib or bzip2
+if(CMAKE_BUILD_ZLIB)
+  configure_file(CMakeLists_zlib.txt.in ${CMAKE_BINARY_DIR}/external/zlib-download/CMakeLists.txt)
+  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/zlib-download )
+  if(result)
+    message(FATAL_ERROR "CMake step for zlib failed: ${result}")
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/zlib-download )
+  if(result)
+    message(FATAL_ERROR "Build step for zlib failed: ${result}")
+  endif()
+  set(ZLIB ${CMAKE_BINARY_DIR}/lib/libz.a)
+else()
+  find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
+endif()
+if(CMAKE_BUILD_BZIP2)
+  configure_file(CMakeLists_bzip2.txt.in ${CMAKE_BINARY_DIR}/external/bzip2-download/CMakeLists.txt)
+  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/bzip2-download )
+  if(result)
+    message(FATAL_ERROR "CMake step for bzip2 failed: ${result}")
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/bzip2-download )
+  if(result)
+    message(FATAL_ERROR "Build step for bzip2 failed: ${result}")
+  endif()
+  set(BZIP2 ${CMAKE_BINARY_DIR}/external/bzip2/libbz2.a)
+  ExternalProject_Add(bzip2
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/bzip2"
+    BUILD_IN_SOURCE   1
+    BUILD_COMMAND     $(MAKE) -f ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/Makefile CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS}
+    CONFIGURE_COMMAND ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+    UPDATE_COMMAND    ""
+  )
+else()
+  find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2/)
+endif()
+
 ## Require c++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,9 +68,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(OpenMP REQUIRED)
-
-find_library(BZIP2 bz2 PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
-find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
 
 ## Get version number from git tags
 find_package(Git)
@@ -59,7 +104,7 @@ set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
 set_target_properties(bdbwt_tests PROPERTIES EXCLUDE_FROM_ALL 1)
 
 ## Set includes
-include_directories(BD_BWT_index/include sdsl-lite/include KMC/kmer_counter KMC ${CMAKE_BINARY_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/BD_BWT_index/include ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_BINARY_DIR}/include)
 
 ## Libraries & executables to build
 add_library(kmc_wrapper STATIC KMC_wrapper.cpp)
@@ -74,6 +119,18 @@ add_dependencies(bdbwt_tests sdsl divsufsort64)
 add_dependencies(pseudoalign kmc_wrapper bdbwt)
 add_dependencies(build_index kmc_wrapper bdbwt)
 add_dependencies(themisto_tests kmc_wrapper bdbwt)
+
+## Handle compiling zlib or bzip2 from source
+if(CMAKE_BUILD_ZLIB)
+  add_subdirectory(${CMAKE_BINARY_DIR}/external/zlib
+                   ${CMAKE_BINARY_DIR}/external/zlib)
+  set_target_properties(example PROPERTIES EXCLUDE_FROM_ALL 1)
+  set_target_properties(minigzip PROPERTIES EXCLUDE_FROM_ALL 1)
+  add_dependencies(kmc_wrapper zlibstatic)
+endif()
+if(CMAKE_BUILD_BZIP2)
+  add_dependencies(kmc_wrapper bzip2)
+endif()
 
 ## Link
 if(NOT APPLE)

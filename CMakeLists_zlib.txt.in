@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 2.8.2)
+
+project(zlib-get NONE)
+include(ExternalProject)
+
+ExternalProject_Add(zlib-download
+  GIT_REPOSITORY    https://github.com/madler/zlib.git
+  GIT_TAG           v1.2.11
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/zlib"
+  BUILD_IN_SOURCE   1
+  CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/external/zlib/configure --static
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)
