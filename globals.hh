@@ -115,7 +115,7 @@ LL fix_alphabet(string& S){
 // Makes a copy of the file and replaces a bad characters. Returns the new filename
 string fix_FASTA_alphabet(string fastafile){
     write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with 'A'");
-    FASTA_reader fr(fastafile);
+    Sequence_Reader fr(fastafile, FASTA_MODE);
     string new_filename = temp_file_manager.get_temp_file_name("seqs-");
     throwing_ofstream out(new_filename);
     LL chars_replaced = 0;
@@ -157,7 +157,7 @@ string get_temp_file_name(string prefix){
 
 vector<string> get_first_and_last_kmers(string fastafile, LL k){
     // todo: this is pretty expensive because this has to read the whole reference data
-    FASTA_reader fr(fastafile);
+    Sequence_Reader fr(fastafile, FASTA_MODE);
     vector<string> result;
     while(!fr.done()){
         string ref = fr.get_next_query_stream().get_all();

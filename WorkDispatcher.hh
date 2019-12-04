@@ -117,7 +117,7 @@ void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumer
 void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file, int64_t buffer_size){
     // Push work in batches of approximately buffer_size base pairs
 
-    FASTA_reader fr(query_file);
+    Sequence_Reader fr(query_file, FASTA_MODE);
 
     Read_Batch rb;
     rb.read_id_of_first = 0;

@@ -175,7 +175,7 @@ public:
     string generate_colorfile(string fastafile){
         string colorfile = temp_file_manager.get_temp_file_name("");
         throwing_ofstream out(colorfile);
-        FASTA_reader fr(fastafile);
+        Sequence_Reader fr(fastafile, FASTA_MODE);
         LL seq_id = 0;
         while(!fr.done()){
             fr.get_next_query_stream().get_all();
