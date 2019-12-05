@@ -43,9 +43,10 @@ public:
     string header;
     int64_t mode;
     string dummy; // Used to skip over lines in fastq
+    bool upper_case_enabled;
     
     // mode is FASTA_MODE of FASTQ_MODE defined in this file
-    Read_stream(throwing_ifstream* file, string header, int64_t mode) : file(file), header(header), mode(mode) {
+    Read_stream(throwing_ifstream* file, string header, int64_t mode, bool upper_case_enabled) : file(file), header(header), mode(mode), upper_case_enabled(upper_case_enabled) {
     
     }
 
@@ -64,6 +65,7 @@ public:
                 goto start; // "recursive call"
             }
             file->read(&c,1);
+            if(upper_case_enabled) c = toupper(c);
             return true;
         } else if(mode == FASTQ_MODE){
             int next_char = file->stream.peek();
@@ -78,6 +80,7 @@ public:
             }
             else{
                 file->read(&c,1);
+                if(upper_case_enabled) c = toupper(c);
                 return true;
             }
         } else{
@@ -101,9 +104,10 @@ public:
 
     throwing_ifstream file;
     int64_t mode;
+    bool upper_case_enabled;
 
     // mode is FASTA_MODE of FASTQ_MODE defined in this file
-    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode) {
+    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode), upper_case_enabled(false) {
         if(mode == FASTA_MODE) {
             if(file.stream.peek() != '>'){
                 throw runtime_error("Error: FASTA-file does not start with '>'");
@@ -119,8 +123,13 @@ public:
     Read_stream get_next_query_stream(){
         string header;
         file.getline(header);
-        Read_stream rs(&file, header,mode);
+        Read_stream rs(&file, header, mode, upper_case_enabled);
         return rs;
+    }
+
+    // If flag is true, then query streams will upper case all sequences (off by default)
+    void set_upper_case(bool flag){
+        upper_case_enabled = flag;
     }
 
     bool done(){

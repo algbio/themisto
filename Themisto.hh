@@ -298,7 +298,7 @@ public:
         return output_size;
     }
 
-    void pseudoalign_parallel(LL n_threads, string fastafile, string input_format, string outfile, bool reverse_complements, LL buffer_size){
+    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size){
         string tempfile = temp_file_manager.get_temp_file_name("results_temp");
         ParallelOutputWriter out(tempfile);
         vector<DispatcherConsumerCallback*> threads;
@@ -307,7 +307,7 @@ public:
             threads.push_back(T);
         }
 
-        run_dispatcher(threads, fastafile, input_format, buffer_size);
+        run_dispatcher(threads, sr, buffer_size);
 
         // Clean up
         for(DispatcherConsumerCallback* t : threads) delete t;
@@ -457,7 +457,7 @@ public:
     }
 
     void test_pseudoalign(string temp_dir){
-        cerr << "Testing KallistoLite" << endl;
+        cerr << "Testing pseudolign" << endl;
 
         ColoringTester ct;
         LL testcase_id = -1;
@@ -529,7 +529,8 @@ public:
             assert(kl.coloring.get_all_colorsets(kl.boss) == correct_coloring_ids);
 
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
-            kl.pseudoalign_parallel(n_threads, temp_dir + "/queries.fna", "fasta", final_file, false, 300);
+            Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
+            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300);
 
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 

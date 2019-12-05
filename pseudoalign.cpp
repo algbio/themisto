@@ -162,7 +162,9 @@ int main2(int argc, char** argv){
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        themisto.pseudoalign_parallel(C.n_threads, C.query_files[i], C.input_format, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
+        Sequence_Reader sr(C.query_files[i], C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+        sr.set_upper_case(true);
+        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 
