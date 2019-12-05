@@ -92,7 +92,11 @@ map<string,vector<string> > parse_args(int argc, char** argv){
 char fix_char(char c){
     char c_new = toupper(c);
     if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
-        c_new = 'A';
+        LL r = rand() % 4;
+        if(r == 0) c_new = 'A';
+        if(r == 1) c_new = 'C';
+        if(r == 2) c_new = 'G';
+        if(r == 3) c_new = 'T';
     }
     return c_new;
 }
@@ -113,14 +117,15 @@ LL fix_alphabet(string& S){
 
 
 // Makes a copy of the file and replaces a bad characters. Returns the new filename
-string fix_FASTA_alphabet(string fastafile){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with 'A'");
-    Sequence_Reader fr(fastafile, FASTA_MODE);
+// The new file is in fasta format
+string fix_alphabet(Sequence_Reader& sr){
+    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characeters from {A,C,G,T}");
+    //Sequence_Reader fr(fastafile, FASTA_MODE);
     string new_filename = temp_file_manager.get_temp_file_name("seqs-");
     throwing_ofstream out(new_filename);
     LL chars_replaced = 0;
-    while(!fr.done()){
-        string read = fr.get_next_query_stream().get_all();
+    while(!sr.done()){
+        string read = sr.get_next_query_stream().get_all();
         chars_replaced += fix_alphabet(read);
         out << ">\n" << read << "\n";
     }
