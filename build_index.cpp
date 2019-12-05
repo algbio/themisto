@@ -1,5 +1,6 @@
 #include "Themisto.hh"
 #include "globals.hh"
+#include "zpipe.hh"
 #include <string>
 #include <cstring>
 
@@ -19,7 +20,7 @@ struct Config{
 
     void check_valid(){
         check_readable(inputfile);
-        assert(input_format == "fasta" || input_format == "fastq");
+        assert(input_format != "");
 
         if(!load_boss){
             assert(k != -1);
@@ -61,12 +62,14 @@ int main2(int argc, char** argv){
         cerr << "  --input-file [filename] (The input sequences in FASTA or FASTQ format. The format" << endl;
         cerr << "                           is inferred from the file extension. Recognized file extensions for" << endl;
         cerr << "                           fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
-        cerr << "                           fastq are: .fastq and .fq . " << endl;
+        cerr << "                           fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed" << endl;
+        cerr << "                           into a temporary directory and the temporary file is deleted after use." << endl;
         cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line." << endl;
         cerr << "                          Required only if you want to build the colors)" << endl;
         cerr << "  --auto-colors (instead of a color file let the program automatically give colors integer names (0,1,2...))" << endl;
-        cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
-        cerr << "  --temp-dir [path] (always required, directory must exist before running)" << endl;
+        cerr << "  --index-dir [path] (Directory where the index will be built. Always required, directory must" << endl;
+        cerr << "                      exist before running)" << endl;
+        cerr << "  --temp-dir [path] (Temporary direction. Always required, directory must exist before running)" << endl;
         cerr << "  --mem-megas [number] (Number of megabytes allowed for external memory algorithms. Default: 1000)" << endl;
         cerr << "  --n-threads [number] (number of parallel threads to use. Default: 1)" << endl;
         cerr << "Usage examples:" << endl;
@@ -123,6 +126,16 @@ int main2(int argc, char** argv){
 
     cerr << C.to_string() << endl;
     write_log("Starting");
+
+    if(C.input_format == "gzip"){
+        write_log("Decompressing the input file");
+        string new_name = temp_file_manager.get_temp_file_name("input");
+        int64_t errorcode = gz_decompress(C.inputfile, new_name);
+        cout << errorcode << endl;
+        assert(errorcode == Z_OK);
+        C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
+        C.inputfile = new_name;
+    }
 
     Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     C.inputfile = fix_alphabet(sr); // Turns the file into fasta format also

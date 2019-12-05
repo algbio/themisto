@@ -103,6 +103,8 @@ string figure_out_file_format(string filename){
             if(end == ".fastq") return "fastq";
             if(end == ".fq") return "fastq";
 
+            if(end == ".gz") return "gzip";
+
             throw(runtime_error("Unknown file format: " + filename));
         }
     }
