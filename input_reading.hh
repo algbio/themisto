@@ -71,6 +71,7 @@ public:
                 // End of read. Rewind two lines forward to get to the header of the next read
                 // for the next read stream
                 file->getline(dummy); // Consume the newline
+                assert(file->stream.peek() == '+');
                 file->getline(dummy); // Consume the '+'-line
                 file->getline(dummy); // Consume the quality values
                 return false;
