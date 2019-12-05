@@ -1,6 +1,6 @@
 # Installation
 ## Requirements
-Compilation: C++14 compliant compiler with OpenMPI support, and CMake v3.1 or newer.
+Compilation: C++14 compliant compiler with OpenMP support, and CMake v3.1 or newer.
 
 ## Compiling
 Enter the Themisto directory and run
