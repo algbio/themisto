@@ -86,10 +86,12 @@ int main2(int argc, char** argv){
             C.k = std::stoll(values[0]);
         } else if(option == "--fasta-file"){
             assert(values.size() == 1);
+            assert(C.inputfile == "");
             C.inputfile = values[0];
             C.input_format = "fasta";
         } else if(option == "--fastq-file"){
             assert(values.size() == 1);
+            assert(C.inputfile == "");
             C.inputfile = values[0];
             C.input_format = "fastq";
         } else if(option == "--n-threads"){

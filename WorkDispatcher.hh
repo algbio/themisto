@@ -114,10 +114,10 @@ void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumer
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
-void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file, int64_t buffer_size){
+void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file, string input_format, int64_t buffer_size){
     // Push work in batches of approximately buffer_size base pairs
 
-    Sequence_Reader fr(query_file, FASTA_MODE);
+    Sequence_Reader fr(query_file, input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
 
     Read_Batch rb;
     rb.read_id_of_first = 0;
@@ -148,7 +148,7 @@ void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, string query_file,
     Q.push(rb,0); // Empty batch in the end signifies end of the queue
 }
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, string fastafile, LL buffer_size){
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, string fastafile, string input_format, LL buffer_size){
     vector<std::thread> threads;
     ParallelBoundedQueue<Read_Batch> Q(buffer_size);
 
@@ -158,7 +158,7 @@ void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, string fasta
     }
 
     // Create producer
-    threads.push_back(std::thread(dispatcher_producer,std::ref(Q),fastafile,buffer_size));
+    threads.push_back(std::thread(dispatcher_producer,std::ref(Q),fastafile,input_format,buffer_size));
 
     for(std::thread& t : threads) t.join();
 

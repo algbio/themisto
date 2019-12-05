@@ -10,12 +10,14 @@ struct Config{
     vector<string> outfiles;
     string index_dir;
     string temp_dir;
+    string input_format;
     LL memory_megas = 1000;
     
     bool reverse_complements = false;
     LL n_threads = 1;
 
     void check_valid(){
+        assert(input_format == "fasta" || input_format == "fastq");
         for(string query_file : query_files){
             if(query_file != ""){
                 check_readable(query_file);
@@ -77,6 +79,10 @@ int main2(int argc, char** argv){
         cerr << "should contain one filename on each line." << endl;
         cerr << "  --query-file-list [filename]" << endl;
         cerr << "  --outfile-list [filename]" << endl;
+        cerr << "The input files must be in fasta or fastq format (all in the same format)." << endl;
+        cerr << "Specify the format with one of the following:" << endl;
+        cerr << "  --fasta" << endl;
+        cerr << "  --fastq" << endl;
         cerr << "The index must be built before running this program. Specify the location" << endl;
         cerr << "of the index with the following option:" << endl;
         cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
@@ -104,10 +110,18 @@ int main2(int argc, char** argv){
         vector<string> values = keyvalue.second;
         if(option == "--query-file"){
             assert(values.size() == 1);
+            assert(C.query_files.size() == 0);
             C.query_files.push_back(values[0]);
         } else if(option == "--query-file-list"){
             assert(values.size() == 1);
+            assert(C.query_files.size() == 0);
             C.query_files = read_lines(values[0]);
+        } else if(option == "--fasta"){
+            assert(C.input_format == "");
+            C.input_format = "fasta";
+        } else if(option == "--fastq"){
+            assert(C.input_format == "");
+            C.input_format = "fastq";
         } else if(option == "--index-dir"){
             assert(values.size() == 1);
             C.index_dir = values[0];
@@ -148,7 +162,7 @@ int main2(int argc, char** argv){
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        themisto.pseudoalign_parallel(C.n_threads, C.query_files[i], C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
+        themisto.pseudoalign_parallel(C.n_threads, C.query_files[i], C.input_format, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 
