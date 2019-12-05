@@ -3,6 +3,7 @@
 #include "zpipe.hh"
 #include <string>
 #include <cstring>
+#include "version.h"
 
 using namespace std;
 
@@ -161,6 +162,7 @@ int main2(int argc, char** argv){
 }
 
 int main(int argc, char** argv){
+    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
     try{
         return main2(argc, argv);
     } catch (const std::runtime_error &e){

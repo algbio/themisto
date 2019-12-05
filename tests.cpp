@@ -10,13 +10,13 @@
 #include "Themisto.hh"
 #include <stdlib.h> 
 #include "EM_sort_tests.hh"
+#include "version.h"
 
 using namespace std;
 
 typedef int64_t LL; // long long
 
 int main2(int argc, char** argv){
-
     (void)argc; (void)argv; // not used
 
     if(system("mkdir -p temp") != 0){
@@ -46,6 +46,7 @@ int main2(int argc, char** argv){
 }
 
 int main(int argc, char** argv){
+    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
     (void)argc; (void)argv; // not used
     try{
         return main2(argc, argv);
