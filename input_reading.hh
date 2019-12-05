@@ -9,6 +9,9 @@
 
 using namespace std; // Bad practice but whatever
 
+const int64_t FASTA_MODE = 0;
+const int64_t FASTQ_MODE = 1;
+
 class Raw_file_stream{
 private:
     
@@ -33,31 +36,57 @@ class Read_stream{
     
 private:
     
-    bool end_of_read;
     throwing_ifstream* file;
 
 public:
 
     string header;
+    int64_t mode;
+    string dummy; // Used to skip over lines in fastq
+    bool upper_case_enabled;
     
-    Read_stream(throwing_ifstream* file, string header) : end_of_read(false), file(file), header(header) {
+    // mode is FASTA_MODE of FASTQ_MODE defined in this file
+    Read_stream(throwing_ifstream* file, string header, int64_t mode, bool upper_case_enabled) : file(file), header(header), mode(mode), upper_case_enabled(upper_case_enabled) {
     
     }
 
-    // Behaviour: Tries to read a byte to c. If eof or '>' was read,
-    // return false and return false from here on. If c
-    // is '\n' or '\r', read another byte recursively.
+    // Behaviour: Tries to read a char to c by peeking the file stream. Return false
+    // if could not get a character because the sequence ended, otherwise return true.
+    // If this returns false then the file stream will be put in such a state that the
+    // next character is the first character of the header of the next read (or the EOF
+    // character if it was the last read).
     bool getchar(char& c){
-        start:
-        int next_char = file->stream.peek();
-        if(next_char == EOF || next_char == '>') return false;
-        if(next_char == '\n' || next_char == '\r'){
+        if(mode == FASTA_MODE){
+            start:
+            int next_char = file->stream.peek();
+            if(next_char == EOF || next_char == '>') return false;
+            if(next_char == '\n' || next_char == '\r'){
+                file->read(&c,1);
+                goto start; // "recursive call"
+            }
             file->read(&c,1);
-            goto start; // "recursive call"
+            if(upper_case_enabled) c = toupper(c);
+            return true;
+        } else if(mode == FASTQ_MODE){
+            int next_char = file->stream.peek();
+            if(next_char == '\n' || next_char == '\r') {
+                // End of read. Rewind two lines forward to get to the header of the next read
+                // for the next read stream
+                file->getline(dummy); // Consume the newline
+                assert(file->stream.peek() == '+');
+                file->getline(dummy); // Consume the '+'-line
+                file->getline(dummy); // Consume the quality values
+                return false;
+            }
+            else{
+                file->read(&c,1);
+                if(upper_case_enabled) c = toupper(c);
+                return true;
+            }
+        } else{
+            cerr << "Invalid sequence read mode: " << mode << endl;
+            assert(false);
         }
-
-        file->read(&c,1);
-        return true;
     }
 
     string get_all(){ // todo: make more efficient?
@@ -69,28 +98,44 @@ public:
 
 };
 
+class Sequence_Reader{
 
-
-class FASTA_reader{
-    
-private:
-    
-    throwing_ifstream file;
-    
 public:
-    
-    FASTA_reader(string filename) : file(filename, ios::in | ios::binary) {}
-    
-    bool done(){
-        return file.stream.peek() == EOF;
+
+    throwing_ifstream file;
+    int64_t mode;
+    bool upper_case_enabled;
+
+    // mode is FASTA_MODE of FASTQ_MODE defined in this file
+    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode), upper_case_enabled(false) {
+        if(mode == FASTA_MODE) {
+            if(file.stream.peek() != '>'){
+                throw runtime_error("Error: FASTA-file does not start with '>'");
+            }
+        }
+        if(mode == FASTQ_MODE) {
+            if(file.stream.peek() != '@'){
+                throw runtime_error("Error: FASTQ-file does not start with '@'");
+            }
+        }
     }
-    
+
     Read_stream get_next_query_stream(){
         string header;
         file.getline(header);
-        Read_stream rs(&file, header);
+        Read_stream rs(&file, header, mode, upper_case_enabled);
         return rs;
     }
+
+    // If flag is true, then query streams will upper case all sequences (off by default)
+    void set_upper_case(bool flag){
+        upper_case_enabled = flag;
+    }
+
+    bool done(){
+        return file.stream.peek() == EOF;
+    }
+
 };
 
 // Vector of (read, header) pairs

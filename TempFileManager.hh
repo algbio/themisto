@@ -97,7 +97,7 @@ public:
     // delete_file: delete a file before the end of the lifetime of the manager
     void delete_file(string filename){
         if(used_names.count(filename) == 0){
-            cerr << "Error: tried to delete a file that does not exist: " << filename << endl;
+            cerr << "Error: tried to delete a temp file that thet temp file manager did not create: " << filename << endl;
             exit(1);
         }
         remove(filename.c_str());

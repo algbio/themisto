@@ -818,7 +818,7 @@ BOSS build_BOSS_with_bibwt(string S, LL k){
 
 BOSS build_BOSS_with_bibwt_from_fasta(string fastafile, LL k){
     string concat;
-    FASTA_reader fr(fastafile);
+    Sequence_Reader fr(fastafile, FASTA_MODE);
     while(!fr.done()){
         Read_stream rs = fr.get_next_query_stream();
         concat += read_separator + rs.get_all();

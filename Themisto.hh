@@ -175,7 +175,7 @@ public:
     string generate_colorfile(string fastafile){
         string colorfile = temp_file_manager.get_temp_file_name("");
         throwing_ofstream out(colorfile);
-        FASTA_reader fr(fastafile);
+        Sequence_Reader fr(fastafile, FASTA_MODE);
         LL seq_id = 0;
         while(!fr.done()){
             fr.get_next_query_stream().get_all();
@@ -298,7 +298,7 @@ public:
         return output_size;
     }
 
-    void pseudoalign_parallel(LL n_threads, string fastafile, string outfile, bool reverse_complements, LL buffer_size){
+    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size){
         string tempfile = temp_file_manager.get_temp_file_name("results_temp");
         ParallelOutputWriter out(tempfile);
         vector<DispatcherConsumerCallback*> threads;
@@ -307,7 +307,7 @@ public:
             threads.push_back(T);
         }
 
-        run_dispatcher(threads, fastafile, buffer_size);
+        run_dispatcher(threads, sr, buffer_size);
 
         // Clean up
         for(DispatcherConsumerCallback* t : threads) delete t;
@@ -373,7 +373,7 @@ public:
 
 };
 
-class KallistoLite_Tester{
+class Themisto_Tester{
 
 public:
 
@@ -457,7 +457,7 @@ public:
     }
 
     void test_pseudoalign(string temp_dir){
-        cerr << "Testing KallistoLite" << endl;
+        cerr << "Testing pseudolign" << endl;
 
         ColoringTester ct;
         LL testcase_id = -1;
@@ -529,7 +529,8 @@ public:
             assert(kl.coloring.get_all_colorsets(kl.boss) == correct_coloring_ids);
 
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
-            kl.pseudoalign_parallel(n_threads, temp_dir + "/queries.fna", final_file, false, 300);
+            Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
+            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300);
 
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 
@@ -574,6 +575,6 @@ public:
 };
 
 void test_pseudoalign(string temp_dir){
-    KallistoLite_Tester tester;
+    Themisto_Tester tester;
     tester.test_pseudoalign(temp_dir);
 }

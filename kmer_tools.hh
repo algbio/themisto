@@ -13,7 +13,7 @@ using namespace std;
 // APPENDS to outfile, does not overwrite
 void add_extra_kmers(string fastafile, string outfile, LL k){
     throwing_ofstream kmerfile(outfile, std::ofstream::out | std::ofstream::app);
-    FASTA_reader fr(fastafile);
+    Sequence_Reader fr(fastafile, FASTA_MODE);
     string concat;
     while(!fr.done()){
         string read = fr.get_next_query_stream().get_all();
@@ -39,7 +39,7 @@ void add_extra_kmers(string fastafile, string outfile, LL k){
 // Writes into outputfile all distinct cyclic k-mers of C, one k-mer per line, in any order
 void list_all_distinct_cyclic_kmers_in_memory(string input_fastafile, string outputfile, int64_t k){
     string concat;
-    FASTA_reader fr(input_fastafile);
+    Sequence_Reader fr(input_fastafile, FASTA_MODE);
     while(!fr.done()){
         string read = fr.get_next_query_stream().get_all();
         concat += read_separator + read;

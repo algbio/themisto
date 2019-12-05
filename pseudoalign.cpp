@@ -1,5 +1,6 @@
 #include "Themisto.hh"
 #include "input_reading.hh"
+#include "zpipe.hh"
 #include <string>
 #include <cstring>
 
@@ -70,6 +71,10 @@ int main2(int argc, char** argv){
 
     if(argc == 1){
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
+        cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
+        cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
+        cerr << "fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
+        cerr << "fastq are: .fastq and .fq ." << endl;
         cerr << "To give a single query file, use the following two options: " << endl;
         cerr << "  --query-file [filename]" << endl;
         cerr << "  --outfile [path] (directory must exist before running)" << endl;
@@ -104,9 +109,11 @@ int main2(int argc, char** argv){
         vector<string> values = keyvalue.second;
         if(option == "--query-file"){
             assert(values.size() == 1);
+            assert(C.query_files.size() == 0);
             C.query_files.push_back(values[0]);
         } else if(option == "--query-file-list"){
             assert(values.size() == 1);
+            assert(C.query_files.size() == 0);
             C.query_files = read_lines(values[0]);
         } else if(option == "--index-dir"){
             assert(values.size() == 1);
@@ -148,7 +155,19 @@ int main2(int argc, char** argv){
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        themisto.pseudoalign_parallel(C.n_threads, C.query_files[i], C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
+
+        string inputfile = C.query_files[i];
+        string file_format = figure_out_file_format(inputfile);
+        if(file_format == "gzip"){
+            string new_name = temp_file_manager.get_temp_file_name("input");
+            assert(gz_decompress(inputfile, new_name) == Z_OK);
+            file_format = figure_out_file_format(inputfile.substr(0,inputfile.size() - 3));
+            inputfile = new_name;
+        }
+
+        Sequence_Reader sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+        sr.set_upper_case(true);
+        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 

@@ -89,16 +89,43 @@ map<string,vector<string> > parse_args(int argc, char** argv){
     return M;
 }
 
+string figure_out_file_format(string filename){
+    for(LL i = filename.size()-1; i >= 0; i--){
+        if(filename[i] == '.'){
+            string end = filename.substr(i);
+            
+            if(end == ".fasta") return "fasta";
+            if(end == ".fna") return "fasta";
+            if(end == ".ffn") return "fasta";
+            if(end == ".faa") return "fasta";
+            if(end == ".frn") return "fasta";
+
+            if(end == ".fastq") return "fastq";
+            if(end == ".fq") return "fastq";
+
+            if(end == ".gz") return "gzip";
+
+            throw(runtime_error("Unknown file format: " + filename));
+        }
+    }
+    throw(runtime_error("Unknown file format: " + filename));
+    return "unknown";
+}
+
 char fix_char(char c){
     char c_new = toupper(c);
     if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
-        c_new = 'A';
+        LL r = rand() % 4;
+        if(r == 0) c_new = 'A';
+        if(r == 1) c_new = 'C';
+        if(r == 2) c_new = 'G';
+        if(r == 3) c_new = 'T';
     }
     return c_new;
 }
 
 // Returns number of chars replaced
-LL fix_alphabet(string& S){
+LL fix_alphabet_of_string(string& S){
     LL chars_replaced = 0;
     for(LL i = 0; i < S.size(); i++){
         char c = S[i];
@@ -113,15 +140,16 @@ LL fix_alphabet(string& S){
 
 
 // Makes a copy of the file and replaces a bad characters. Returns the new filename
-string fix_FASTA_alphabet(string fastafile){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with 'A'");
-    FASTA_reader fr(fastafile);
+// The new file is in fasta format
+string fix_alphabet(Sequence_Reader& sr){
+    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characeters from {A,C,G,T}");
+    //Sequence_Reader fr(fastafile, FASTA_MODE);
     string new_filename = temp_file_manager.get_temp_file_name("seqs-");
     throwing_ofstream out(new_filename);
     LL chars_replaced = 0;
-    while(!fr.done()){
-        string read = fr.get_next_query_stream().get_all();
-        chars_replaced += fix_alphabet(read);
+    while(!sr.done()){
+        string read = sr.get_next_query_stream().get_all();
+        chars_replaced += fix_alphabet_of_string(read);
         out << ">\n" << read << "\n";
     }
     write_log("Replaced " + to_string(chars_replaced) + " characters");
@@ -157,7 +185,7 @@ string get_temp_file_name(string prefix){
 
 vector<string> get_first_and_last_kmers(string fastafile, LL k){
     // todo: this is pretty expensive because this has to read the whole reference data
-    FASTA_reader fr(fastafile);
+    Sequence_Reader fr(fastafile, FASTA_MODE);
     vector<string> result;
     while(!fr.done()){
         string ref = fr.get_next_query_stream().get_all();

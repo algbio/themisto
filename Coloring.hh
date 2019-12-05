@@ -284,7 +284,9 @@ private:
             AlignerThread* T = new AlignerThread(&seq_id_to_color_id, &writer, 1024*1024, &boss, this);
             threads.push_back(T);
         }
-        run_dispatcher(threads, fastafile, 1024*1024);
+
+        Sequence_Reader sr(fastafile, FASTA_MODE);
+        run_dispatcher(threads, sr, 1024*1024);
 
         // Clean up
         for(DispatcherConsumerCallback* t : threads) delete t;
