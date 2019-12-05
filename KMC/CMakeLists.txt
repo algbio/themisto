@@ -37,24 +37,20 @@ ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/kmer.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/splitter.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/kb_collector.cpp)
 
-add_library(raduls_sse2 STATIC ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_sse2.cpp)
+add_library(raduls_sse2 ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_sse2.cpp)
 target_compile_options(raduls_sse2 PRIVATE "-msse2")
-add_library(raduls_sse41 STATIC ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_sse41.cpp)
+add_library(raduls_sse41 ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_sse41.cpp)
 target_compile_options(raduls_sse41 PRIVATE "-msse4.1")
-add_library(raduls_avx STATIC ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_avx.cpp)
+add_library(raduls_avx ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_avx.cpp)
 target_compile_options(raduls_avx PRIVATE "-mavx")
-add_library(raduls_avx2 STATIC ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_avx2.cpp)
+add_library(raduls_avx2 ${CMAKE_CURRENT_SOURCE_DIR}/kmer_counter/raduls_avx2.cpp)
 target_compile_options(raduls_avx2 PRIVATE "-mavx2")
 
 file(GLOB KMC_API_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/kmc_api/*.cpp)
-add_library(kmcapi STATIC ${KMC_API_SOURCES})
+add_library(kmcapi ${KMC_API_SOURCES})
 target_compile_options(kmcapi PRIVATE "${CMAKE_CXX_FLAGS_PASSED}")
 
-add_library(kmc STATIC ${KMER_COUNTER_SOURCES})
+add_library(kmc ${KMER_COUNTER_SOURCES})
 target_compile_options(kmc PRIVATE "${CMAKE_CXX_FLAGS_PASSED}")
 
-if(NOT APPLE)
-  target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${BZIP2} ${ZLIB} -static)
-else()
-  target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${BZIP2} ${ZLIB})
-endif()
+target_link_libraries(kmc kmcapi raduls_sse2 raduls_sse41 raduls_avx raduls_avx2 ${BZIP2} ${ZLIB})

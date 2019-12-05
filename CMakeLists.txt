@@ -107,7 +107,7 @@ set_target_properties(bdbwt_tests PROPERTIES EXCLUDE_FROM_ALL 1)
 include_directories(${CMAKE_SOURCE_DIR}/BD_BWT_index/include ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_BINARY_DIR}/include)
 
 ## Libraries & executables to build
-add_library(kmc_wrapper STATIC KMC_wrapper.cpp)
+add_library(kmc_wrapper KMC_wrapper.cpp)
 add_executable(pseudoalign pseudoalign.cpp)
 add_executable(build_index build_index.cpp)
 add_executable(themisto_tests tests.cpp)
@@ -133,11 +133,7 @@ if(CMAKE_BUILD_BZIP2)
 endif()
 
 ## Link
-if(NOT APPLE)
-  target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} -static)
-else()
-  target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-endif()
+target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(pseudoalign kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(themisto_tests kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
