@@ -10,14 +10,12 @@ struct Config{
     vector<string> outfiles;
     string index_dir;
     string temp_dir;
-    string input_format;
     LL memory_megas = 1000;
     
     bool reverse_complements = false;
     LL n_threads = 1;
 
     void check_valid(){
-        assert(input_format == "fasta" || input_format == "fastq");
         for(string query_file : query_files){
             if(query_file != ""){
                 check_readable(query_file);
