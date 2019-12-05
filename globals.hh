@@ -102,9 +102,11 @@ string figure_out_file_format(string filename){
 
             if(end == ".fastq") return "fastq";
             if(end == ".fq") return "fastq";
-            return "unknown";
+
+            throw(runtime_error("Unknown file format: " + filename));
         }
     }
+    throw(runtime_error("Unknown file format: " + filename));
     return "unknown";
 }
 

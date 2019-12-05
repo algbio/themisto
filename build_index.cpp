@@ -59,8 +59,8 @@ int main2(int argc, char** argv){
         cerr << "  --load-boss (if given, loads a precomputed boss from the index directory)" << endl;
         cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;
         cerr << "  --input-file [filename] (The input sequences in FASTA or FASTQ format. The format" << endl;
-        cerr << "                           is inferred from the file extension. Valid file extensions for" << endl;
-        cerr << "                           fasta are: .fasta, .fna, .ffn, .faa and .frn . Valid extensions for" << endl;
+        cerr << "                           is inferred from the file extension. Recognized file extensions for" << endl;
+        cerr << "                           fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
         cerr << "                           fastq are: .fastq and .fq . " << endl;
         cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line." << endl;
         cerr << "                          Required only if you want to build the colors)" << endl;

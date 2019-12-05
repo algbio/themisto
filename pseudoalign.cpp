@@ -72,6 +72,10 @@ int main2(int argc, char** argv){
 
     if(argc == 1){
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
+        cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
+        cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
+        cerr << "fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
+        cerr << "fastq are: .fastq and .fq ." << endl;
         cerr << "To give a single query file, use the following two options: " << endl;
         cerr << "  --query-file [filename]" << endl;
         cerr << "  --outfile [path] (directory must exist before running)" << endl;
@@ -79,10 +83,6 @@ int main2(int argc, char** argv){
         cerr << "should contain one filename on each line." << endl;
         cerr << "  --query-file-list [filename]" << endl;
         cerr << "  --outfile-list [filename]" << endl;
-        cerr << "The input files must be in fasta or fastq format (all in the same format)." << endl;
-        cerr << "Specify the format with one of the following:" << endl;
-        cerr << "  --fasta" << endl;
-        cerr << "  --fastq" << endl;
         cerr << "The index must be built before running this program. Specify the location" << endl;
         cerr << "of the index with the following option:" << endl;
         cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
@@ -116,12 +116,6 @@ int main2(int argc, char** argv){
             assert(values.size() == 1);
             assert(C.query_files.size() == 0);
             C.query_files = read_lines(values[0]);
-        } else if(option == "--fasta"){
-            assert(C.input_format == "");
-            C.input_format = "fasta";
-        } else if(option == "--fastq"){
-            assert(C.input_format == "");
-            C.input_format = "fastq";
         } else if(option == "--index-dir"){
             assert(values.size() == 1);
             C.index_dir = values[0];
@@ -162,7 +156,8 @@ int main2(int argc, char** argv){
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        Sequence_Reader sr(C.query_files[i], C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+        string file_format = figure_out_file_format(C.query_files[i]);
+        Sequence_Reader sr(C.query_files[i], file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         sr.set_upper_case(true);
         themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
