@@ -130,9 +130,7 @@ int main2(int argc, char** argv){
     if(C.input_format == "gzip"){
         write_log("Decompressing the input file");
         string new_name = temp_file_manager.get_temp_file_name("input");
-        int64_t errorcode = gz_decompress(C.inputfile, new_name);
-        cout << errorcode << endl;
-        assert(errorcode == Z_OK);
+        assert(gz_decompress(C.inputfile, new_name) == Z_OK);
         C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
         C.inputfile = new_name;
     }

@@ -1,5 +1,6 @@
 #include "Themisto.hh"
 #include "input_reading.hh"
+#include "zpipe.hh"
 #include <string>
 #include <cstring>
 
@@ -154,8 +155,17 @@ int main2(int argc, char** argv){
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
         // TODO: RESPECT RAM BOUND
-        string file_format = figure_out_file_format(C.query_files[i]);
-        Sequence_Reader sr(C.query_files[i], file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+
+        string inputfile = C.query_files[i];
+        string file_format = figure_out_file_format(inputfile);
+        if(file_format == "gzip"){
+            string new_name = temp_file_manager.get_temp_file_name("input");
+            assert(gz_decompress(inputfile, new_name) == Z_OK);
+            file_format = figure_out_file_format(inputfile.substr(0,inputfile.size() - 3));
+            inputfile = new_name;
+        }
+
+        Sequence_Reader sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         sr.set_upper_case(true);
         themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
         temp_file_manager.clean_up();
