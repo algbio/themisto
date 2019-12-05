@@ -373,7 +373,7 @@ public:
 
 };
 
-class KallistoLite_Tester{
+class Themisto_Tester{
 
 public:
 
@@ -575,6 +575,6 @@ public:
 };
 
 void test_pseudoalign(string temp_dir){
-    KallistoLite_Tester tester;
+    Themisto_Tester tester;
     tester.test_pseudoalign(temp_dir);
 }
