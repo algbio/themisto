@@ -101,7 +101,18 @@ public:
     int64_t mode;
 
     // mode is FASTA_MODE of FASTQ_MODE defined in this file
-    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode) {}
+    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode) {
+        if(mode == FASTA_MODE) {
+            if(file.stream.peek() != '>'){
+                throw runtime_error("Error: FASTA-file does not start with '>'");
+            }
+        }
+        if(mode == FASTQ_MODE) {
+            if(file.stream.peek() != '@'){
+                throw runtime_error("Error: FASTQ-file does not start with '@'");
+            }
+        }
+    }
 
     Read_stream get_next_query_stream(){
         string header;
