@@ -70,8 +70,9 @@ public:
             if(next_char == '\n' || next_char == '\r') {
                 // End of read. Rewind two lines forward to get to the header of the next read
                 // for the next read stream
-                file->getline(dummy);
-                file->getline(dummy);
+                file->getline(dummy); // Consume the newline
+                file->getline(dummy); // Consume the '+'-line
+                file->getline(dummy); // Consume the quality values
                 return false;
             }
             else{
