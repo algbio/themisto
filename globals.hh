@@ -89,6 +89,25 @@ map<string,vector<string> > parse_args(int argc, char** argv){
     return M;
 }
 
+string figure_out_file_format(string filename){
+    for(LL i = filename.size()-1; i >= 0; i--){
+        if(filename[i] == '.'){
+            string end = filename.substr(i);
+            
+            if(end == ".fasta") return "fasta";
+            if(end == ".fna") return "fasta";
+            if(end == ".ffn") return "fasta";
+            if(end == ".faa") return "fasta";
+            if(end == ".frn") return "fasta";
+
+            if(end == ".fastq") return "fastq";
+            if(end == ".fq") return "fastq";
+            return "unknown";
+        }
+    }
+    return "unknown";
+}
+
 char fix_char(char c){
     char c_new = toupper(c);
     if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){

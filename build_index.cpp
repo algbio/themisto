@@ -58,10 +58,12 @@ int main2(int argc, char** argv){
         cerr << "Options: " << endl;
         cerr << "  --load-boss (if given, loads a precomputed boss from the index directory)" << endl;
         cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;
-        cerr << "  --fasta-file [filename] (the data in FASTA format from which the index is built)" << endl;
-        cerr << "  --fastq-file [filename] (the data in FASTQ format from which the index is built)" << endl;
-        cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line)" << endl;
-        cerr << "                          (required only if you want to build the colors)" << endl;
+        cerr << "  --input-file [filename] (The input sequences in FASTA or FASTQ format. The format" << endl;
+        cerr << "                           is inferred from the file extension. Valid file extensions for" << endl;
+        cerr << "                           fasta are: .fasta, .fna, .ffn, .faa and .frn . Valid extensions for" << endl;
+        cerr << "                           fastq are: .fastq and .fq . " << endl;
+        cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line." << endl;
+        cerr << "                          Required only if you want to build the colors)" << endl;
         cerr << "  --auto-colors (instead of a color file let the program automatically give colors integer names (0,1,2...))" << endl;
         cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
         cerr << "  --temp-dir [path] (always required, directory must exist before running)" << endl;
@@ -84,16 +86,11 @@ int main2(int argc, char** argv){
         if(option == "--k"){
             assert(values.size() == 1);
             C.k = std::stoll(values[0]);
-        } else if(option == "--fasta-file"){
+        } else if(option == "--input-file"){
             assert(values.size() == 1);
             assert(C.inputfile == "");
             C.inputfile = values[0];
-            C.input_format = "fasta";
-        } else if(option == "--fastq-file"){
-            assert(values.size() == 1);
-            assert(C.inputfile == "");
-            C.inputfile = values[0];
-            C.input_format = "fastq";
+            C.input_format = figure_out_file_format(values[0]);
         } else if(option == "--n-threads"){
             assert(values.size() == 1);
             C.n_threads = std::stoll(values[0]);
