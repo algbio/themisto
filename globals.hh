@@ -102,7 +102,7 @@ char fix_char(char c){
 }
 
 // Returns number of chars replaced
-LL fix_alphabet(string& S){
+LL fix_alphabet_of_string(string& S){
     LL chars_replaced = 0;
     for(LL i = 0; i < S.size(); i++){
         char c = S[i];
@@ -126,7 +126,7 @@ string fix_alphabet(Sequence_Reader& sr){
     LL chars_replaced = 0;
     while(!sr.done()){
         string read = sr.get_next_query_stream().get_all();
-        chars_replaced += fix_alphabet(read);
+        chars_replaced += fix_alphabet_of_string(read);
         out << ">\n" << read << "\n";
     }
     write_log("Replaced " + to_string(chars_replaced) + " characters");
