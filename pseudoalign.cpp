@@ -71,6 +71,7 @@ vector<string> read_lines(string filename){
 int main2(int argc, char** argv){
 
     if(argc == 1){
+        cerr << "This program aligns query sequences against an index that has been built previously." << endl;
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
         cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
         cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
@@ -92,7 +93,7 @@ int main2(int argc, char** argv){
         cerr << "If you want to align also to the reverse complement, give the following:" << endl;
         cerr << "  --rc (optional, aligns with the reverse complement also)" << endl;
         cerr << "The number of worked threads is given with the following option: " << endl;
-        cerr << "  --threads (optional, default 1)" << endl;
+        cerr << "  --n-threads (optional, default 1)" << endl;
         cerr << "Additional memory allowed on top of the index structure:" << endl;
         cerr << "  --mem-megas [number] (optional. Default: 1000)" << endl;
         cerr << endl;
@@ -130,7 +131,7 @@ int main2(int argc, char** argv){
             C.outfiles = read_lines(values[0]);
         } else if(option == "--rc"){
             C.reverse_complements = true;
-        } else if(option == "--threads"){
+        } else if(option == "--n-threads"){
             assert(values.size() == 1);
             C.n_threads = stoll(values[0]);
         } else if(option == "--mem-megas"){
