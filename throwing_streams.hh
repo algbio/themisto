@@ -85,7 +85,7 @@ class throwing_ifstream{
     throwing_ifstream(string filename, ios_base::openmode mode = ios_base::in) : filename(filename) {
         stream.open(filename, mode);
         if(!stream.good()){
-            throw runtime_error("Error opening file: " + filename);
+            throw runtime_error("Error opening file: '" + filename + "'");
         }
     }
 
@@ -95,7 +95,7 @@ class throwing_ifstream{
     bool getline(string& line){
         std::getline(stream, line);
         if(!stream.good() && !stream.eof()) 
-            throw runtime_error("Error reading from file " + filename);
+            throw runtime_error("Error reading from file '" + filename + "'");
 
         return !stream.eof();
     }
@@ -106,7 +106,7 @@ class throwing_ifstream{
     bool read(char* data, int64_t n){
         stream.read(data, n);
         if(!stream.good() && !stream.eof()) 
-            throw runtime_error("Error reading from file " + filename);
+            throw runtime_error("Error reading from file '" + filename + "'");
         return !stream.eof();
     }
 
@@ -119,7 +119,7 @@ class throwing_ifstream{
     void open(string filename, ios_base::openmode mode = ios_base::in){
         stream.open(filename, mode);
         if(!stream.good()){
-            throw runtime_error("Error opening file: " + filename);
+            throw runtime_error("Error opening file: '" + filename + "'");
         }
     }
 

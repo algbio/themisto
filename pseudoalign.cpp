@@ -25,16 +25,16 @@ struct Config{
         }
 
         for(string outfile : outfiles){
-            assert(outfile != "");
+            check_true(outfile != "", "Outfile not set");
             check_writable(outfile);
         }
 
-        assert(query_files.size() == outfiles.size());
+        check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
         
-        assert(index_dir != "");
+        check_true(index_dir != "", "Index directory not set");
         check_dir_exists(index_dir);
 
-        assert(temp_dir != "");
+        check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
     }
 };
@@ -110,32 +110,33 @@ int main2(int argc, char** argv){
         string option = keyvalue.first;
         vector<string> values = keyvalue.second;
         if(option == "--query-file"){
-            assert(values.size() == 1);
-            assert(C.query_files.size() == 0);
+            check_true(values.size() == 1, "--query-file must be followed by a single filename");
+            check_true(C.query_files.size() == 0, "query files specified multiple times");
             C.query_files.push_back(values[0]);
         } else if(option == "--query-file-list"){
-            assert(values.size() == 1);
-            assert(C.query_files.size() == 0);
+            check_true(values.size() == 1, "--query-file-list must be followed by a single filename");
+            check_true(C.query_files.size() == 0, "query files specified multiple times");
             C.query_files = read_lines(values[0]);
         } else if(option == "--index-dir"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--index-dir must be followed by a single directory path");
             C.index_dir = values[0];
         } else if(option == "--temp-dir"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--temp-dir must be followed by a single directory path");
             C.temp_dir = values[0];
         } else if(option == "--outfile"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--outfile must be followed by a single filename");
             C.outfiles.push_back(values[0]);  
         } else if(option == "--outfile-list"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--outfile-list must be followed by a single filename");
             C.outfiles = read_lines(values[0]);
         } else if(option == "--rc"){
+            check_true(values.size() == 0, "--rc takes no parameters");
             C.reverse_complements = true;
         } else if(option == "--n-threads"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--n-threads must be followed by a single integer");
             C.n_threads = stoll(values[0]);
         } else if(option == "--mem-megas"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--mem-megas must be followed by a single integer");
             C.memory_megas = std::stoll(values[0]);
         } else{
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;

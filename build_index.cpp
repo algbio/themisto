@@ -20,21 +20,23 @@ struct Config{
     bool auto_colors = false;
 
     void check_valid(){
+        check_true(inputfile != "", "Input file not set");
+
         check_readable(inputfile);
-        assert(input_format != "");
+        check_true(input_format != "", "Problem detecting input format");
 
         if(!load_boss){
-            assert(k != -1);
+            check_true(k != -1, "Parameter k not set");
         }
 
         if(colorfile != ""){
             check_readable(colorfile);
         }
         
-        assert(index_dir != "");
+        check_true(index_dir != "", "Index directory not set");
         check_dir_exists(index_dir);
 
-        assert(temp_dir != "");
+        check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
     }
 
@@ -57,8 +59,9 @@ struct Config{
 int main2(int argc, char** argv){
     Themisto themisto;
     if(argc == 1){
+        cerr << "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information: " << endl;
         cerr << "Options: " << endl;
-        cerr << "  --load-boss (if given, loads a precomputed boss from the index directory)" << endl;
+        cerr << "  --load-boss (if given, loads a precomputed BOSS from the index directory)" << endl;
         cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;
         cerr << "  --input-file [filename] (The input sequences in FASTA or FASTQ format. The format" << endl;
         cerr << "                           is inferred from the file extension. Recognized file extensions for" << endl;
@@ -88,33 +91,32 @@ int main2(int argc, char** argv){
         string option = keyvalue.first;
         vector<string> values = keyvalue.second;
         if(option == "--k"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--k must be followed by a single integer");
             C.k = std::stoll(values[0]);
         } else if(option == "--input-file"){
-            assert(values.size() == 1);
-            assert(C.inputfile == "");
+            check_true(values.size() == 1, "--input-file must be followed by a single filename");
             C.inputfile = values[0];
             C.input_format = figure_out_file_format(values[0]);
         } else if(option == "--n-threads"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--n-threads must be followed by a single integer");
             C.n_threads = std::stoll(values[0]);
         } else if(option == "--color-file"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--color-file must be followed by a single filename");
             C.colorfile = values[0];
         } else if(option == "--index-dir"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--index-file must be followed by a single directory path");
             C.index_dir = values[0];
         } else if(option == "--temp-dir"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--temp-dir must be followed by a single directory path");
             C.temp_dir = values[0];
         } else if(option == "--load-boss"){
-            assert(values.size() == 0);
+            check_true(values.size() == 0, "--load-boss takes no parameters");
             C.load_boss = true;
         } else if(option == "--mem-megas"){
-            assert(values.size() == 1);
+            check_true(values.size() == 1, "--mem-megas must be followed by a single integer");
             C.memory_megas = std::stoll(values[0]);
         } else if(option == "--auto-colors"){
-            assert(values.size() == 0);
+            check_true(values.size() == 0, "--auto-colors takes no parameters");
             C.auto_colors = true;
         } else{
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
@@ -131,7 +133,7 @@ int main2(int argc, char** argv){
     if(C.input_format == "gzip"){
         write_log("Decompressing the input file");
         string new_name = temp_file_manager.get_temp_file_name("input");
-        assert(gz_decompress(C.inputfile, new_name) == Z_OK);
+        check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
         C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
         C.inputfile = new_name;
     }

@@ -358,6 +358,12 @@ bool files_are_equal(const std::string& p1, const std::string& p2) {
                     std::istreambuf_iterator<char>(f2.stream.rdbuf()));
 }
 
+void check_true(bool condition, string error_message){
+    if(!condition){
+        throw std::runtime_error(error_message);
+    }
+}
+
 class Progress_printer{
 
     public:
