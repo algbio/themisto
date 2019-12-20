@@ -29,6 +29,7 @@ if(CMAKE_BUILD_ZLIB)
     message(FATAL_ERROR "Build step for zlib failed: ${result}")
   endif()
   set(ZLIB ${CMAKE_BINARY_DIR}/lib/libz.a)
+  include_directories(${CMAKE_BINARY_DIR}/external/zlib)
 else()
   find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
 endif()
@@ -56,8 +57,9 @@ if(CMAKE_BUILD_BZIP2)
     TEST_COMMAND      ""
     UPDATE_COMMAND    ""
   )
+  include_directories(${CMAKE_BINARY_DIR}/external/bzip2)
 else()
-  find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2/)
+  find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2)
 endif()
 
 ## Require c++14
