@@ -163,7 +163,7 @@ int main2(int argc, char** argv){
         string file_format = figure_out_file_format(inputfile);
         if(file_format == "gzip"){
             string new_name = temp_file_manager.get_temp_file_name("input");
-            assert(gz_decompress(inputfile, new_name) == Z_OK);
+            check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
             file_format = figure_out_file_format(inputfile.substr(0,inputfile.size() - 3));
             inputfile = new_name;
         }
