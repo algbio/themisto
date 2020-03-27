@@ -12,7 +12,6 @@ struct Config{
     vector<string> outfiles;
     string index_dir;
     string temp_dir;
-    LL memory_megas = 1000;
     
     bool reverse_complements = false;
     LL n_threads = 1;
@@ -94,8 +93,6 @@ int main2(int argc, char** argv){
         cerr << "  --rc (optional, aligns with the reverse complement also)" << endl;
         cerr << "The number of worked threads is given with the following option: " << endl;
         cerr << "  --n-threads (optional, default 1)" << endl;
-        cerr << "Additional memory allowed on top of the index structure:" << endl;
-        cerr << "  --mem-megas [number] (optional. Default: 1000)" << endl;
         cerr << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
@@ -135,9 +132,6 @@ int main2(int argc, char** argv){
         } else if(option == "--n-threads"){
             check_true(values.size() == 1, "--n-threads must be followed by a single integer");
             C.n_threads = stoll(values[0]);
-        } else if(option == "--mem-megas"){
-            check_true(values.size() == 1, "--mem-megas must be followed by a single integer");
-            C.memory_megas = std::stoll(values[0]);
         } else{
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
             exit(1);
