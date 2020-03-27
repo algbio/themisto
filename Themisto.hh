@@ -298,8 +298,17 @@ public:
         return output_size;
     }
 
-    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output){
-        //string outfile = temp_file_manager.get_temp_file_name("results_temp");
+    bool getline(throwing_ifstream& is, string& line){
+        return is.getline(line);
+    }
+
+    bool getline(zstr::ifstream& is, string& line){
+        if(std::getline(is,line)) return true;
+        return false;
+    }
+
+
+    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output, bool sort_after){
         ParallelBaseWriter* out = nullptr;
         if(gzipped_output) out = new ParallelGzipWriter(outfile);
         else out = new ParallelOutputWriter(outfile);
@@ -317,22 +326,30 @@ public:
         out->flush();
         delete out;
 
-        //write_log("Sorting temporary output file");
-        //sort_parallel_output_file(tempfile, outfile);
+        if(sort_after){
+            write_log("Sorting output file");
+            string tempfile = temp_file_manager.get_temp_file_name("results_temp");
+            if(gzipped_output){
+                zstr::ifstream instream(outfile);
+                zstr::ofstream outstream(tempfile);
+                sort_parallel_output_file(instream, outstream);
+            } else{
+                throwing_ifstream instream(outfile);
+                throwing_ofstream outstream(tempfile);
+                sort_parallel_output_file(instream, outstream);
+            }
+            copy_file(tempfile, outfile, 1024*1024);
+        }
     }
 
-    void sort_parallel_output_file(string infile, string outfile){
-        check_readable(infile);
-        check_writable(outfile);
-        throwing_ifstream instream(infile);
-        throwing_ofstream outstream(outfile);
-
+    template<typename instream_t, typename outstream_t>
+    void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
         set<pair<LL, string> > Q; // Priority queue with pairs (priority, content)
         string line;
         vector<string> tokens;
         LL current_query_id = 0;
         
-        while(instream.getline(line)){
+        while(getline(instream,line)){
             stringstream ss(line);
             LL priority; ss >> priority;
             Q.insert({priority, line + "\n"});
@@ -534,7 +551,7 @@ public:
 
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
             Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
-            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false);
+            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false, true);
 
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 

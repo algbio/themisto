@@ -15,6 +15,7 @@ struct Config{
     
     bool gzipped_output = false;
     bool reverse_complements = false;
+    bool sort_output = false;
     LL n_threads = 1;
 
     void check_valid(){
@@ -72,6 +73,12 @@ int main2(int argc, char** argv){
 
     if(argc == 1){
         cerr << "This program aligns query sequences against an index that has been built previously." << endl;
+        cerr << "The output is one line per input read. Each line consists of a space-separated" << endl;
+        cerr << "list of integers. The first integer specifies the rank of the read in the input" << endl; 
+        cerr << "file, and the rest of the integers are the identifiers of the colors of the" << endl;
+        cerr << "sequences that the read pseudoaligns with. If the program is ran with more than" << endl;
+        cerr << "one thread, the output lines are not necessarily in the same order as the reads" << endl;
+        cerr << "in the input file." << endl;
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
         cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
         cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
@@ -97,6 +104,9 @@ int main2(int argc, char** argv){
         cerr << "The output of the program might be large. To output directly to gzipped " << endl;
         cerr << "format, use the option below. The .gz suffix will be added to the output files. " << endl;
         cerr << "  --gzip-output (optional)" << endl;
+        cerr << "To sort the lines of the output into increasing order of read ranks, use the" << endl;
+        cerr << "option below. This will temporarily take twice disk space of the output file." << endl;
+        cerr << "  --sort-output (optional)" << endl;
         cerr << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
@@ -138,6 +148,8 @@ int main2(int argc, char** argv){
             C.n_threads = stoll(values[0]);
         } else if(option == "--gzip-output"){
             C.gzipped_output = true;
+        } else if(option == "--sort-output"){
+            C.sort_output = true;
         } else {
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
             exit(1);
@@ -173,7 +185,7 @@ int main2(int argc, char** argv){
 
         Sequence_Reader sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         sr.set_upper_case(true);
-        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output); // Buffer size 1 MB
+        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 

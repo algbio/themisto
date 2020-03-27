@@ -14,6 +14,7 @@ public:
 
 virtual void write(const string& result) = 0;
 virtual void flush() = 0;
+virtual ~ParallelBaseWriter(){}
 
 };
 
@@ -28,14 +29,15 @@ class ParallelOutputWriter : public ParallelBaseWriter{
         outstream.open(outfile);
     }
 
-    void write(const string& result){
+    virtual void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
         outstream << result;
     }
 
-    void flush(){
+    virtual void flush(){
         outstream.flush();
     }
+    
 };
 
 class ParallelGzipWriter : public  ParallelBaseWriter{
@@ -50,16 +52,16 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
         gzip_outstream = new zstr::ofstream(outfile); 
     }
 
-    void write(const string& result){
+    virtual void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
         *gzip_outstream << result;
     }
 
-    void flush(){
+    virtual void flush(){
          gzip_outstream->flush();
     }
 
-    ~ParallelGzipWriter(){
+    virtual ~ParallelGzipWriter(){
         delete gzip_outstream;
     }
 };
