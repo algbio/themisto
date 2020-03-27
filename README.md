@@ -12,12 +12,6 @@ Enter the Themisto directory and run
 This will produce the build\_index, pseudoalignment, and
 themisto\_tests executables in the build/bin/ directory.
 
-(Optional) Check if everything compiled correctly by running tests:
-
-    bin/themisto_tests
-
-If there is a problem, the tests will terminate and report an error message.
-
 If you run into problems involving zlib or bzip2, you can instruct the
 build process to download & compile them from source with
 
