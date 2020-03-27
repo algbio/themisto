@@ -103,7 +103,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
 set_target_properties(divsufsort PROPERTIES EXCLUDE_FROM_ALL 1)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR}/BD_BWT_index/include ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_BINARY_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/BD_BWT_index/include ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_BINARY_DIR}/include)
 
 ## Libraries & executables to build
 add_library(kmc_wrapper KMC_wrapper.cpp)

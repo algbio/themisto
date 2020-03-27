@@ -95,7 +95,7 @@ public:
     public:
 
         Themisto* kl;
-        ParallelOutputWriter* out;
+        ParallelBaseWriter* out;
         bool reverse_complements;
         LL output_buffer_size;
         string output_buffer;
@@ -105,7 +105,7 @@ public:
         vector<LL> union_buffer;
         string rc_buffer;
 
-        AlignerThread(Themisto* kl, ParallelOutputWriter* out, bool reverse_complements, LL output_buffer_size){
+        AlignerThread(Themisto* kl, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_size){
             this->kl = kl;
             this->out = out;
             this->reverse_complements = reverse_complements;
@@ -298,12 +298,15 @@ public:
         return output_size;
     }
 
-    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size){
-        string tempfile = temp_file_manager.get_temp_file_name("results_temp");
-        ParallelOutputWriter out(tempfile);
+    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output){
+        //string outfile = temp_file_manager.get_temp_file_name("results_temp");
+        ParallelBaseWriter* out = nullptr;
+        if(gzipped_output) out = new ParallelGzipWriter(outfile);
+        else out = new ParallelOutputWriter(outfile);
+
         vector<DispatcherConsumerCallback*> threads;
         for(LL i = 0; i < n_threads; i++){
-            AlignerThread* T = new AlignerThread(this, &out, reverse_complements, buffer_size);
+            AlignerThread* T = new AlignerThread(this, out, reverse_complements, buffer_size);
             threads.push_back(T);
         }
 
@@ -311,10 +314,11 @@ public:
 
         // Clean up
         for(DispatcherConsumerCallback* t : threads) delete t;
-        out.flush();
+        out->flush();
+        delete out;
 
-        write_log("Sorting temporary output file");
-        sort_parallel_output_file(tempfile, outfile);
+        //write_log("Sorting temporary output file");
+        //sort_parallel_output_file(tempfile, outfile);
     }
 
     void sort_parallel_output_file(string infile, string outfile){
@@ -530,7 +534,7 @@ public:
 
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
             Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
-            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300);
+            kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false);
 
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 

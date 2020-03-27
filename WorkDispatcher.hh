@@ -4,10 +4,20 @@
 #include "ParallelBoundedQueue.hh"
 #include "input_reading.hh"
 #include "globals.hh"
+#include "zstr.hpp"
 
 using namespace std;
 
-class ParallelOutputWriter{
+class ParallelBaseWriter{
+
+public:
+
+virtual void write(const string& result) = 0;
+virtual void flush() = 0;
+
+};
+
+class ParallelOutputWriter : public ParallelBaseWriter{
     public:
 
     string outfile;
@@ -25,6 +35,32 @@ class ParallelOutputWriter{
 
     void flush(){
         outstream.flush();
+    }
+};
+
+class ParallelGzipWriter : public  ParallelBaseWriter{
+    public:
+
+    string outfile;
+    zstr::ofstream* gzip_outstream;
+    std::mutex mutex;
+
+    ParallelGzipWriter(string outfile) : outfile(outfile){
+        check_writable(outfile);
+        gzip_outstream = new zstr::ofstream(outfile); 
+    }
+
+    void write(const string& result){
+        std::lock_guard<std::mutex> lg(mutex);
+        *gzip_outstream << result;
+    }
+
+    void flush(){
+         gzip_outstream->flush();
+    }
+
+    ~ParallelGzipWriter(){
+        delete gzip_outstream;
     }
 };
 

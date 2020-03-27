@@ -13,6 +13,7 @@ struct Config{
     string index_dir;
     string temp_dir;
     
+    bool gzipped_output = false;
     bool reverse_complements = false;
     LL n_threads = 1;
 
@@ -91,8 +92,11 @@ int main2(int argc, char** argv){
         cerr << "  --temp-dir [path] (always required, directory must exist before running)" << endl;
         cerr << "If you want to align also to the reverse complement, give the following:" << endl;
         cerr << "  --rc (optional, aligns with the reverse complement also)" << endl;
-        cerr << "The number of worked threads is given with the following option: " << endl;
+        cerr << "The number of worker threads is given with the following option: " << endl;
         cerr << "  --n-threads (optional, default 1)" << endl;
+        cerr << "The output of the program might be large. To output directly to gzipped " << endl;
+        cerr << "format, use the option below. The .gz suffix will be added to the output files. " << endl;
+        cerr << "  --gzip-output (optional)" << endl;
         cerr << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
@@ -132,10 +136,16 @@ int main2(int argc, char** argv){
         } else if(option == "--n-threads"){
             check_true(values.size() == 1, "--n-threads must be followed by a single integer");
             C.n_threads = stoll(values[0]);
-        } else{
+        } else if(option == "--gzip-output"){
+            C.gzipped_output = true;
+        } else {
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
             exit(1);
         }
+    }
+
+    if(C.gzipped_output){
+        for(string& filename : C.outfiles) filename += ".gz";
     }
 
     C.check_valid();
@@ -151,7 +161,6 @@ int main2(int argc, char** argv){
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
-        // TODO: RESPECT RAM BOUND
 
         string inputfile = C.query_files[i];
         string file_format = figure_out_file_format(inputfile);
@@ -164,7 +173,7 @@ int main2(int argc, char** argv){
 
         Sequence_Reader sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         sr.set_upper_case(true);
-        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000); // Buffer size 1 MB
+        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output); // Buffer size 1 MB
         temp_file_manager.clean_up();
     }
 
