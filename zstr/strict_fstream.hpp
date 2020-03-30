@@ -33,6 +33,8 @@ static std::string strerror()
     {
         buff = "Unknown error";
     }
+#elif __APPLE__
+    int p = strerror_r(errno, &buff[0], buff.size());
 #else
 // GNU-specific strerror_r()
     auto p = strerror_r(errno, &buff[0], buff.size());
