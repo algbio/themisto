@@ -59,7 +59,13 @@ struct Config{
 int main2(int argc, char** argv){
     Themisto themisto;
     if(argc == 1){
-        cerr << "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information: " << endl;
+        cerr << "" << endl;
+        cerr << "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information." << endl;
+        cerr << "The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile," << endl;
+        cerr << "which is a plain text file containing the colors of the reference sequences in the same order as they" << endl;
+        cerr << "appear in the reference sequence file, one line per sequence. The names are given as ASCII strings," << endl;
+        cerr << "but they should not contain whitespace characters." << endl;
+        cerr << "" << endl;
         cerr << "Options: " << endl;
         cerr << "  --load-boss (if given, loads a precomputed BOSS from the index directory)" << endl;
         cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;

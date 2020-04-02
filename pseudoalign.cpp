@@ -72,6 +72,7 @@ vector<string> read_lines(string filename){
 int main2(int argc, char** argv){
 
     if(argc == 1){
+        cerr << "" << endl;
         cerr << "This program aligns query sequences against an index that has been built previously." << endl;
         cerr << "The output is one line per input read. Each line consists of a space-separated" << endl;
         cerr << "list of integers. The first integer specifies the rank of the read in the input" << endl; 
@@ -79,11 +80,23 @@ int main2(int argc, char** argv){
         cerr << "sequences that the read pseudoaligns with. If the program is ran with more than" << endl;
         cerr << "one thread, the output lines are not necessarily in the same order as the reads" << endl;
         cerr << "in the input file." << endl;
+        cerr << "" << endl;
+        cerr << "If the coloring data structure was built with the --color-file option, then the" << endl;
+        cerr << "integer identifiers of the colors can be mapped back to the provided color names" << endl;
+        cerr << "by parsing the file coloring-mapping-id_to_name in the index directory. This file" << endl;
+        cerr << "contains as many lines as there are distinct colors, and each line contains two" << endl;
+        cerr << "space-separated strings: the first is the integer identifier of a color, and the" << endl;
+        cerr << "second is the corresponding color name. In case the --auto-colors option was used," << endl;
+        cerr << "the integer identifiers are always numbers [0..n-1], where n is the total number of " << endl;
+        cerr << "reference sequences, and the identifiers are assigned in the same order as the" << endl;
+        cerr << "reference sequences were given to build_index." << endl;
+        cerr << "" << endl;
         cerr << "The query can be given as one file, or as a file with a list of files." << endl;
         cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
         cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
         cerr << "fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
         cerr << "fastq are: .fastq and .fq ." << endl;
+        cerr << "" << endl;
         cerr << "To give a single query file, use the following two options: " << endl;
         cerr << "  --query-file [filename]" << endl;
         cerr << "  --outfile [path] (directory must exist before running)" << endl;

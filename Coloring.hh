@@ -18,7 +18,9 @@ class Coloring{
 // sequence name = the fasta header of the sequence
 // color name = the color names in the user-provided colorfile
 // color id = the integer representation of a color name
-// The color names are mapped to non-negative integers in lexicographic order
+// Every color name is assigned a distinct id, starting from
+// zero such that the new ids are handed out in the order of 
+// appearance of the names in the user-provided colorfile.
 
 // The input for indexing is:
 // - A fasta file with m sequences
