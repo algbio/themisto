@@ -124,11 +124,11 @@ public:
                 temp_colorset_id_buffer.resize(S_size - k + 1);
             }
 
-            LL colorset_size = kl->pseudoalign_to_buffer_new(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
+            LL colorset_size = kl->pseudoalign_to_buffer(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
             if(reverse_complements){
                 if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
                 get_rc(S, S_size, rc_buffer);
-                LL colorset_rc_size = kl->pseudoalign_to_buffer_new(rc_buffer.c_str(), S_size, temp_colorset_id_buffer, temp_buffer, colorset_rc_buffer);
+                LL colorset_rc_size = kl->pseudoalign_to_buffer(rc_buffer.c_str(), S_size, temp_colorset_id_buffer, temp_buffer, colorset_rc_buffer);
                 LL union_size = union_buffers(colorset_buffer, colorset_size,
                                               colorset_rc_buffer, colorset_rc_size, 
                                               union_buffer);
@@ -261,48 +261,10 @@ public:
     set<LL> pseudoalign(const string& Q){
         vector<LL> output_buf(coloring.n_colors);
         vector<LL> temp_buf(coloring.n_colors);
-        LL output_size = pseudoalign_to_buffer(Q.c_str(), Q.size(), output_buf, temp_buf);
+        vector<LL> temp_buf2(Q.size());
+        LL output_size = pseudoalign_to_buffer(Q.c_str(), Q.size(), temp_buf2, temp_buf, output_buf);
         set<LL> ans(output_buf.begin(), output_buf.begin() + output_size);
         return ans;
-    }
-
-    // Buffers must have enough space to accommodate all colors.
-    // Puts the colors into the output buffer and returns the number
-    // of elements. Does not resize the output buffer.
-    LL pseudoalign_to_buffer(const char* Q, LL Q_size, vector<LL>& output_buf, vector<LL>& temp_buf){
-        // Iterates all k-mers of Q that are in the index at least once, 
-        // and takes the intersection of the color sets.
-
-        LL k = boss.get_k();
-
-        LL output_size = 0;
-        LL idx, node;
-        std::tie(idx,node) = find_first_matching_kmer(Q, 0, Q_size-1, k);
-        if(idx == -1) return 0;
-        else output_size = coloring.get_colorset_to_buffer(node, boss, output_buf);
-
-        while(idx + k - 1 < Q_size){
-            // Loop invariant here: Q[idx..(idx+k-1)] is found in the index and the corresponding
-            // color set has been intersected.
-            if(idx + k >= Q_size) break; // At the last kmer of the query
-
-            node = boss.walk(node, Q[idx+k]); // Try to walk to the next kmer
-            if(node != -1){ // Success
-                if(!coloring.is_redundant(node)){ // Intersect the color set (if we need to)
-                    LL temp_size = coloring.get_colorset_to_buffer(node, boss, temp_buf);
-                    output_size = intersect_buffers(output_buf, output_size, temp_buf, temp_size);
-                }
-                idx++;
-            } else{ // Could not walk to the next kmer
-                std::tie(idx,node) = find_first_matching_kmer(Q, idx+1, Q_size-1, k);
-                if(idx == -1) break; // No more matching k-mers in this query
-                else{ // Intersect the colorset (always have to because we lost our spot in the index)
-                    LL temp_size = coloring.get_colorset_to_buffer(node, boss, temp_buf);
-                    output_size = intersect_buffers(output_buf, output_size, temp_buf, temp_size);
-                }
-            }
-        }
-        return output_size;
     }
 
     // Output buf should at least Q_size - k + 1 elements. Fills output buf so that element i
@@ -350,7 +312,7 @@ public:
     // of elements. Does not resize the output buffer. colorset_id_buf should
     // have size at least Q_size - k + 1. output_buf and temp_buf should have at 
     // least size equal to the number of distinct colors.
-    LL pseudoalign_to_buffer_new(const char* Q, LL Q_size, vector<LL>& colorset_id_buf, vector<LL>& temp_buf, vector<LL>& output_buf){
+    LL pseudoalign_to_buffer(const char* Q, LL Q_size, vector<LL>& colorset_id_buf, vector<LL>& temp_buf, vector<LL>& output_buf){
 
         LL k = boss.get_k();
         get_nonempty_colorset_ids(Q,Q_size,colorset_id_buf);
