@@ -98,8 +98,9 @@ public:
         ParallelBaseWriter* out;
         bool reverse_complements;
         LL output_buffer_size;
-        string output_buffer;
+        string output_buffer; // For printing
         vector<LL> temp_colorset_id_buffer;
+        vector<LL> temp_colorset_id_buffer_rc;
         vector<LL> colorset_buffer;
         vector<LL> colorset_rc_buffer;
         vector<LL> temp_buffer;
@@ -119,11 +120,60 @@ public:
             this->k = kl->boss.get_k();
         }
 
+        // Returns number of elements placed into putput
+        LL intersect_colorsets(vector<LL>& ids, LL query_size, vector<LL>& output, vector<LL>& temp){
+            bool found_at_least_one_nonempty_colorset = false;
+            LL output_buf_size = 0;
+            for(LL i = 0; i < query_size - k + 1; i++){
+                if(ids[i] != -1 && (i == 0 || ids[i-1] != ids[i])){
+                    // Nonempty and nonredundant color set
+                    LL temp_buf_size = kl->coloring.get_colorset_to_buffer_by_id(ids[i], kl->boss, temp);
+                    if(!found_at_least_one_nonempty_colorset){
+                        // First color set that was found. Put it into output_buf
+                        for(LL j = 0; j < temp_buf_size; j++) output[j] = temp[j];
+                        output_buf_size = temp_buf_size;
+                    } else{
+                        // Intersect the colors in temp_buf with output_buf
+                        output_buf_size = intersect_buffers(output, output_buf_size, temp, temp_buf_size);
+                        if(output_buf_size == 0) return 0;
+                    }
+                    found_at_least_one_nonempty_colorset = true;
+                }
+            }
+            return output_buf_size;
+        }
+
+        // Assumes temp_colorset_id_buffer and temp_colorset_id_buffer_rc are populated
+        // Returns interection size
+        LL do_intersections_with_legacy_behaviour(LL query_size){
+            if(!reverse_complements){
+                return intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+            } else{
+                LL forward_size = intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+                LL rc_size = intersect_colorsets(temp_colorset_id_buffer_rc, query_size, colorset_rc_buffer, temp_buffer);
+                LL union_size = union_buffers(colorset_buffer, forward_size,
+                                              colorset_rc_buffer, rc_size, 
+                                              union_buffer);
+                for(LL i = 0; i < union_size; i++) colorset_buffer[i] = union_buffer[i];
+                return union_size;
+            }    
+        }
+
         virtual void callback(const char* S, LL S_size, int64_t string_id){
             if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
                 temp_colorset_id_buffer.resize(S_size - k + 1);
+                if(reverse_complements) temp_colorset_id_buffer_rc.resize(S_size - k + 1);
             }
 
+            kl->get_nonempty_colorset_ids(S,S_size,temp_colorset_id_buffer);
+            if(reverse_complements){
+                if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
+                get_rc(S, S_size, rc_buffer);
+                kl->get_nonempty_colorset_ids(rc_buffer.c_str(), S_size,temp_colorset_id_buffer_rc);
+            }
+
+            LL colorset_size = do_intersections_with_legacy_behaviour(S_size);
+/*
             LL colorset_size = kl->pseudoalign_to_buffer(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
             if(reverse_complements){
                 if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
@@ -136,6 +186,7 @@ public:
                     colorset_buffer[i] = union_buffer[i];
                 colorset_size = union_size;
             }
+            */
 
             output_buffer += std::to_string(string_id) + " ";
             for(LL i = 0; i < colorset_size; i++)
@@ -145,6 +196,7 @@ public:
                 out->write(output_buffer);
                 output_buffer.clear();
             }
+            
         }
 
         virtual void finish(){
