@@ -159,6 +159,54 @@ public:
             }    
         }
 
+        // Assumes temp_colorset_id_buffer is populated (and temp_colorset_id_buffer_rc if reverse complements
+        // are enabled). Puts final intersected color set into colorset_buffer. Returns the number of elements
+        // placed into colorset_buffer.
+        LL do_intersections(LL query_size){
+            if(!reverse_complements) {
+                return intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+            }
+
+            // reverse complements are enbaled
+            bool found_at_least_one_nonempty_colorset = false;
+            LL temp_buf_size = 0;
+            for(LL i = 0; i < query_size - k + 1; i++){
+                bool need_to_intersect = true;
+                if(temp_colorset_id_buffer[i] == -1 && temp_colorset_id_buffer_rc[query_size - k - i] == -1)
+                    need_to_intersect = false; // Empty set
+                else if(i > 0 && temp_colorset_id_buffer[i] == temp_colorset_id_buffer[i-1]
+                         && temp_colorset_id_buffer_rc[query_size - k - i] == temp_colorset_id_buffer_rc[query_size - k - i + 1]){
+                    need_to_intersect = false; // Same color set as previous
+                }
+                if(need_to_intersect){
+                    LL forward_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer[i], kl->boss, colorset_buffer);
+                    LL rc_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer_rc[query_size - k - i], kl->boss, colorset_rc_buffer);
+
+                    LL union_size = union_buffers(colorset_buffer, forward_size,
+                                                colorset_rc_buffer, rc_size, 
+                                                union_buffer);
+                    
+                    if(!found_at_least_one_nonempty_colorset){
+                        // First color set that was found. Put it into temp buf
+                        for(LL j = 0; j < union_size; j++) temp_buffer[j] = union_buffer[j];
+                        temp_buf_size = union_size;
+                    } else{
+                        // Intersect the colors in temp_buf with the union buffer
+                        temp_buf_size = intersect_buffers(temp_buffer, temp_buf_size, union_buffer, union_size);
+                        if(temp_buf_size == 0) return 0;
+                    }
+                    found_at_least_one_nonempty_colorset = true;
+                }
+            }
+
+            // Copy to output
+            for(LL i = 0; i < temp_buf_size; i++) colorset_buffer[i] = temp_buffer[i];
+            
+            return temp_buf_size;
+
+        }
+
+
         virtual void callback(const char* S, LL S_size, int64_t string_id){
             if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
                 temp_colorset_id_buffer.resize(S_size - k + 1);
@@ -172,7 +220,7 @@ public:
                 kl->get_nonempty_colorset_ids(rc_buffer.c_str(), S_size,temp_colorset_id_buffer_rc);
             }
 
-            LL colorset_size = do_intersections_with_legacy_behaviour(S_size);
+            LL colorset_size = do_intersections(S_size);
 /*
             LL colorset_size = kl->pseudoalign_to_buffer(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
             if(reverse_complements){
