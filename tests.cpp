@@ -33,10 +33,11 @@ int main2(int argc, char** argv){
 
     temp_file_manager.set_dir("temp");
 
-    //disable_logging();
+    disable_logging();
 
     test_pseudoalign("./temp");
-    test_BOSS();    
+
+    test_BOSS();
     test_coloring();
     test_EM_sort();    
     write_log("All tests passed");

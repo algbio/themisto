@@ -201,27 +201,40 @@ public:
     // returns the number of colors added.
     // todo: tests
     LL get_colorset_to_buffer(LL node, BOSS& boss, vector<LL>& buffer){
+        LL id = get_colorset_id(node, boss);
+        return get_colorset_to_buffer_by_id(id, boss, buffer);
+    }
+
+    // Returns the number of elements put into the buffer. Buffer should be big enough to accommodate
+    // all possible distinct colors.
+    LL get_colorset_to_buffer_by_id(LL colorset_id, BOSS& boss, vector<LL>& buffer){
+        if(colorset_id == -1) return 0;
+
+        LL start = color_set_starts_ss.select(colorset_id+1);
+        LL pos = start; // Position in internal color array
+        LL idx = 0; // Position in outpuf buffer
+        while(true){
+            buffer[idx] = color_sets[pos];
+            idx++;
+
+            if(pos == color_sets.size()-1 || color_set_starts[pos+1] == 1) break;
+            pos++;
+        }
+        return idx;
+        
+    }
+
+    // Returns -1 if the colorset is empty. Otherwise returns the id of the colorset.
+    LL get_colorset_id(LL node, BOSS& boss){
         while(redundancy_marks[node] == 1) node = boss.get_predecessor(node); // Go to next non-redundant
 
         // The nodes that have an explicit color set are those that have a non-empty
         // colorset and are non-redundant.
         if(nonempty[node] == 0) {
-            return 0;
-        }
-        else{
+            return -1;
+        } else{
             LL rank = nonempty_and_nonredundant_rs.rank(node);
-            LL color_set_id = node_to_color_set_id[rank];
-            LL start = color_set_starts_ss.select(color_set_id+1);
-            LL pos = start; // Position in internal color array
-            LL idx = 0; // Position in outpuf buffer
-            while(true){
-                buffer[idx] = color_sets[pos];
-                idx++;
-
-                if(pos == color_sets.size()-1 || color_set_starts[pos+1] == 1) break;
-                pos++;
-            }
-            return idx;
+            return node_to_color_set_id[rank];
         }
     }
 

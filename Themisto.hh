@@ -99,11 +99,13 @@ public:
         bool reverse_complements;
         LL output_buffer_size;
         string output_buffer;
+        vector<LL> temp_colorset_id_buffer;
         vector<LL> colorset_buffer;
         vector<LL> colorset_rc_buffer;
         vector<LL> temp_buffer;
         vector<LL> union_buffer;
         string rc_buffer;
+        LL k;
 
         AlignerThread(Themisto* kl, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_size){
             this->kl = kl;
@@ -114,14 +116,19 @@ public:
             this->colorset_rc_buffer.resize(kl->coloring.n_colors);
             this->temp_buffer.resize(kl->coloring.n_colors);
             this->union_buffer.resize(kl->coloring.n_colors);
+            this->k = kl->boss.get_k();
         }
 
         virtual void callback(const char* S, LL S_size, int64_t string_id){
-            LL colorset_size = kl->pseudoalign_to_buffer(S,S_size,colorset_buffer,temp_buffer);
+            if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
+                temp_colorset_id_buffer.resize(S_size - k + 1);
+            }
+
+            LL colorset_size = kl->pseudoalign_to_buffer_new(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
             if(reverse_complements){
                 if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
                 get_rc(S, S_size, rc_buffer);
-                LL colorset_rc_size = kl->pseudoalign_to_buffer(rc_buffer.c_str(),S_size,colorset_rc_buffer,temp_buffer);
+                LL colorset_rc_size = kl->pseudoalign_to_buffer_new(rc_buffer.c_str(), S_size, temp_colorset_id_buffer, temp_buffer, colorset_rc_buffer);
                 LL union_size = union_buffers(colorset_buffer, colorset_size,
                                               colorset_rc_buffer, colorset_rc_size, 
                                               union_buffer);
@@ -263,7 +270,7 @@ public:
     // Puts the colors into the output buffer and returns the number
     // of elements. Does not resize the output buffer.
     LL pseudoalign_to_buffer(const char* Q, LL Q_size, vector<LL>& output_buf, vector<LL>& temp_buf){
-        // Iterates all k-mers of Q that are in the index at least twice, 
+        // Iterates all k-mers of Q that are in the index at least once, 
         // and takes the intersection of the color sets.
 
         LL k = boss.get_k();
@@ -297,6 +304,77 @@ public:
         }
         return output_size;
     }
+
+    // Output buf should at least Q_size - k + 1 elements. Fills output buf so that element i
+    // is the id of the color set of the i-th k-mer of Q. If the i-th k-mer does not exist in
+    // the index, then the color set id is defined to be -1.
+    void get_nonempty_colorset_ids(const char* Q, LL Q_size, vector<LL>& output_buf){
+
+        LL k = boss.get_k();
+
+        // Initialize outpuf buf values to -1
+        for(LL i = 0; i < Q_size - k + 1; i++) output_buf[i] = -1;
+
+        LL output_size = 0;
+        LL idx, node;
+        std::tie(idx,node) = find_first_matching_kmer(Q, 0, Q_size-1, k);
+
+        if(idx == -1) return; // None of the k-mers match the index
+        
+        output_buf[idx] = coloring.get_colorset_id(node, boss);
+
+        while(idx + k - 1 < Q_size){
+            // Loop invariant here: Q[idx..(idx+k-1)] is found in the index.
+
+            if(idx + k >= Q_size) break; // At the last kmer of the query
+
+            node = boss.walk(node, Q[idx+k]); // Try to walk to the next kmer
+            if(node != -1){ // Success
+                idx++;
+                if(coloring.is_redundant(node) && output_buf[idx-1] != -1){
+                    output_buf[idx] = output_buf[idx-1];
+                } else {
+                    output_buf[idx] = coloring.get_colorset_id(node, boss);
+                }
+                
+            } else{ // Could not walk to the next kmer
+                std::tie(idx,node) = find_first_matching_kmer(Q, idx+1, Q_size-1, k);
+                if(idx == -1) break; // No more matching k-mers in this query
+                output_buf[idx] = coloring.get_colorset_id(node, boss);
+            }
+        }
+    }
+
+    // Buffers must have enough space to accommodate all colors.
+    // Puts the colors into the output buffer and returns the number
+    // of elements. Does not resize the output buffer. colorset_id_buf should
+    // have size at least Q_size - k + 1. output_buf and temp_buf should have at 
+    // least size equal to the number of distinct colors.
+    LL pseudoalign_to_buffer_new(const char* Q, LL Q_size, vector<LL>& colorset_id_buf, vector<LL>& temp_buf, vector<LL>& output_buf){
+
+        LL k = boss.get_k();
+        get_nonempty_colorset_ids(Q,Q_size,colorset_id_buf);
+
+        bool found_at_least_one_nonempty_colorset = false;
+        LL output_buf_size = 0;
+        for(LL i = 0; i < Q_size - k + 1; i++){
+            if(colorset_id_buf[i] != -1 && (i == 0 || colorset_id_buf[i-1] != colorset_id_buf[i])){
+                // Nonempty and nonredundant color set
+                LL temp_buf_size = coloring.get_colorset_to_buffer_by_id(colorset_id_buf[i], boss, temp_buf);
+                if(!found_at_least_one_nonempty_colorset){
+                    // First color set that was found. Put it into output_buf
+                    for(LL j = 0; j < temp_buf_size; j++) output_buf[j] = temp_buf[j];
+                    output_buf_size = temp_buf_size;
+                } else{
+                    // Intersect the colors in temp_buf with output_buf
+                    output_buf_size = intersect_buffers(output_buf, output_buf_size, temp_buf, temp_buf_size);
+                    if(output_buf_size == 0) return 0;
+                }
+                found_at_least_one_nonempty_colorset = true;
+            }
+        }
+        return output_buf_size;
+    }    
 
     bool getline(throwing_ifstream& is, string& line){
         return is.getline(line);
