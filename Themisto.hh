@@ -554,6 +554,24 @@ public:
 
     LL random_seed = 123674;
 
+
+    string get_rc(string S){
+        string R(S.rbegin(), S.rend());
+        for(LL i = 0; i < R.size(); i++)
+            R[i] = get_rc(R[i]);
+        return R;
+    }
+
+    char get_rc(char c){
+        switch(c){
+            case 'A': return 'T';
+            case 'T': return 'A';
+            case 'C': return 'G';
+            case 'G': return 'C';
+            default: return c;
+        }
+    }
+
     vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries, LL query_length, LL min_k, LL max_k, LL n_colors){
         srand(random_seed);
         vector<TestCase> testcases;
@@ -689,31 +707,41 @@ public:
             //cout << correct_coloring_ids << endl;
             assert(kl.coloring.get_all_colorsets(kl.boss) == correct_coloring_ids);
 
+            // Run without rc
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
             Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
             kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false, true);
-
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
+
+            // Run with rc
+            string final_file_rc = temp_file_manager.get_temp_file_name("finalfile_rc");
+            Sequence_Reader sr2(temp_dir + "/queries.fna", FASTA_MODE);
+            kl.pseudoalign_parallel(n_threads, sr2, final_file_rc, true, 300, false, true);
+            vector<set<LL> > our_results_rc = kl.parse_output_format_from_disk(final_file_rc);
 
             //cout << our_results << endl;
 
             for(LL i = 0; i < tcase.queries.size(); i++){
                 string query = tcase.queries[i];
-                set<string> brute = pseudoalign_to_colors_trivial(query, tcase);
+                set<string> brute = pseudoalign_to_colors_trivial(query, tcase, false);
+                set<string> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
                 
                 set<string> nonbrute;
-                for(LL id : our_results[i])
-                    nonbrute.insert(nm.id_to_name[id]);
+                for(LL id : our_results[i]) nonbrute.insert(nm.id_to_name[id]);
+
+                set<string> nonbrute_rc;
+                for(LL id : our_results_rc[i]) nonbrute_rc.insert(nm.id_to_name[id]);
 
                 //cout << brute << " " << nonbrute << endl;
                 assert(brute == nonbrute);
+                assert(brute_rc == nonbrute_rc);
             }
         }
 
     }
 
     // Returns set of color names
-    set<string> pseudoalign_to_colors_trivial(string& query, TestCase& tcase){
+    set<string> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
         set<string> alignments;
         for(LL i = 0; i < tcase.genomes.size(); i++) alignments.insert(tcase.colors[i]); // All color names
 
@@ -721,12 +749,14 @@ public:
         // For each k-mer in query, get the color name set and intersect that with alignments
         for(string kmer : get_all_kmers(query, tcase.k)){
             set<string> names = tcase.node_to_color_names[kmer];
+            if(reverse_complements){
+                set<string> names_rc = tcase.node_to_color_names[get_rc(kmer)];
+                for(string name : names_rc) names.insert(name);
+            }
             if(names.size() >= 1) {
                 at_least_one = true;
                 alignments = intersect(alignments, names);
-            } else{
             }
-            
         }
 
         if(at_least_one == false) alignments.clear();

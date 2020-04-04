@@ -17,7 +17,19 @@ using namespace std;
 typedef int64_t LL; // long long
 
 int main2(int argc, char** argv){
-    (void)argc; (void)argv; // not used
+    // If no CLI parameters are given, run all tests. Otherwise run
+    // only tests that are specified
+    bool run_pseudoalign = argc == 1;
+    bool run_BOSS = argc == 1;
+    bool run_coloring = argc == 1;
+    bool run_EM_sort = argc == 1;
+
+    for(LL i = 1; i < argc; i++){
+        if(string(argv[i]) == "-p") run_pseudoalign = true;
+        if(string(argv[i]) == "-b") run_BOSS = true;
+        if(string(argv[i]) == "-c") run_coloring = true;
+        if(string(argv[i]) == "-s") run_EM_sort = true;
+    }
 
     if(system("mkdir -p temp") != 0){
         cerr << "Error creating directory ./temp" << endl;
@@ -35,11 +47,10 @@ int main2(int argc, char** argv){
 
     disable_logging();
 
-    test_pseudoalign("./temp");
-
-    test_BOSS();
-    test_coloring();
-    test_EM_sort();    
+    if(run_pseudoalign) test_pseudoalign("./temp");
+    if(run_BOSS) test_BOSS();
+    if(run_coloring) test_coloring();
+    if(run_EM_sort) test_EM_sort();    
     write_log("All tests passed");
     
     return 0;

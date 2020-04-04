@@ -85,7 +85,7 @@ vector<string> all_binary_strings_up_to(int64_t k){ // For testing
 string get_random_dna_string(int64_t length, int64_t alphabet_size){ // For testing
     string s;
     assert(alphabet_size >= 1 && alphabet_size <= 4);
-    char alphabet[4] = {'A','C','G','T'};
+    char alphabet[4] = {'A','T','G','C'};
     for(int64_t i = 0; i < length; i++){
         s.push_back(alphabet[rand() % alphabet_size]);
     }
