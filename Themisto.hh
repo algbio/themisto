@@ -221,21 +221,6 @@ public:
             }
 
             LL colorset_size = do_intersections(S_size);
-/*
-            LL colorset_size = kl->pseudoalign_to_buffer(S, S_size, temp_colorset_id_buffer, temp_buffer, colorset_buffer);
-            if(reverse_complements){
-                if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
-                get_rc(S, S_size, rc_buffer);
-                LL colorset_rc_size = kl->pseudoalign_to_buffer(rc_buffer.c_str(), S_size, temp_colorset_id_buffer, temp_buffer, colorset_rc_buffer);
-                LL union_size = union_buffers(colorset_buffer, colorset_size,
-                                              colorset_rc_buffer, colorset_rc_size, 
-                                              union_buffer);
-                for(LL i = 0; i < union_size; i++)
-                    colorset_buffer[i] = union_buffer[i];
-                colorset_size = union_size;
-            }
-            */
-
             output_buffer += std::to_string(string_id) + " ";
             for(LL i = 0; i < colorset_size; i++)
                 output_buffer += std::to_string(colorset_buffer[i]) + " ";
@@ -733,6 +718,7 @@ public:
                 for(LL id : our_results_rc[i]) nonbrute_rc.insert(nm.id_to_name[id]);
 
                 //cout << brute << " " << nonbrute << endl;
+                //cout << brute_rc << "\n" << nonbrute << "\n" << nonbrute_rc << "\n--" << endl;
                 assert(brute == nonbrute);
                 assert(brute_rc == nonbrute_rc);
             }
