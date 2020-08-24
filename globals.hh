@@ -10,7 +10,7 @@
 #include <cassert>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string>
+#include <cctype>
 #include <map>
 #include "TempFileManager.hh"
 #include <signal.h>
@@ -18,6 +18,8 @@
 #include "throwing_streams.hh"
 #include <chrono>
 #include <iomanip>
+
+#include <random>
 
 using namespace std;
 using namespace std::chrono;
@@ -58,13 +60,13 @@ std::mutex write_log_mutex;
 void write_log(string message){
     std::lock_guard<std::mutex> lock(write_log_mutex);
     if(logging_enabled){
-        std::streamsize default_precision = std::cout.precision();
+	std::streamsize default_precision = std::cout.precision();
 
-        std::cerr << 
-        std::setprecision(4) << std::fixed <<
-        seconds_since_program_start() <<
-        std::setprecision(default_precision) << 
-        " " << getTimeString() << " " << message << std::endl;
+	std::cerr <<
+	std::setprecision(4) << std::fixed <<
+	seconds_since_program_start() <<
+	std::setprecision(default_precision) <<
+	" " << getTimeString() << " " << message << std::endl;
     }
 }
 
@@ -74,66 +76,110 @@ map<string,vector<string> > parse_args(int argc, char** argv){
     map<string,vector<string> > M; // Option -> list of parameters
     string current_option = "";
     for(LL i = 1; i < argc; i++){
-        string S = argv[i];
-        if(S.size() >= 2  && S.substr(0,2) == "--"){
-            current_option = S;
-            M[current_option].resize(0); // Add empty vector for this option.
-        } else{
-            if(current_option == ""){
-                cerr << "Error parsing command line parameters" << endl;
-                exit(1);
-            }
-            M[current_option].push_back(S);
-        }
+	string S = argv[i];
+	if(S.size() >= 2  && S.substr(0,2) == "--"){
+	    current_option = S;
+	    M[current_option].resize(0); // Add empty vector for this option.
+	} else{
+	    if(current_option == ""){
+		cerr << "Error parsing command line parameters" << endl;
+		exit(1);
+	    }
+	    M[current_option].push_back(S);
+	}
     }
     return M;
 }
 
 string figure_out_file_format(string filename){
     for(LL i = filename.size()-1; i >= 0; i--){
-        if(filename[i] == '.'){
-            string end = filename.substr(i);
-            
-            if(end == ".fasta") return "fasta";
-            if(end == ".fna") return "fasta";
-            if(end == ".ffn") return "fasta";
-            if(end == ".faa") return "fasta";
-            if(end == ".frn") return "fasta";
+	if(filename[i] == '.'){
+	    string end = filename.substr(i);
 
-            if(end == ".fastq") return "fastq";
-            if(end == ".fq") return "fastq";
+	    if(end == ".fasta") return "fasta";
+	    if(end == ".fna") return "fasta";
+	    if(end == ".ffn") return "fasta";
+	    if(end == ".faa") return "fasta";
+	    if(end == ".frn") return "fasta";
 
-            if(end == ".gz") return "gzip";
+	    if(end == ".fastq") return "fastq";
+	    if(end == ".fq") return "fastq";
 
-            throw(runtime_error("Unknown file format: " + filename));
-        }
+	    if(end == ".gz") return "gzip";
+
+	    throw(runtime_error("Unknown file format: " + filename));
+	}
     }
     throw(runtime_error("Unknown file format: " + filename));
     return "unknown";
 }
 
-char fix_char(char c){
-    char c_new = toupper(c);
-    if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
-        LL r = rand() % 4;
-        if(r == 0) c_new = 'A';
-        if(r == 1) c_new = 'C';
-        if(r == 2) c_new = 'G';
-        if(r == 3) c_new = 'T';
-    }
-    return c_new;
+static constexpr char R_conv_tbl[] = { 'A', 'G' };
+static constexpr char Y_conv_tbl[] = { 'C', 'T' };
+static constexpr char K_conv_tbl[] = { 'G', 'T' };
+static constexpr char M_conv_tbl[] = { 'A', 'C' };
+static constexpr char S_conv_tbl[] = { 'C', 'G' };
+static constexpr char W_conv_tbl[] = { 'A', 'T' };
+
+static constexpr char B_conv_tbl[] = { 'C', 'G', 'T' };
+static constexpr char D_conv_tbl[] = { 'A', 'G', 'T' };
+static constexpr char H_conv_tbl[] = { 'A', 'C', 'T' };
+static constexpr char V_conv_tbl[] = { 'A', 'C', 'G' };
+
+static constexpr char N_conv_tbl[] = { 'A', 'C', 'G', 'T' };
+
+char fix_char(char c)
+{
+	c = toupper(c);
+	random_device rd;
+
+	switch (c) {
+	case 'A':
+		return c;
+	case 'C':
+		return c;
+	case 'G':
+		return c;
+	case 'T':
+		return c;
+	case 'U':
+		return 'T';
+	case 'R':
+		return R_conv_tbl[rd() % 2];
+	case 'Y':
+		return Y_conv_tbl[rd() % 2];
+	case 'K':
+		return K_conv_tbl[rd() % 2];
+	case 'M':
+		return M_conv_tbl[rd() % 2];
+	case 'S':
+		return S_conv_tbl[rd() % 2];
+	case 'W':
+		return W_conv_tbl[rd() % 2];
+	case 'B':
+		return B_conv_tbl[rd() % 3];
+	case 'D':
+		return D_conv_tbl[rd() % 3];
+	case 'H':
+		return H_conv_tbl[rd() % 3];
+	case 'V':
+		return V_conv_tbl[rd() % 3];
+	default:
+		return N_conv_tbl[rd() % 4];
+	}
 }
+
 
 // Returns number of chars replaced
 LL fix_alphabet_of_string(string& S){
     LL chars_replaced = 0;
     for(LL i = 0; i < S.size(); i++){
-        char c = S[i];
-        char c_new = fix_char(c);
-        if(c_new != c){
-            S[i] = c_new;
-            chars_replaced++;
-        }
+	char c = S[i];
+	char c_new = fix_char(c);
+	if(c_new != c){
+	    S[i] = c_new;
+	    chars_replaced++;
+	}
     }
     return chars_replaced;
 }
@@ -148,14 +194,53 @@ string fix_alphabet(Sequence_Reader& sr){
     throwing_ofstream out(new_filename);
     LL chars_replaced = 0;
     while(!sr.done()){
-        string read = sr.get_next_query_stream().get_all();
-        chars_replaced += fix_alphabet_of_string(read);
-        out << ">\n" << read << "\n";
+	string read = sr.get_next_query_stream().get_all();
+	chars_replaced += fix_alphabet_of_string(read);
+	out << ">\n" << read << "\n";
     }
     write_log("Replaced " + to_string(chars_replaced) + " characters");
     return new_filename;
 }
 
+std::string fix_alphabet_fast(std::string input_file)
+{
+	std::string output_file = temp_file_manager.get_temp_file_name("seqs-");
+
+	std::FILE* ip = std::fopen(input_file.c_str(), "rb");
+	std::FILE* op = std::fopen(output_file.c_str(), "wb");
+
+	char ibuf[1024L * 1024L];
+	char obuf[1024L * 1024L];
+	std::size_t sz;
+
+	std::size_t j = 0;
+	while (sz = std::fread(ibuf, 1, 1024L * 1024L, ip)) {
+		for (std::size_t i = 0; i < sz; ++i) {
+			if (ibuf[i] == '>') {
+				obuf[j++] = '>';
+				while (ibuf[i] != '\n') {
+					++i;
+				}
+				obuf[j++] = '\n';
+			}
+			else if (ibuf[i] == '\n')
+				if (ibuf[i+1] == '>')
+					obuf[j++] = '\n';
+				else
+					;
+			else
+				obuf[j++] = fix_char(ibuf[i]);
+		}
+		std::fwrite(obuf, 1, j, op);
+		j = 0;
+	}
+	std::putc('\n', op);
+
+	std::fclose(ip);
+	std::fclose(op);
+
+	return output_file;
+}
 
 void sigint_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
@@ -188,11 +273,11 @@ vector<string> get_first_and_last_kmers(string fastafile, LL k){
     Sequence_Reader fr(fastafile, FASTA_MODE);
     vector<string> result;
     while(!fr.done()){
-        string ref = fr.get_next_query_stream().get_all();
-        if(ref.size() >= k){
-            result.push_back(ref.substr(0,k));
-            result.push_back(ref.substr(ref.size()-k,k));
-        }
+	string ref = fr.get_next_query_stream().get_all();
+	if(ref.size() >= k){
+	    result.push_back(ref.substr(0,k));
+	    result.push_back(ref.substr(ref.size()-k,k));
+	}
     }
     return result;
 }
@@ -203,14 +288,14 @@ vector<string> get_first_and_last_kmers(string fastafile, LL k){
 bool colex_compare(const string& S, const string& T){
     LL i = 0;
     while(true){
-        if(i == S.size() || i == T.size()){
-            // One of the strings is a suffix of the other. Return the shorter.
-            if(S.size() < T.size()) return true;
-            else return false;
-        }
-        if(S[S.size()-1-i] < T[T.size()-1-i]) return true;
-        if(S[S.size()-1-i] > T[T.size()-1-i]) return false;
-        i++;
+	if(i == S.size() || i == T.size()){
+	    // One of the strings is a suffix of the other. Return the shorter.
+	    if(S.size() < T.size()) return true;
+	    else return false;
+	}
+	if(S[S.size()-1-i] < T[T.size()-1-i]) return true;
+	if(S[S.size()-1-i] > T[T.size()-1-i]) return false;
+	i++;
     }
 }
 
@@ -218,8 +303,8 @@ bool colex_compare_cstrings(const char* x, const char* y){
     LL nx = strlen(x);
     LL ny = strlen(y);
     for(LL i = 0; i < min(nx,ny); i++){
-        if(x[nx-1-i] < y[ny-1-i]) return true;
-        if(x[nx-1-i] > y[ny-1-i]) return false;
+	if(x[nx-1-i] < y[ny-1-i]) return true;
+	if(x[nx-1-i] > y[ny-1-i]) return false;
     }
 
     // All no mismatches -> the shorter string is smaller
@@ -241,7 +326,7 @@ vector<T> parse_tokens(string S){
     stringstream ss(S);
     T token;
     while(ss >> token) tokens.push_back(token);
-    
+
     return tokens;
 }
 
@@ -249,7 +334,7 @@ vector<T> parse_tokens(string S){
 vector<string> split(string text){
     std::istringstream iss(text);
     std::vector<std::string> results(std::istream_iterator<std::string>{iss},
-                                 std::istream_iterator<std::string>());
+				 std::istream_iterator<std::string>());
     return results;
 }
 
@@ -259,17 +344,17 @@ vector<string> split(string text, char delimiter){
     vector<LL> I; // Delimiter indices
     I.push_back(-1);
     for(LL i = 0; i < text.size(); i++){
-        if(text[i] == delimiter){
-            I.push_back(i);
-        }
+	if(text[i] == delimiter){
+	    I.push_back(i);
+	}
     }
     I.push_back(text.size());
     vector<string> tokens;
     for(LL i = 0; i < I.size()-1; i++){
-        LL len = I[i+1] - I[i] + 1 - 2;
-        tokens.push_back(text.substr(I[i]+1, len));
+	LL len = I[i+1] - I[i] + 1 - 2;
+	tokens.push_back(text.substr(I[i]+1, len));
     }
-    
+
     return tokens;
 }
 
@@ -280,17 +365,17 @@ vector<string> split(const char* text, char delimiter){
 
 // https://stackoverflow.com/questions/18100097/portable-way-to-check-if-directory-exists-windows-linux-c
 void check_dir_exists(string path){
-    struct stat info;    
+    struct stat info;
     if( stat( path.c_str(), &info ) != 0 ){
-        cerr << "Error: can not access directory " << path << endl;
-        exit(1);
+	cerr << "Error: can not access directory " << path << endl;
+	exit(1);
     }
     else if( info.st_mode & S_IFDIR ){
-        // All good
-    }    
+	// All good
+    }
     else{
-        cerr << "Error: is not a directory: " << path << endl;
-        exit(1);
+	cerr << "Error: is not a directory: " << path << endl;
+	exit(1);
     }
 }
 
@@ -322,7 +407,7 @@ vector<string> get_all_lines(string infile){
     string line;
     throwing_ifstream in(infile);
     while(in.getline(line)){
-        lines.push_back(line);
+	lines.push_back(line);
     }
     return lines;
 }
@@ -334,10 +419,10 @@ vector<char> read_binary_file(string infile){
 
     std::vector<char> buffer(size);
     if (file.read(buffer.data(), size)){
-        return buffer;
+	return buffer;
     } else{
-        cerr << "Error reading file: " << infile << endl;
-        assert(false);
+	cerr << "Error reading file: " << infile << endl;
+	assert(false);
     }
 }
 
@@ -354,13 +439,13 @@ bool files_are_equal(const std::string& p1, const std::string& p2) {
     f1.stream.seekg(0, std::ifstream::beg);
     f2.stream.seekg(0, std::ifstream::beg);
     return std::equal(std::istreambuf_iterator<char>(f1.stream.rdbuf()),
-                    std::istreambuf_iterator<char>(),
-                    std::istreambuf_iterator<char>(f2.stream.rdbuf()));
+		    std::istreambuf_iterator<char>(),
+		    std::istreambuf_iterator<char>(f2.stream.rdbuf()));
 }
 
 void check_true(bool condition, string error_message){
     if(!condition){
-        throw std::runtime_error(error_message);
+	throw std::runtime_error(error_message);
     }
 }
 
@@ -376,12 +461,12 @@ class Progress_printer{
     Progress_printer(LL n_jobs, LL total_prints) : n_jobs(n_jobs), processed(0), total_prints(total_prints), next_print(0) {}
 
     void job_done(){
-        if(next_print == processed){
-            LL progress_percent = round(100 * ((double)processed / n_jobs));
-            write_log("Progress: " + to_string(progress_percent) + "%");
-            next_print += n_jobs / total_prints;
-        }
-        processed++;
+	if(next_print == processed){
+	    LL progress_percent = round(100 * ((double)processed / n_jobs));
+	    write_log("Progress: " + to_string(progress_percent) + "%");
+	    next_print += n_jobs / total_prints;
+	}
+	processed++;
     }
 
 };
