@@ -99,6 +99,7 @@ string figure_out_file_format(string filename){
             if(end == ".ffn") return "fasta";
             if(end == ".faa") return "fasta";
             if(end == ".frn") return "fasta";
+            if(end == ".fa") return "fasta";
 
             if(end == ".fastq") return "fastq";
             if(end == ".fq") return "fastq";
