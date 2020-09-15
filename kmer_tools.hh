@@ -24,10 +24,13 @@ void add_extra_kmers(string fastafile, string outfile, LL k){
         }
     }
     concat += BD_BWT_index<>::END;
-    for(string kmer : get_all_distinct_cyclic_kmers(concat,k)){
+    for(LL i = 0; i < concat.size(); i++){
+        string kmer;
         bool good = false;
-        for(char c : kmer) if(c == read_separator || c == BD_BWT_index<>::END){
-            good = true;
+        for(LL j = 0; j < k; j++){
+            char c = concat[(i+j) % concat.size()];
+            kmer += c;
+            if(c == read_separator || c == BD_BWT_index<>::END) good = true;
         }
         if(good) kmerfile << kmer << "\n";
     }
@@ -57,8 +60,10 @@ void list_all_distinct_cyclic_kmers_in_memory(string input_fastafile, string out
 // Let C = $ S_1 $ S_2 $ ... S_n X 
 // where $ is the sequence separator defined in globals.hh and X is the byte 0x01
 // Writes into outputfile all distinct cyclic k-mers of C, one k-mer per line, in any order
+// MAY LIST THE SAME K-MER TWICE
 void list_all_distinct_cyclic_kmers_in_external_memory(string input_fastafile, string outputfile, int64_t k, int64_t ram_bytes, int64_t n_threads){
     KMC_wrapper(k, max(ram_bytes / (LL)1e9, (LL)1), n_threads, input_fastafile, outputfile, temp_file_manager.get_dir());
+    write_log("Adding ghost k-mers crossing sequence boundaries");
     add_extra_kmers(input_fastafile, outputfile, k);
 }
 
