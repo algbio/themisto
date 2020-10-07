@@ -1,3 +1,6 @@
+# About Themisto
+Themisto is an external memory construction of a compressed colored de-bruijn graph of order k supporting fast pseudo-alignment, see https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto.
+
 # Installation
 ## Requirements
 Compilation: C++14 compliant compiler with OpenMP support, and CMake v3.1 or newer.
