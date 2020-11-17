@@ -98,12 +98,15 @@ public:
         ParallelBaseWriter* out;
         bool reverse_complements;
         LL output_buffer_size;
-        string output_buffer;
+        string output_buffer; // For printing
+        vector<LL> temp_colorset_id_buffer;
+        vector<LL> temp_colorset_id_buffer_rc;
         vector<LL> colorset_buffer;
         vector<LL> colorset_rc_buffer;
         vector<LL> temp_buffer;
         vector<LL> union_buffer;
         string rc_buffer;
+        LL k;
 
         AlignerThread(Themisto* kl, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_size){
             this->kl = kl;
@@ -114,22 +117,110 @@ public:
             this->colorset_rc_buffer.resize(kl->coloring.n_colors);
             this->temp_buffer.resize(kl->coloring.n_colors);
             this->union_buffer.resize(kl->coloring.n_colors);
+            this->k = kl->boss.get_k();
         }
 
+        // Returns number of elements placed into putput
+        LL intersect_colorsets(vector<LL>& ids, LL query_size, vector<LL>& output, vector<LL>& temp){
+            bool found_at_least_one_nonempty_colorset = false;
+            LL output_buf_size = 0;
+            for(LL i = 0; i < query_size - k + 1; i++){
+                if(ids[i] != -1 && (i == 0 || ids[i-1] != ids[i])){
+                    // Nonempty and nonredundant color set
+                    LL temp_buf_size = kl->coloring.get_colorset_to_buffer_by_id(ids[i], kl->boss, temp);
+                    if(!found_at_least_one_nonempty_colorset){
+                        // First color set that was found. Put it into output_buf
+                        for(LL j = 0; j < temp_buf_size; j++) output[j] = temp[j];
+                        output_buf_size = temp_buf_size;
+                    } else{
+                        // Intersect the colors in temp_buf with output_buf
+                        output_buf_size = intersect_buffers(output, output_buf_size, temp, temp_buf_size);
+                        if(output_buf_size == 0) return 0;
+                    }
+                    found_at_least_one_nonempty_colorset = true;
+                }
+            }
+            return output_buf_size;
+        }
+
+        // Assumes temp_colorset_id_buffer and temp_colorset_id_buffer_rc are populated
+        // Returns interection size
+        LL do_intersections_with_legacy_behaviour(LL query_size){
+            if(!reverse_complements){
+                return intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+            } else{
+                LL forward_size = intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+                LL rc_size = intersect_colorsets(temp_colorset_id_buffer_rc, query_size, colorset_rc_buffer, temp_buffer);
+                LL union_size = union_buffers(colorset_buffer, forward_size,
+                                              colorset_rc_buffer, rc_size, 
+                                              union_buffer);
+                for(LL i = 0; i < union_size; i++) colorset_buffer[i] = union_buffer[i];
+                return union_size;
+            }    
+        }
+
+        // Assumes temp_colorset_id_buffer is populated (and temp_colorset_id_buffer_rc if reverse complements
+        // are enabled). Puts final intersected color set into colorset_buffer. Returns the number of elements
+        // placed into colorset_buffer.
+        LL do_intersections(LL query_size){
+            if(!reverse_complements) {
+                return intersect_colorsets(temp_colorset_id_buffer, query_size, colorset_buffer, temp_buffer);
+            }
+
+            // reverse complements are enbaled
+            bool found_at_least_one_nonempty_colorset = false;
+            LL temp_buf_size = 0;
+            for(LL i = 0; i < query_size - k + 1; i++){
+                bool need_to_intersect = true;
+                if(temp_colorset_id_buffer[i] == -1 && temp_colorset_id_buffer_rc[query_size - k - i] == -1)
+                    need_to_intersect = false; // Empty set
+                else if(i > 0 && temp_colorset_id_buffer[i] == temp_colorset_id_buffer[i-1]
+                         && temp_colorset_id_buffer_rc[query_size - k - i] == temp_colorset_id_buffer_rc[query_size - k - i + 1]){
+                    need_to_intersect = false; // Same color set as previous
+                }
+                if(need_to_intersect){
+                    LL forward_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer[i], kl->boss, colorset_buffer);
+                    LL rc_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer_rc[query_size - k - i], kl->boss, colorset_rc_buffer);
+
+                    LL union_size = union_buffers(colorset_buffer, forward_size,
+                                                colorset_rc_buffer, rc_size, 
+                                                union_buffer);
+                    
+                    if(!found_at_least_one_nonempty_colorset){
+                        // First color set that was found. Put it into temp buf
+                        for(LL j = 0; j < union_size; j++) temp_buffer[j] = union_buffer[j];
+                        temp_buf_size = union_size;
+                    } else{
+                        // Intersect the colors in temp_buf with the union buffer
+                        temp_buf_size = intersect_buffers(temp_buffer, temp_buf_size, union_buffer, union_size);
+                        if(temp_buf_size == 0) return 0;
+                    }
+                    found_at_least_one_nonempty_colorset = true;
+                }
+            }
+
+            // Copy to output
+            for(LL i = 0; i < temp_buf_size; i++) colorset_buffer[i] = temp_buffer[i];
+            
+            return temp_buf_size;
+
+        }
+
+
         virtual void callback(const char* S, LL S_size, int64_t string_id){
-            LL colorset_size = kl->pseudoalign_to_buffer(S,S_size,colorset_buffer,temp_buffer);
+            if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
+                temp_colorset_id_buffer.resize(S_size - k + 1);
+                if(reverse_complements) temp_colorset_id_buffer_rc.resize(S_size - k + 1);
+            }
+
+            kl->get_nonempty_colorset_ids(S,S_size,temp_colorset_id_buffer);
             if(reverse_complements){
                 if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
                 get_rc(S, S_size, rc_buffer);
-                LL colorset_rc_size = kl->pseudoalign_to_buffer(rc_buffer.c_str(),S_size,colorset_rc_buffer,temp_buffer);
-                LL union_size = union_buffers(colorset_buffer, colorset_size,
-                                              colorset_rc_buffer, colorset_rc_size, 
-                                              union_buffer);
-                for(LL i = 0; i < union_size; i++)
-                    colorset_buffer[i] = union_buffer[i];
-                colorset_size = union_size;
+                kl->get_nonempty_colorset_ids(rc_buffer.c_str(), S_size,temp_colorset_id_buffer_rc);
             }
 
+            LL colorset_size = do_intersections(S_size);
             output_buffer += std::to_string(string_id) + " ";
             for(LL i = 0; i < colorset_size; i++)
                 output_buffer += std::to_string(colorset_buffer[i]) + " ";
@@ -138,6 +229,7 @@ public:
                 out->write(output_buffer);
                 output_buffer.clear();
             }
+            
         }
 
         virtual void finish(){
@@ -254,49 +346,82 @@ public:
     set<LL> pseudoalign(const string& Q){
         vector<LL> output_buf(coloring.n_colors);
         vector<LL> temp_buf(coloring.n_colors);
-        LL output_size = pseudoalign_to_buffer(Q.c_str(), Q.size(), output_buf, temp_buf);
+        vector<LL> temp_buf2(Q.size());
+        LL output_size = pseudoalign_to_buffer(Q.c_str(), Q.size(), temp_buf2, temp_buf, output_buf);
         set<LL> ans(output_buf.begin(), output_buf.begin() + output_size);
         return ans;
     }
 
-    // Buffers must have enough space to accommodate all colors.
-    // Puts the colors into the output buffer and returns the number
-    // of elements. Does not resize the output buffer.
-    LL pseudoalign_to_buffer(const char* Q, LL Q_size, vector<LL>& output_buf, vector<LL>& temp_buf){
-        // Iterates all k-mers of Q that are in the index at least twice, 
-        // and takes the intersection of the color sets.
+    // Output buf should at least Q_size - k + 1 elements. Fills output buf so that element i
+    // is the id of the color set of the i-th k-mer of Q. If the i-th k-mer does not exist in
+    // the index, then the color set id is defined to be -1.
+    void get_nonempty_colorset_ids(const char* Q, LL Q_size, vector<LL>& output_buf){
 
         LL k = boss.get_k();
+
+        // Initialize outpuf buf values to -1
+        for(LL i = 0; i < Q_size - k + 1; i++) output_buf[i] = -1;
 
         LL output_size = 0;
         LL idx, node;
         std::tie(idx,node) = find_first_matching_kmer(Q, 0, Q_size-1, k);
-        if(idx == -1) return 0;
-        else output_size = coloring.get_colorset_to_buffer(node, boss, output_buf);
+
+        if(idx == -1) return; // None of the k-mers match the index
+        
+        output_buf[idx] = coloring.get_colorset_id(node, boss);
 
         while(idx + k - 1 < Q_size){
-            // Loop invariant here: Q[idx..(idx+k-1)] is found in the index and the corresponding
-            // color set has been intersected.
+            // Loop invariant here: Q[idx..(idx+k-1)] is found in the index.
+
             if(idx + k >= Q_size) break; // At the last kmer of the query
 
             node = boss.walk(node, Q[idx+k]); // Try to walk to the next kmer
             if(node != -1){ // Success
-                if(!coloring.is_redundant(node)){ // Intersect the color set (if we need to)
-                    LL temp_size = coloring.get_colorset_to_buffer(node, boss, temp_buf);
-                    output_size = intersect_buffers(output_buf, output_size, temp_buf, temp_size);
-                }
                 idx++;
+                if(coloring.is_redundant(node) && output_buf[idx-1] != -1){
+                    output_buf[idx] = output_buf[idx-1];
+                } else {
+                    output_buf[idx] = coloring.get_colorset_id(node, boss);
+                }
+                
             } else{ // Could not walk to the next kmer
                 std::tie(idx,node) = find_first_matching_kmer(Q, idx+1, Q_size-1, k);
                 if(idx == -1) break; // No more matching k-mers in this query
-                else{ // Intersect the colorset (always have to because we lost our spot in the index)
-                    LL temp_size = coloring.get_colorset_to_buffer(node, boss, temp_buf);
-                    output_size = intersect_buffers(output_buf, output_size, temp_buf, temp_size);
-                }
+                output_buf[idx] = coloring.get_colorset_id(node, boss);
             }
         }
-        return output_size;
     }
+
+    // Buffers must have enough space to accommodate all colors.
+    // Puts the colors into the output buffer and returns the number
+    // of elements. Does not resize the output buffer. colorset_id_buf should
+    // have size at least Q_size - k + 1. output_buf and temp_buf should have at 
+    // least size equal to the number of distinct colors.
+    LL pseudoalign_to_buffer(const char* Q, LL Q_size, vector<LL>& colorset_id_buf, vector<LL>& temp_buf, vector<LL>& output_buf){
+
+        LL k = boss.get_k();
+        get_nonempty_colorset_ids(Q,Q_size,colorset_id_buf);
+
+        bool found_at_least_one_nonempty_colorset = false;
+        LL output_buf_size = 0;
+        for(LL i = 0; i < Q_size - k + 1; i++){
+            if(colorset_id_buf[i] != -1 && (i == 0 || colorset_id_buf[i-1] != colorset_id_buf[i])){
+                // Nonempty and nonredundant color set
+                LL temp_buf_size = coloring.get_colorset_to_buffer_by_id(colorset_id_buf[i], boss, temp_buf);
+                if(!found_at_least_one_nonempty_colorset){
+                    // First color set that was found. Put it into output_buf
+                    for(LL j = 0; j < temp_buf_size; j++) output_buf[j] = temp_buf[j];
+                    output_buf_size = temp_buf_size;
+                } else{
+                    // Intersect the colors in temp_buf with output_buf
+                    output_buf_size = intersect_buffers(output_buf, output_buf_size, temp_buf, temp_buf_size);
+                    if(output_buf_size == 0) return 0;
+                }
+                found_at_least_one_nonempty_colorset = true;
+            }
+        }
+        return output_buf_size;
+    }    
 
     bool getline(throwing_ifstream& is, string& line){
         return is.getline(line);
@@ -413,6 +538,24 @@ public:
     };
 
     LL random_seed = 123674;
+
+
+    string get_rc(string S){
+        string R(S.rbegin(), S.rend());
+        for(LL i = 0; i < R.size(); i++)
+            R[i] = get_rc(R[i]);
+        return R;
+    }
+
+    char get_rc(char c){
+        switch(c){
+            case 'A': return 'T';
+            case 'T': return 'A';
+            case 'C': return 'G';
+            case 'G': return 'C';
+            default: return c;
+        }
+    }
 
     vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries, LL query_length, LL min_k, LL max_k, LL n_colors){
         srand(random_seed);
@@ -549,31 +692,42 @@ public:
             //cout << correct_coloring_ids << endl;
             assert(kl.coloring.get_all_colorsets(kl.boss) == correct_coloring_ids);
 
+            // Run without rc
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
             Sequence_Reader sr(temp_dir + "/queries.fna", FASTA_MODE);
             kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false, true);
-
             vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
+
+            // Run with rc
+            string final_file_rc = temp_file_manager.get_temp_file_name("finalfile_rc");
+            Sequence_Reader sr2(temp_dir + "/queries.fna", FASTA_MODE);
+            kl.pseudoalign_parallel(n_threads, sr2, final_file_rc, true, 300, false, true);
+            vector<set<LL> > our_results_rc = kl.parse_output_format_from_disk(final_file_rc);
 
             //cout << our_results << endl;
 
             for(LL i = 0; i < tcase.queries.size(); i++){
                 string query = tcase.queries[i];
-                set<string> brute = pseudoalign_to_colors_trivial(query, tcase);
+                set<string> brute = pseudoalign_to_colors_trivial(query, tcase, false);
+                set<string> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
                 
                 set<string> nonbrute;
-                for(LL id : our_results[i])
-                    nonbrute.insert(nm.id_to_name[id]);
+                for(LL id : our_results[i]) nonbrute.insert(nm.id_to_name[id]);
+
+                set<string> nonbrute_rc;
+                for(LL id : our_results_rc[i]) nonbrute_rc.insert(nm.id_to_name[id]);
 
                 //cout << brute << " " << nonbrute << endl;
+                //cout << brute_rc << "\n" << nonbrute << "\n" << nonbrute_rc << "\n--" << endl;
                 assert(brute == nonbrute);
+                assert(brute_rc == nonbrute_rc);
             }
         }
 
     }
 
     // Returns set of color names
-    set<string> pseudoalign_to_colors_trivial(string& query, TestCase& tcase){
+    set<string> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
         set<string> alignments;
         for(LL i = 0; i < tcase.genomes.size(); i++) alignments.insert(tcase.colors[i]); // All color names
 
@@ -581,12 +735,14 @@ public:
         // For each k-mer in query, get the color name set and intersect that with alignments
         for(string kmer : get_all_kmers(query, tcase.k)){
             set<string> names = tcase.node_to_color_names[kmer];
+            if(reverse_complements){
+                set<string> names_rc = tcase.node_to_color_names[get_rc(kmer)];
+                for(string name : names_rc) names.insert(name);
+            }
             if(names.size() >= 1) {
                 at_least_one = true;
                 alignments = intersect(alignments, names);
-            } else{
             }
-            
         }
 
         if(at_least_one == false) alignments.clear();
