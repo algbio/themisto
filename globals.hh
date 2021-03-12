@@ -18,6 +18,7 @@
 #include "throwing_streams.hh"
 #include <chrono>
 #include <iomanip>
+#include <random>
 
 using namespace std;
 using namespace std::chrono;
@@ -113,50 +114,166 @@ string figure_out_file_format(string filename){
     return "unknown";
 }
 
+static constexpr char R_conv_tbl[] = { 'A', 'G' };
+static constexpr char Y_conv_tbl[] = { 'C', 'T' };
+static constexpr char K_conv_tbl[] = { 'G', 'T' };
+static constexpr char M_conv_tbl[] = { 'A', 'C' };
+static constexpr char S_conv_tbl[] = { 'C', 'G' };
+static constexpr char W_conv_tbl[] = { 'A', 'T' };
+static constexpr char B_conv_tbl[] = { 'C', 'G', 'T' };
+static constexpr char D_conv_tbl[] = { 'A', 'G', 'T' };
+static constexpr char H_conv_tbl[] = { 'A', 'C', 'T' };
+static constexpr char V_conv_tbl[] = { 'A', 'C', 'G' };
+static constexpr char N_conv_tbl[] = { 'A', 'C', 'G', 'T' };
+
 char fix_char(char c){
-    char c_new = toupper(c);
-    if(c_new != 'A' && c_new != 'C' && c_new != 'G' && c_new != 'T'){
-        LL r = rand() % 4;
-        if(r == 0) c_new = 'A';
-        if(r == 1) c_new = 'C';
-        if(r == 2) c_new = 'G';
-        if(r == 3) c_new = 'T';
-    }
-    return c_new;
+	c = toupper(c);
+    int rd = std::rand();
+    
+	switch (c) {
+	case 'A':
+		return c;
+	case 'C':
+		return c;
+	case 'G':
+		return c;
+	case 'T':
+		return c;
+	case 'U':
+		return 'T';
+	case 'R':
+		return R_conv_tbl[rd % 2];
+	case 'Y':
+		return Y_conv_tbl[rd % 2];
+	case 'K':
+		return K_conv_tbl[rd % 2];
+	case 'M':
+		return M_conv_tbl[rd % 2];
+	case 'S':
+		return S_conv_tbl[rd % 2];
+	case 'W':
+		return W_conv_tbl[rd % 2];
+	case 'B':
+		return B_conv_tbl[rd % 3];
+	case 'D':
+		return D_conv_tbl[rd % 3];
+	case 'H':
+		return H_conv_tbl[rd % 3];
+	case 'V':
+		return V_conv_tbl[rd % 3];
+	default:
+		return N_conv_tbl[rd % 4];
+	}
 }
 
-// Returns number of chars replaced
-LL fix_alphabet_of_string(string& S){
-    LL chars_replaced = 0;
-    for(LL i = 0; i < S.size(); i++){
-        char c = S[i];
-        char c_new = fix_char(c);
-        if(c_new != c){
-            S[i] = c_new;
-            chars_replaced++;
+// Makes a copy of the file and replaces bad characters. Returns the new filename
+// The new file is in fasta format
+std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode){
+    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
+    
+    const std::string output_file = "output_file";
+    
+    std::FILE* ip = std::fopen(input_file.c_str(), "rb");
+    std::FILE* op = std::fopen(output_file.c_str(), "wb");
+    
+    char* ibuf = new char[bufsiz];
+    char* obuf = new char[bufsiz];
+    std::size_t sz;
+    std::uint64_t replaced = 0;
+    
+    std::size_t j = 0;
+
+    // FASTA
+    if (mode == 0) {
+        bool in_header = false;
+        
+        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+            for (std::size_t i = 0; i < sz; ++i) {
+                
+                if (ibuf[i] == '>' || in_header) {
+                    in_header = true;
+
+                    if (ibuf[i] == '>') {
+                        obuf[j++] = '>';
+                    }
+                    else if (ibuf[i] == '\n') {
+                        in_header = false;
+                        obuf[j++] = '\n';
+                    }
+                }
+                
+                else {
+                    if (ibuf[i] == '\n') {
+                        obuf[j++] = '\n';
+                    }
+                    else {
+                        obuf[j] = fix_char(ibuf[i]);
+                        if (obuf[j] != ibuf[i]) {
+                            ++replaced;
+                        }
+                        ++j;
+                    }
+                }
+            }
+            std::fwrite(obuf, 1, j, op);
+            j = 0;
         }
     }
-    return chars_replaced;
-}
+    // FASTQ
+    else {
+        bool in_header = false;
+        bool in_descriptor = false;
+        
+        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
 
+            for (std::size_t i = 0; i < sz; ++i) {
 
-// Makes a copy of the file and replaces a bad characters. Returns the new filename
-// The new file is in fasta format
-string fix_alphabet(Sequence_Reader& sr){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characeters from {A,C,G,T}");
-    //Sequence_Reader fr(fastafile, FASTA_MODE);
-    string new_filename = temp_file_manager.get_temp_file_name("seqs-");
-    throwing_ofstream out(new_filename);
-    LL chars_replaced = 0;
-    while(!sr.done()){
-        string read = sr.get_next_query_stream().get_all();
-        chars_replaced += fix_alphabet_of_string(read);
-        out << ">\n" << read << "\n";
+                if (ibuf[i] == '@' || in_header) {
+                    in_header = true;
+                    in_descriptor = false;
+
+                    if (ibuf[i] == '@') {
+                        obuf[j++] = '>';
+                    }
+                    else if (ibuf[i] == '\n') {
+                        in_header = false;
+                        obuf[j++] = '\n';
+                    }
+                }
+                
+                else if (ibuf[i] == '+' || in_descriptor) {
+                    in_descriptor = true;
+                }
+
+                else {
+                    if (ibuf[i] == '\n') {
+                        obuf[j++] = '\n';
+                    }
+                    else {
+                        obuf[j] = fix_char(ibuf[i]);
+                        if (obuf[j] != ibuf[i]) {
+                            ++replaced;
+                        }
+                        ++j;
+                    }
+                }
+
+            }
+            std::fwrite(obuf, 1, j, op);
+            j = 0;
+        }
     }
-    write_log("Replaced " + to_string(chars_replaced) + " characters");
-    return new_filename;
-}
 
+    delete[] ibuf;
+    delete[] obuf;
+    
+    std::fclose(ip);
+    std::fclose(op);
+    
+    write_log("Replaced " + to_string(replaced) + " characters");
+    
+    return output_file;
+}
 
 void sigint_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
@@ -386,3 +503,4 @@ class Progress_printer{
     }
 
 };
+
