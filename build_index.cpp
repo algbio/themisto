@@ -18,7 +18,8 @@ struct Config{
     bool load_boss = false;
     LL memory_megas = 1000;
     bool auto_colors = false;
-
+    LL pp_buf_siz = 1024*4;
+    
     void check_valid(){
         check_true(inputfile != "", "Input file not set");
 
@@ -51,7 +52,8 @@ struct Config{
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "Automatic colors = " << (auto_colors ? "true" : "false") << "\n";
-        ss << "Load BOSS = " << (load_boss ? "true" : "false"); // Last has no endline
+        ss << "Load BOSS = " << (load_boss ? "true" : "false") << "\n";
+        ss << "Preprocessing buffer size = " << pp_buf_siz; // Last has no endline
         return ss.str();
     }
 };
@@ -82,6 +84,7 @@ int main2(int argc, char** argv){
         cerr << "  --temp-dir [path] (Temporary direction. Always required, directory must exist before running)" << endl;
         cerr << "  --mem-megas [number] (Number of megabytes allowed for external memory algorithms. Default: 1000)" << endl;
         cerr << "  --n-threads [number] (number of parallel threads to use. Default: 1)" << endl;
+        cerr << "  --pp-buf-siz [number] (Size of preprocessing buffer (in bytes) for fixing alphabet. Default: 4096)" << endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
         cerr << "  ./build_index --k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
@@ -124,6 +127,9 @@ int main2(int argc, char** argv){
         } else if(option == "--auto-colors"){
             check_true(values.size() == 0, "--auto-colors takes no parameters");
             C.auto_colors = true;
+        } else if(option == "--pp-buf-siz"){
+            check_true(values.size() == 1, "--pp-buf-siz must be followed by a single integer");
+            C.pp_buf_siz = std::stoll(values[0]);
         } else{
             cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
             exit(1);
@@ -144,10 +150,9 @@ int main2(int argc, char** argv){
         C.inputfile = new_name;
     }
 
-    Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    C.inputfile = fix_alphabet(sr); // Turns the file into fasta format also
+    C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     C.input_format = "fasta";
-
+    
     if(C.load_boss){
         write_log("Loading BOSS");
         themisto.load_boss(C.index_dir + "/boss-");
