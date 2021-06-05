@@ -160,7 +160,7 @@ int main2(int argc, char** argv){
         write_log("Building BOSS");
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads);
         themisto.save_boss(C.index_dir + "/boss-");
-        write_log("Building BOSS finished (" + std::to_string(themisto.boss.get_number_of_nodes()) + " nodes)");
+        write_log("Building BOSS finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
     if(C.colorfile != "" || C.auto_colors){

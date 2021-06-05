@@ -10,6 +10,7 @@
 #include "Themisto.hh"
 #include <stdlib.h> 
 #include "EM_sort_tests.hh"
+#include "BOSS_tests.hh"
 #include "version.h"
 
 using namespace std;
