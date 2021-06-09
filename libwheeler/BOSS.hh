@@ -288,6 +288,19 @@ public:
 
     }
 
+    // For debugging.
+    set<string> get_all_edgemers() const{
+        set<string> ans;
+        for(LL v = 0; v < Base::number_of_nodes(); v++){
+            string x = get_node_label(v);
+            if(x.size() == get_k()){
+                for(char c : Base::node_outlabels(v))
+                    ans.insert(x + c);
+            }
+        }
+        return ans;
+    }
+
     template<typename T>
     friend bool operator==(BOSS<T>& boss1, BOSS<T>& boss2);
 

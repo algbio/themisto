@@ -484,11 +484,13 @@ void call_kmc(int argc, _TCHAR* argv[])
 }
 
 // Only works for alphabet {a,c,g,t,A,C,G,T}
-void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string outfile, string tempdir){
+// Return the prefix of the databse filename
+string KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string tempdir, bool only_canonical_kmers){
 
 	// Check that the alphabet is {a,c,g,t,A,C,G,T} (otherwise k-mers would be dropped silently)
 	throwing_ifstream fasta_input(fastafile);
 	string line;
+	cerr << "Validating input alphabet" << endl;
 	while(fasta_input.getline(line)){
 		if(line.size() > 0 && line[0] != '>'){
 			for(char c : line){
@@ -506,7 +508,6 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 	vector<string> argv = {"kmc", 
 	                      "-fm", 
 						  "-k" + to_string(k),
-						  "-b",
 						  "-m" + to_string(ram_gigas),
 						  "-ci1", // Exclude k-mers occurring less than 1 times = do not exclude anything
 						  "-cs1", // Maximum value of counter: 1
@@ -515,6 +516,9 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 						  fastafile, 
 						  KMC_database_file, 
 						  tempdir};
+	if(!only_canonical_kmers){
+		argv.insert(argv.begin()+1, "-b");
+	}
 
 	cerr << "Calling KMC with: ";
 	for(string S : argv) cerr << S << " ";
@@ -523,22 +527,7 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 	Argv A(argv);
     call_kmc(argv.size(), A.array);
 
-	cerr << "Dumping k-mers to disk" << endl;
-
-	// Dump the database to text
-	throwing_ofstream out(outfile);
-
-	CKMCFile kmer_database;
-	kmer_database.OpenForListing(KMC_database_file);
-
-	CKmerAPI kmer_object(k);
-	string str;
-	float counter;
-	
-	while(kmer_database.ReadNextKmer(kmer_object, counter)){
-		kmer_object.to_string(str);
-		out << str << "\n";
-	}
+	return KMC_database_file;
 
 }
 

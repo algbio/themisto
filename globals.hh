@@ -315,7 +315,16 @@ vector<string> get_first_and_last_kmers(string fastafile, LL k){
     return result;
 }
 
-
+string get_rc(string S){
+    std::reverse(S.begin(), S.end());
+    for(char& c : S){
+        if(c == 'A') c = 'T';
+        else if(c == 'C') c = 'G';
+        else if(c == 'G') c = 'C';
+        else if(c == 'T') c = 'A';
+    }
+    return S;
+}
 
 // true if S is colexicographically-smaller than T
 bool colex_compare(const string& S, const string& T){

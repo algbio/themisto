@@ -2,8 +2,9 @@
 
 #include "Kmer.hh"
 #include "BOSS.hh"
-#include "input_reading.hh"
-#include "EM_sort.hh"
+#include "../EM_sort.hh"
+#include "stdafx.h"
+#include "kmc_file.h"
 #include <unordered_map>
 #include <stdexcept>
 
@@ -68,6 +69,89 @@ public:
 
         return x;
     }
+};
+
+// Also gives reverse compelments
+class Kmer_stream_from_KMC_DB{
+
+private:
+
+CKMCFile kmer_database;
+CKmerAPI kmer_object;
+
+uint32 _kmer_length;
+uint32 _mode;
+uint32 _counter_size;
+uint32 _lut_prefix_length;
+uint32 _signature_len;
+uint32 _min_count;
+uint64 _max_count;
+uint64 _total_kmers;
+
+bool add_revcomps;
+std::string str;
+std::string str_revcomp;
+bool revcomp_next = false;
+
+char get_rc(char c){
+    switch(c){
+        case 'A': return 'T';
+        case 'T': return 'A';
+        case 'C': return 'G';
+        case 'G': return 'C';
+        default: cerr << "Error getting reverse complement from " << c << endl; exit(1);
+    }   
+}
+
+void reverse_complement(string& S){
+    std::reverse(S.begin(), S.end());
+    for(char& c : S) c = get_rc(c);
+}   
+
+public:
+
+    Kmer_stream_from_KMC_DB(string KMC_db_path, bool add_revcomps) : add_revcomps(add_revcomps) {
+        if (!kmer_database.OpenForListing(KMC_db_path)){
+            write_log("Error opening KMC database " + KMC_db_path);
+            exit(1);
+        }
+
+		kmer_database.Info(_kmer_length, _mode, _counter_size, _lut_prefix_length, _signature_len, _min_count, _max_count, _total_kmers);
+
+        kmer_object = CKmerAPI(_kmer_length);
+	
+    }
+
+    bool done(){
+        return (!add_revcomps || !revcomp_next) && kmer_database.Eof();
+    }
+
+    Kmer next(){
+        if(add_revcomps && revcomp_next){
+            revcomp_next = false;
+            return Kmer(str_revcomp);
+        }
+
+        float counter_f;
+        uint32 counter_i;
+		if(_mode){ //quake compatible mode
+			kmer_database.ReadNextKmer(kmer_object, counter_f);
+		}
+		else {			
+			kmer_database.ReadNextKmer(kmer_object, counter_i);
+		}
+
+        kmer_object.to_string(str);
+        if(add_revcomps){
+            str_revcomp = str;
+            reverse_complement(str_revcomp);
+            if(str != str_revcomp) revcomp_next = true;
+        }
+
+        return Kmer(str);
+
+    }
+
 };
 
 template<typename payload_t>
@@ -179,6 +263,7 @@ public:
 
     // This does nothing but it's here to have the same interface as the other sorters.
     void set_mem_budget(LL bytes){
+        (void)bytes;
         return; 
     }
 
@@ -357,7 +442,7 @@ private:
             tie(cur_kmer,E) = old_sorter.stream_next();
 
             if(loopcount > 0 && cur_kmer != prev_kmer){
-                // New node -> process the collected edges of a the previous node
+                // New node -> process the collected edges of the previous node
                 addcount += process_prefixes(prev_kmer, cur_edgeset, new_sorter);
                 cur_edgeset = Edgeset();
             }
@@ -380,11 +465,11 @@ private:
 
 public:
 
-    boss_t build(edgemer_stream& input){
+    boss_t build(edgemer_stream& input, LL mem_bytes){
         if(input.done()) return boss_t(); 
 
         Kmer_sorter_in_memory<Edgeset> sorter1;
-        sorter1.set_mem_budget((LL)1024 * 1024 * 1024 * 5); // 5 GB 
+        sorter1.set_mem_budget(mem_bytes);
         LL k = 0;
         LL n_records_written = 0;
         while(!input.done()){
@@ -407,7 +492,7 @@ public:
 
         // Dummies
         Kmer_sorter_in_memory<Edgeset> sorter2;
-        sorter2.set_mem_budget((LL)1024 * 1024 * 1024 * 5); // 5 GB
+        sorter2.set_mem_budget(mem_bytes);
         LL n_dummies_disk = add_dummies(sorter1, sorter2);
         sorter2.sort();
         sorter1.reset_stream(); // Rewind back to start because add_dummies iterates over this
@@ -423,7 +508,7 @@ public:
         LL loopcount = 0;
 
         if(n_dummies_disk == 0){
-            // There were no dummies. But the BOSS structures wants there always
+            // There were no dummies. But the BOSS structure wants there always
             // the be a source node. So we need to add it separately.
             I.push_back(1); // No in-edges
             O.push_back(1); // No out-edges
@@ -440,6 +525,7 @@ public:
                 }
             }
         };
+
         while(!merger.stream_done()){
             Kmer cur_kmer; Edgeset E;
             tie(cur_kmer,E) = merger.stream_next();
@@ -453,7 +539,9 @@ public:
             // Add the edge to collection
             for(char c : ACGT){
                 if(E.have_in(c)) cur_edgeset.set_have_in(c, true);
-                if(E.have_out(c)) cur_edgeset.set_have_out(c, true);
+                if(E.have_out(c)){
+                    cur_edgeset.set_have_out(c, true);
+                }
             }
 
             // Special case for processing the last node
@@ -470,3 +558,85 @@ public:
     }
 
 };
+
+// Constructs the edge-centric de-bruijn graph where nodes are k-mers.
+// i.e. for every (k+1)-mer, adds and edge between the prefix and suffix k-mer.
+// The set of nodes in implicitly defined as the set of endpoints of all these
+// nodes.
+// Warning: this is very inefficiently implemented! Used for debug purposes
+template<typename bitvector_t = sdsl::bit_vector>
+BOSS<bitvector_t> build_BOSS_with_maps(vector<string> reads, LL k, bool include_reverse_complements){
+
+    if(include_reverse_complements){
+        LL n = reads.size();
+        for(LL i = 0; i < n; i++){
+            reads.push_back(get_rc(reads[i]));
+        }
+    }
+
+    struct Edge_Info{
+        set<char> inlabels;
+        set<char> outlabels;
+    };
+
+    struct colex_compare_object{
+        bool operator()(const string& A, const string& B) const{
+            return colex_compare(A,B);
+        }
+    };
+
+    map<string, Edge_Info, colex_compare_object> M; // edgemer -> edge info
+
+    // Add all edges
+    for(string seq : reads){
+        if(seq.size() >= k+1){
+            for(string x : get_all_distinct_kmers(seq, k+1)){
+                M[x.substr(0,k)].outlabels.insert(x.back());
+                M[x.substr(1,k)].inlabels.insert(x[0]);
+            }
+        }
+    }
+
+
+    // Add dummy nodes
+    map<string, Edge_Info, colex_compare_object> M_copy = M; // Take a copy so we don't edit M while we iterate it
+    for(auto P : M_copy){
+        string kmer = P.first;
+        if(P.second.inlabels.size() == 0){
+            // Need to add the prefixes
+            for(LL len = 0; len <= k; len++){
+                string prefix = kmer.substr(0,len);
+                if(len != 0) M[prefix].inlabels.insert('$');
+                if(len != k) M[prefix].outlabels.insert(kmer[len]);
+            }
+        }
+    }
+
+    // Make sure the root node exists
+    if(M.find("") == M.end()) M[""] = Edge_Info();
+
+    cerr << "map build added " << M.size() - M_copy.size() << " dummies (k = " << k << ")" << endl;
+
+
+    // Build the boss data structures    
+    string outlabels; // Concatenation in outedge label sets in colexicographic order
+    vector<bool> outdegrees; // Concatenation of unary representations. Indegree d -> 1 0^d
+    vector<bool> indegrees; // Concatenation of unary representations. Outdegree d -> 1 0^d
+
+    for(auto P : M){
+        outdegrees.push_back(1);
+        string debug_outlabels;
+        for(char c : P.second.outlabels){
+            outlabels.push_back(c);
+            outdegrees.push_back(0);
+        }
+
+        indegrees.push_back(1);
+        for(char c : P.second.inlabels){
+            (void)c; // Unsed variable. Make compiler happy
+            if(P.first != "") indegrees.push_back(0);
+        }         
+    }
+
+    return BOSS<bitvector_t>(outlabels, indegrees, outdegrees, k);
+}

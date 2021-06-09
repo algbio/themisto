@@ -1,6 +1,6 @@
 #pragma once
 #include "BOSS.hh"
-#include "BOSS_construction.hh"
+#include "BOSS_builder.hh"
 
 template<typename boss_t = BOSS<sdsl::bit_vector>>
 class Boss_Tester{
@@ -10,11 +10,9 @@ public:
 
     class TestCase{
         public:
-        string concat;
         vector<string> reads;
         set<string> kmers;
         set<string> k_plus1_mers;
-        unordered_map<string,LL> kmer_to_node_id;
         set<char> alphabet;
         vector<string> colex_kmers;
         LL k;
@@ -52,7 +50,7 @@ public:
     }
 
     void test_serialization(TestCase& tcase){
-        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k);
+        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
         boss.save_to_disk("test_out/");
         boss_t boss2;
         boss2.load_from_disk("test_out/");
@@ -74,37 +72,29 @@ public:
         srand(random_seed);
         vector<TestCase> testcases;
         LL n_reads = 10;
-        for(LL k = 1; k <= 256; k *= 2){
+        for(LL k = 1; k <= 31; k *= 2){
             for(LL read_length = 1; read_length <= 128; read_length *= 2){
                 k = min(k,(LL)254); // 254 + 2 = 256 is the biggest the EM sort can do
                 TestCase tcase;
                 vector<string> reads;
-                string concat;
 
-                string dummy_prefix(k,'$');
                 for(LL i = 0; i < n_reads; i++) 
                     reads.push_back(get_random_dna_string(read_length, 2 + rand()%2));
 
                 tcase.reads = reads;
 
                 for(string S : reads){
-                    S = dummy_prefix + S;
-                    for(LL i = 0; i < (LL)S.size()-k+1; i++){
-                        tcase.kmers.insert(S.substr(i,k));
-                    }
                     for(LL i = 0; i < (LL)S.size()-k; i++){
                         tcase.k_plus1_mers.insert(S.substr(i,k+1));
+                        tcase.kmers.insert(S.substr(0,k));
+                        tcase.kmers.insert(S.substr(1,k));
                     }
                 }
 
                 tcase.colex_kmers = vector<string>(tcase.kmers.begin(), tcase.kmers.end());
                 sort(tcase.colex_kmers.begin(), tcase.colex_kmers.end(), colex_compare);
 
-                for(LL id = 0; id < (LL)tcase.colex_kmers.size(); id++)
-                    tcase.kmer_to_node_id[tcase.colex_kmers[id]] = id;
-
                 for(string S : reads) for(char c : S) tcase.alphabet.insert(c);
-                tcase.alphabet.insert('$');
                 tcase.k = k;
                 testcases.push_back(tcase);
             }
@@ -115,15 +105,12 @@ public:
     void test_search(TestCase& tcase){
         // 1) If a k-mer is in set, it must be found
         // 2) If a k-mer is not in set, it must not be found
-        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k);
+        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
 
-        // Check that all the k-mers
-        for(LL id = 0; id < (LL)tcase.colex_kmers.size(); id++){
-            string kmer = tcase.colex_kmers[id];
-            if(kmer[0] == '$') continue; // Dummy k-mer
+        // Check all the k-mers
+        for(string kmer : tcase.kmers){
             LL boss_id_searched = boss.find_kmer(kmer);
             assert(boss_id_searched != -1);
-            assert(boss_id_searched == id);
         }
 
         // Try to check k-mers that are not found
@@ -137,35 +124,55 @@ public:
     }
 
     void test_walk(TestCase& tcase){
-        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k);
+        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
+        cout << boss.to_string() << endl;
         assert(boss.walk(-1,*tcase.alphabet.begin()) == -1); // Walk from -1 gives -1
-        for(LL id = 0; id < (LL)tcase.colex_kmers.size(); id++){
-            string kmer = tcase.colex_kmers[id];
-            if(kmer[0] == '$') continue; // Dummy k-mer
+        for(string kmer : tcase.kmers){
+            cout << "Testing searching with " << kmer << endl;
             LL boss_id_searched = boss.find_kmer(kmer);
-            assert(boss_id_searched == id);
+            assert(boss_id_searched != -1);
             for(char c : tcase.alphabet){
-                bool found = tcase.k_plus1_mers.count(kmer.substr(0) + c);
-                LL boss_id = boss.walk(id, c);
+                bool found = tcase.k_plus1_mers.count(kmer + c);
+                LL boss_id = boss.walk(boss_id_searched, c);
                 if(found){
-                    assert(tcase.kmer_to_node_id[kmer.substr(1) + c] == boss_id);
+                    assert(boss_id != -1);
+                    assert(kmer.substr(1) + c == boss.get_node_label(boss_id));
                 }
                 else assert(boss_id == -1);
             }
         }
     }
 
+    void test_construction(TestCase& tcase, bool reverse_complements){
+        boss_t boss_maps = build_BOSS_with_maps(tcase.reads, tcase.k, reverse_complements);
+
+        // Build from KMC
+        
+        string fastafile = temp_file_manager.get_temp_file_name("");
+        throwing_ofstream out(fastafile);
+        for(string S : tcase.reads) out << ">\n" << S << "\n";
+        out.flush();
+        cout << "Calling KMC" << endl;
+        string KMC_db = KMC_wrapper(tcase.k+1, 1, 2, fastafile, temp_file_manager.get_dir(), reverse_complements);
+        cout << "KMC DONE" << endl;
+        Kmer_stream_from_KMC_DB kmer_stream(KMC_db, reverse_complements);
+        BOSS_builder<boss_t, Kmer_stream_from_KMC_DB> bb;
+        boss_t boss_KMC = bb.build(kmer_stream, 1e9);
+
+        cout << "maps" << endl << boss_maps.to_string() << endl;
+        cout << "kmc" << endl << boss_KMC.to_string() << endl;
+        set<string> A = boss_maps.get_all_edgemers();
+        set<string> B = boss_KMC.get_all_edgemers();
+        assert(A == B);
+        
+
+    }
+
     void test_get_node_label(TestCase& tcase){
-        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k);
-        char* label = (char*)malloc((tcase.k+1)*sizeof(char));
-        for(LL id = 0; id < boss.number_of_nodes(); id++){
-            boss.get_node_label(id, label);
-            cout << label << " " << tcase.colex_kmers[id] << endl;
-            string truth = tcase.colex_kmers[id];
-            truth.erase(std::remove(truth.begin(), truth.end(), '$'), truth.end());
-            assert(string(label) == truth);
+        boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
+        for(string x : tcase.kmers){
+            assert(boss.get_node_label(boss.find_kmer(x)) == x);
         }
-        free(label);
     }
 };
 
@@ -216,6 +223,10 @@ void test_BOSS(){
     Boss_Tester<boss_t> tester;
     for(typename Boss_Tester<boss_t>::TestCase tcase : tester.generate_testcases()){
         cerr << "Running testcase: " << "k = " << tcase.k << ", read_length = " << tcase.reads[0].size() << " n_reads = " << tcase.reads.size() << endl;
+        cerr << "Testing construction with reverse complements" << endl;
+        tester.test_construction(tcase, true);
+        cerr << "Testing construction without reverse complements" << endl;
+        tester.test_construction(tcase, false);
         cerr << "Testing serialization" << endl;
         tester.test_serialization(tcase);
         cerr << "Testing search" << endl;

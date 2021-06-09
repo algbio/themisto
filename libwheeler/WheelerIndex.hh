@@ -625,6 +625,29 @@ public:
         return C_array_at(c) + outlabels_rank(idx,c);
     }
 
+    string to_string() const{ // For debugging
+        string bwt = get_outlabels();
+        string bwt_spaced;
+
+        LL next = 0;
+        for(LL i = 0; i < outdegs.size(); i++){
+            if(outdegs[i] == 1) bwt_spaced += " ";
+            else{
+                bwt_spaced += bwt[next];
+                next++;
+            }
+        }
+        
+        stringstream ss;
+        ss << bwt_spaced << "\n" << outdegs << "\n" << indegs << "\n";
+        ss << "C = ";
+        for(LL i = 0; i < C.size(); i++){
+            if(i == 0 || C[i-1] != C[i]) ss<< C[i] << " "; 
+        }
+
+        return ss.str();
+    }
+
     template<typename T>
     friend bool operator==(const WheelerIndex<T>& wi1, const WheelerIndex<T>& wi2);
 };

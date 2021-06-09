@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include "version.h"
+#include "cxxopts.hpp"
 
 using namespace std;
 
@@ -19,6 +20,7 @@ struct Config{
     LL memory_megas = 1000;
     bool auto_colors = false;
     LL pp_buf_siz = 1024*4;
+    LL colorset_sampling_distance = 1;
     
     void check_valid(){
         check_true(inputfile != "", "Input file not set");
@@ -39,6 +41,11 @@ struct Config{
 
         check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
+
+        check_true(memory_megas > 0, "Memory budget must be positive");
+        check_true(colorset_sampling_distance >= 1, "Colorset sampling distance must be positive");
+        check_true(pp_buf_siz > 0, "Preprocessing buffer size must be positive");
+
     }
 
     string to_string(){
@@ -59,32 +66,29 @@ struct Config{
 };
 
 int main2(int argc, char** argv){
-    Themisto themisto;
-    if(argc == 1){
-        cerr << "" << endl;
-        cerr << "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information." << endl;
-        cerr << "The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile," << endl;
-        cerr << "which is a plain text file containing the colors of the reference sequences in the same order as they" << endl;
-        cerr << "appear in the reference sequence file, one line per sequence. The names are given as ASCII strings," << endl;
-        cerr << "but they should not contain whitespace characters." << endl;
-        cerr << "" << endl;
-        cerr << "Options: " << endl;
-        cerr << "  --load-boss (if given, loads a precomputed BOSS from the index directory)" << endl;
-        cerr << "  --k [value of k] (required only if --load-boss is not given)" << endl;
-        cerr << "  --input-file [filename] (The input sequences in FASTA or FASTQ format. The format" << endl;
-        cerr << "                           is inferred from the file extension. Recognized file extensions for" << endl;
-        cerr << "                           fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
-        cerr << "                           fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed" << endl;
-        cerr << "                           into a temporary directory and the temporary file is deleted after use." << endl;
-        cerr << "  --color-file [filename] (one color per sequence in the fasta file, one color name per line." << endl;
-        cerr << "                          Required only if you want to build the colors)" << endl;
-        cerr << "  --auto-colors (instead of a color file let the program automatically give colors integer names (0,1,2...))" << endl;
-        cerr << "  --index-dir [path] (Directory where the index will be built. Always required, directory must" << endl;
-        cerr << "                      exist before running)" << endl;
-        cerr << "  --temp-dir [path] (Temporary direction. Always required, directory must exist before running)" << endl;
-        cerr << "  --mem-megas [number] (Number of megabytes allowed for external memory algorithms. Default: 1000)" << endl;
-        cerr << "  --n-threads [number] (number of parallel threads to use. Default: 1)" << endl;
-        cerr << "  --pp-buf-siz [number] (Size of preprocessing buffer (in bytes) for fixing alphabet. Default: 4096)" << endl;
+
+    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters.");
+
+    options.add_options()
+        ("load-boss", "If given, loads a precomputed BOSS from the index directory", cxxopts::value<bool>()->default_value("false"))
+        ("k", "The k of the k-mers. Required only if --load-boss is not given", cxxopts::value<LL>())
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
+        ("c,color-file", "One color per sequence in the fasta file, one color name per line. Required only if you want to build the colors.", cxxopts::value<string>()->default_value(""))
+        ("auto-colors", "Instead of a color file let the program automatically give colors integer names (0,1,2...))", cxxopts::value<bool>()->default_value("false"))
+        ("o,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
+        ("temp-dir", "Temporary directory. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
+        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet", cxxopts::value<LL>()->default_value("4096"))
+        ("h,help", "Print usage")
+    ;
+
+    LL old_argc = argc; // Must store this because the parser modifies it
+    auto opts = options.parse(argc, argv);
+
+    if (old_argc == 1 || opts.count("help")){
+        std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
         cerr << "  ./build_index --k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
@@ -93,48 +97,22 @@ int main2(int argc, char** argv){
         cerr << "Load a previously built BOSS from the index directory and compute the colors:" << endl;
         cerr << "  ./build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
         exit(1);
-    }
+    }    
 
+    Themisto themisto;
     Config C;
-    for(auto keyvalue : parse_args(argc, argv)){
-        string option = keyvalue.first;
-        vector<string> values = keyvalue.second;
-        if(option == "--k"){
-            check_true(values.size() == 1, "--k must be followed by a single integer");
-            C.k = std::stoll(values[0]);
-        } else if(option == "--input-file"){
-            check_true(values.size() == 1, "--input-file must be followed by a single filename");
-            C.inputfile = values[0];
-            C.input_format = figure_out_file_format(values[0]);
-        } else if(option == "--n-threads"){
-            check_true(values.size() == 1, "--n-threads must be followed by a single integer");
-            C.n_threads = std::stoll(values[0]);
-        } else if(option == "--color-file"){
-            check_true(values.size() == 1, "--color-file must be followed by a single filename");
-            C.colorfile = values[0];
-        } else if(option == "--index-dir"){
-            check_true(values.size() == 1, "--index-file must be followed by a single directory path");
-            C.index_dir = values[0];
-        } else if(option == "--temp-dir"){
-            check_true(values.size() == 1, "--temp-dir must be followed by a single directory path");
-            C.temp_dir = values[0];
-        } else if(option == "--load-boss"){
-            check_true(values.size() == 0, "--load-boss takes no parameters");
-            C.load_boss = true;
-        } else if(option == "--mem-megas"){
-            check_true(values.size() == 1, "--mem-megas must be followed by a single integer");
-            C.memory_megas = std::stoll(values[0]);
-        } else if(option == "--auto-colors"){
-            check_true(values.size() == 0, "--auto-colors takes no parameters");
-            C.auto_colors = true;
-        } else if(option == "--pp-buf-siz"){
-            check_true(values.size() == 1, "--pp-buf-siz must be followed by a single integer");
-            C.pp_buf_siz = std::stoll(values[0]);
-        } else{
-            cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
-            exit(1);
-        }
-    }
+    C.k = opts["k"].as<LL>();
+    C.inputfile = opts["input-file"].as<string>();
+    C.input_format = figure_out_file_format(C.inputfile);
+    C.n_threads = opts["n-threads"].as<LL>();
+    C.colorfile = opts["color-file"].as<string>();
+    C.index_dir = opts["index-dir"].as<string>();
+    C.temp_dir = opts["temp-dir"].as<string>();
+    C.load_boss = opts["load-boss"].as<bool>();
+    C.memory_megas = opts["mem-megas"].as<LL>();
+    C.auto_colors = opts["auto-colors"].as<bool>();
+    C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
+    C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
 
     C.check_valid();
     temp_file_manager.set_dir(C.temp_dir);
@@ -158,14 +136,14 @@ int main2(int argc, char** argv){
         themisto.load_boss(C.index_dir + "/boss-");
     } else{
         write_log("Building BOSS");
-        themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads);
+        themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
         themisto.save_boss(C.index_dir + "/boss-");
         write_log("Building BOSS finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
     if(C.colorfile != "" || C.auto_colors){
         write_log("Building colors");
-        themisto.construct_colors(C.inputfile, C.auto_colors ? "" : C.colorfile, C.memory_megas * 1e6, C.n_threads);
+        themisto.construct_colors(C.inputfile, C.auto_colors ? "" : C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         themisto.save_colors(C.index_dir + "/coloring-");
     }
 

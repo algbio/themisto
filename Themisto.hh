@@ -10,12 +10,13 @@
 #include "input_reading.hh"
 #include "test_tools.hh"
 #include "globals.hh"
-#include "BOSS.hh"
-#include "BOSS_builder.hh"
+#include "libwheeler/BOSS.hh"
+#include "libwheeler/BOSS_builder.hh"
 #include "Coloring.hh"
 #include "NameMapping.hh"
 #include "WorkDispatcher.hh"
 #include "EM_sort.hh"
+#include "KMC_wrapper.hh"
 
 using namespace std;
 
@@ -128,7 +129,7 @@ public:
             for(LL i = 0; i < query_size - k + 1; i++){
                 if(ids[i] != -1 && (i == 0 || ids[i-1] != ids[i])){
                     // Nonempty and nonredundant color set
-                    LL temp_buf_size = kl->coloring.get_colorset_to_buffer_by_id(ids[i], kl->boss, temp);
+                    LL temp_buf_size = kl->coloring.get_colorset_to_buffer_by_id(ids[i], temp);
                     if(!found_at_least_one_nonempty_colorset){
                         // First color set that was found. Put it into output_buf
                         for(LL j = 0; j < temp_buf_size; j++) output[j] = temp[j];
@@ -180,8 +181,8 @@ public:
                     need_to_intersect = false; // Same color set as previous
                 }
                 if(need_to_intersect){
-                    LL forward_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer[i], kl->boss, colorset_buffer);
-                    LL rc_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer_rc[query_size - k - i], kl->boss, colorset_rc_buffer);
+                    LL forward_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer[i], colorset_buffer);
+                    LL rc_size = kl->coloring.get_colorset_to_buffer_by_id(temp_colorset_id_buffer_rc[query_size - k - i], colorset_rc_buffer);
 
                     LL union_size = union_buffers(colorset_buffer, forward_size,
                                                 colorset_rc_buffer, rc_size, 
@@ -246,15 +247,14 @@ public:
     NameMapping name_mapping; // color name <-> color id
     vector<string> colors; // sequence id -> color name
 
-    void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads){
+    void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
 
-        vector<string> seqs;
-        Sequence_Reader sr(fastafile, FASTA_MODE);
-        while(!sr.done()) seqs.push_back(sr.get_next_query_stream().get_all());
-
-        Kmer_stream_in_memory edgemer_stream(seqs, k+1); // Streams edgemers = (k+1)-mers
-        BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_in_memory> builder;
-        boss = builder.build(edgemer_stream);
+        write_log("Building KMC database");
+        string KMC_db_path_prefix = KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, temp_file_manager.get_dir(), revcomps);
+        Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
+        BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
+        write_log("Building BOSS from KMC database");
+        boss = builder.build(edgemer_stream, memory_bytes);
 
     }
 
@@ -274,11 +274,11 @@ public:
     // Assumes boss has been built
     // colorfile: A filename for a file with one line for each sequence in fastafile. The line has the name of the color (a string).
     // If colorfile is emptry string, generates colors automatically
-    void construct_colors(string fastafile, string colorfile, LL ram_bytes, LL n_threads){
+    void construct_colors(string fastafile, string colorfile, LL ram_bytes, LL n_threads, LL colorset_sampling_distance){
         if(colorfile == "") colorfile = generate_colorfile(fastafile);
         colors = parse_color_name_vector(colorfile);
         name_mapping.build_from_namefile(colorfile);
-        coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), ram_bytes, n_threads);
+        coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), ram_bytes, n_threads, colorset_sampling_distance);
     }
 
     void save_boss(string path_prefix){
@@ -320,7 +320,9 @@ public:
     }
 
     string to_string(){
-        return "--boss--\ntodo boss.tostring() not implemented\n--coloring--\n" + coloring.to_string(boss);
+        string boss_string = boss.to_string();
+        string coloring_string = coloring.to_string(boss);
+        return "--boss--\n" + boss_string + "\n--coloring--\n" + coloring_string;
     }
 
     // Returns start index, node_id
@@ -356,7 +358,6 @@ public:
         // Initialize outpuf buf values to -1
         for(LL i = 0; i < Q_size - k + 1; i++) output_buf[i] = -1;
 
-        LL output_size = 0;
         LL idx, node;
         std::tie(idx,node) = find_first_matching_kmer(Q, 0, Q_size-1, k);
 
@@ -401,7 +402,7 @@ public:
         for(LL i = 0; i < Q_size - k + 1; i++){
             if(colorset_id_buf[i] != -1 && (i == 0 || colorset_id_buf[i-1] != colorset_id_buf[i])){
                 // Nonempty and nonredundant color set
-                LL temp_buf_size = coloring.get_colorset_to_buffer_by_id(colorset_id_buf[i], boss, temp_buf);
+                LL temp_buf_size = coloring.get_colorset_to_buffer_by_id(colorset_id_buf[i], temp_buf);
                 if(!found_at_least_one_nonempty_colorset){
                     // First color set that was found. Put it into output_buf
                     for(LL j = 0; j < temp_buf_size; j++) output_buf[j] = temp_buf[j];
@@ -657,33 +658,21 @@ public:
 
             NameMapping nm(temp_dir + "/colors.txt");
 
-            Themisto kl_build;
-            kl_build.construct_boss(temp_dir + "/genomes.fna", tcase.k, 1000, 2);
-            kl_build.construct_colors(temp_dir + "/genomes.fna", temp_dir + "/colors.txt", 1000, 3);
-            kl_build.save_boss(temp_dir + "/boss-");
-            kl_build.save_colors(temp_dir + "/colors-");
+            {
+                Themisto kl_build;
+                kl_build.construct_boss(temp_dir + "/genomes.fna", tcase.k, 1000, 2, true);
+                kl_build.construct_colors(temp_dir + "/genomes.fna", temp_dir + "/colors.txt", 1000, 3, 10);
+                kl_build.save_boss(temp_dir + "/boss-");
+                kl_build.save_colors(temp_dir + "/colors-");
+            }
 
-            Themisto kl;
+            Themisto kl; // Load back to test serialization
             kl.load_boss(temp_dir + "/boss-");
             kl.load_colors(temp_dir + "/colors-");
-            
-            // Check that serialization worked
-            //assert(kl_build.coloring.get_all_colorsets(kl_build.boss) == kl.coloring.get_all_colorsets(kl.boss));
 
             // Check against reference boss
-            BOSS<sdsl::bit_vector> ref_boss = build_BOSS_with_maps(tcase.genomes, tcase.k);
+            BOSS<sdsl::bit_vector> ref_boss = build_BOSS_with_maps(tcase.genomes, tcase.k, true); // Reverse complements enabled because the KMC construction uses those
             assert(ref_boss == kl.boss);
-
-            // Check that the colors are right
-            //cout << "ref colors " << tcase.colors << endl;
-            //cout << kl.coloring.nonempty << endl;
-            //cout << ct_testcase.colex_kmers << endl;
-            //cout << ct_testcase.concat << endl;
-            //cout << "Correct coloring: " << endl << correct_coloring_ids << endl;
-            //cout << "Our coloring: " << endl << kl.coloring.get_all_colorsets(kl.boss) << endl;
-            //cout << "k " << kl.boss.get_k() << endl;
-            //cout << kl.coloring.get_all_colorsets(kl.boss) << endl;
-            //cout << correct_coloring_ids << endl;
 
             // Run without rc
             string final_file = temp_file_manager.get_temp_file_name("finalfile");
@@ -710,8 +699,6 @@ public:
                 set<string> nonbrute_rc;
                 for(LL id : our_results_rc[i]) nonbrute_rc.insert(nm.id_to_name[id]);
 
-                //cout << brute << " " << nonbrute << endl;
-                //cout << brute_rc << "\n" << nonbrute << "\n" << nonbrute_rc << "\n--" << endl;
                 assert(brute == nonbrute);
                 assert(brute_rc == nonbrute_rc);
             }

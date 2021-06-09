@@ -1,11 +1,11 @@
 #pragma once
 
-#include "BOSS.hh"
+#include "libwheeler/BOSS.hh"
 #include "TempFileManager.hh"
 #include "BD_BWT_index.hh"
 #include "EM_algorithms.hh"
 #include "WorkDispatcher.hh"
-#include "BOSS_construction.hh"
+#include "libwheeler/BOSS_builder.hh"
 #include <algorithm>
 
 class Coloring{
@@ -127,13 +127,13 @@ public:
     // colors_assignments: for each sequence in the fastafile, an integer representing
     // the color of that sequence. The distinct colors should be a contiguous range of
     // integers from 0 to (number of colors -1).
-    void add_colors(BOSS<sdsl::bit_vector>& boss, string fastafile, vector<LL> colors_assignments, LL ram_bytes, LL n_threads){
+    void add_colors(BOSS<sdsl::bit_vector>& boss, string fastafile, vector<LL> colors_assignments, LL ram_bytes, LL n_threads, LL colorset_sampling_distance){
 
         n_colors = *std::max_element(colors_assignments.begin(), colors_assignments.end()) + 1;
         assert(is_contiguous_integer_range(colors_assignments, 0,n_colors-1));
 
         write_log("Marking redundant color sets");
-        mark_redundant_color_sets(fastafile, boss);
+        mark_redundant_color_sets(fastafile, boss, colorset_sampling_distance);
 
         write_log("Getting (node,color) pairs");
         string node_color_pairs_file = get_node_color_pairs(boss, fastafile, colors_assignments, n_threads);
@@ -194,12 +194,12 @@ public:
     // todo: tests
     LL get_colorset_to_buffer(LL node, BOSS<sdsl::bit_vector>& boss, vector<LL>& buffer){
         LL id = get_colorset_id(node, boss);
-        return get_colorset_to_buffer_by_id(id, boss, buffer);
+        return get_colorset_to_buffer_by_id(id, buffer);
     }
 
     // Returns the number of elements put into the buffer. Buffer should be big enough to accommodate
     // all possible distinct colors.
-    LL get_colorset_to_buffer_by_id(LL colorset_id, BOSS<sdsl::bit_vector>& boss, vector<LL>& buffer){
+    LL get_colorset_to_buffer_by_id(LL colorset_id, vector<LL>& buffer){
         if(colorset_id == -1) return 0;
 
         LL start = color_set_starts_ss.select(colorset_id+1);
@@ -218,7 +218,11 @@ public:
 
     // Returns -1 if the colorset is empty. Otherwise returns the id of the colorset.
     LL get_colorset_id(LL node, BOSS<sdsl::bit_vector>& boss){
-        while(redundancy_marks[node] == 1) node = boss.edge_source(boss.inedge_range(node).first); // Go to next non-redundant
+        if(node == 0) return -1; // Root
+        while(redundancy_marks[node] == 1){
+            node = boss.edge_source(boss.inedge_range(node).first); // Go to next non-redundant
+            if(node == 0) return -1; // Root
+        }
 
         // The nodes that have an explicit color set are those that have a non-empty
         // colorset and are non-redundant.
@@ -458,73 +462,83 @@ private:
         sdsl::util::init_support(nonempty_and_nonredundant_rs, &nonempty_and_nonredundant);
     }
 
-    // Node color pairs should be sorted before calling this
-    void mark_redundant_color_sets(string fastafile, BOSS<sdsl::bit_vector>& boss){
-
-        // a node v is redundant if the color set of v must be necessarily
-        // the same as the color set of pred(v). When can the color set change?
-        //   (i) if some reference sequence ends at pred(v) (a color is lost)
-        //   (ii) if some reference sequence starts at v (a color is gained)
-        //   (iii) if pred(v) is branching (colors are split between siblings)
-        //   (iv) if v has multiple predecessors (colors are gained from siblings)
-        // We define that v is redundant if none of (i), (ii), (iii), (iv) hold.
-        // If a node is redundant, then we do not need to intersect its colorset during
-        // the pseudoalignment process. We can find the colorset of a redundant node by
-        // going *backwards* through the unitig until we find a non-redundant node.
-
-        // todo: this is expensive because it scans the whole reference data
-        vector<string> first_and_last_kmers = get_first_and_last_kmers(fastafile, boss.get_k());
-
+    void mark_redundant_color_sets(string fastafile, BOSS<sdsl::bit_vector>& boss, LL colorset_sampling_distance){
+        // Mark all nodes that fulfill at least one of  the following
+        // (1) the node is first k-mer of a n input sequence
+        // (2) a predecessor of the node is the last k-mer of a reference sequence
+        // (3) have two or more incoming edges
+        // (4) have a predecessor that has two or more outgoing edges
         redundancy_marks.resize(boss.number_of_nodes());
-        sdsl::util::set_to_value(redundancy_marks,1); // 1 = redundant, 0 = non-redundant
+        sdsl::util::set_to_value(redundancy_marks,1); // 1 = redundant, 0 = non-redundant.
 
-        for(string kmer : first_and_last_kmers){
-            LL id = boss.find_kmer(kmer);
-            assert(id != -1);
+        LL k = boss.get_k();
 
-            // cases (i) and (ii). Marking too much for quick testing.
-            redundancy_marks[id] = 0; // case (ii): ref starts at id
-            pair<LL,LL> outrange = boss.outedge_range(id);
-            if(outrange.first <= outrange.second)
-                redundancy_marks[boss.walk(id,boss.outlabels_at(boss.outedge_range(id).first))] = 0;  // case (i): ref ends at pred(id): todo: I don't understand this line
-        }
+        // Handle cases (1) and (2)
+        Sequence_Reader sr(fastafile, FASTA_MODE);
+        while(!sr.done()){
+            string read = sr.get_next_query_stream().get_all();
+            if(read.size() >= k){
+                // condition (1)
+                LL first_node = boss.find_kmer(read.substr(0,k));
+                redundancy_marks[first_node] = 0;
 
-        vector<char> buffer(256);
-        LL mark_freq = (LL)log2(this->n_colors);
-        for(LL node = 0; node < boss.number_of_nodes(); node++){
-            if(boss.indegree(node) >= 2) redundancy_marks[node] = 0; // case (iv)
-            else {
-                LL pred = boss.edge_source(boss.inedge_range(node).first);
-                if(boss.outdegree(pred) > 1) redundancy_marks[node] = 0; // case (iii)
-            }
-
-            if(boss.outdegree(node) > 1){
-                // Mark every log(n_colors)-th node as non-redundant on every unitig starting from here
-                LL n_outedges = boss.node_outlabels(node, &(buffer[0]));
-                for(LL i = 0; i < n_outedges; i++){
-                    LL next = boss.walk(node, buffer[i]);
-                    LL distance = 0;
-                    while(!(boss.outdegree(next) > 1)){
-                        pair<LL,LL> outrange = boss.outedge_range(next);
-                        if(outrange.first > outrange.second) break; // outdegree 0
-                        next = boss.walk(next,boss.outlabels_at(boss.outedge_range(next).first));
-                        if(redundancy_marks[next] == 0) break; // End of sequence
-                        distance++;
-                        if(distance == mark_freq){
-                            redundancy_marks[next] = 0;
-                            distance = 0;
-                        }
-                    }
+                // condition (2)
+                LL last_node = boss.find_kmer(read.substr(read.size()-k,k));
+                pair<int64_t, int64_t> I = boss.outedge_range(last_node);
+                for(LL i = I.first; i <= I.second; i++){
+                    LL next = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
+                    redundancy_marks[next] = 0;
                 }
             }
         }
 
-       //sdsl::util::set_to_value(redundancy_marks,0); // 1 = redundant, 0 = non-redundant. DEBUG!!!!!!
+        // Handle cases (3) and (4)
+        for(LL v = 1; v < boss.number_of_nodes(); v++){
+            // Starting from 1: don't consider the root node 0. This way we always have a predecessor
+            pair<int64_t, int64_t> inedge_range = boss.inedge_range(v);
+            if(inedge_range.second > inedge_range.first){ // Indegree >= 2
+                redundancy_marks[v] = 0;
+                continue;
+            } else{
+                assert(inedge_range.first == inedge_range.second);
+                LL u = boss.edge_source(inedge_range.first);
+                if(boss.outdegree(u) > 1) redundancy_marks[v] = 0;
+            }
+        }
 
+        // We have a temporary vector for marking new nodes. Otherwise we would mark in the same vector
+        // that we are using to detect marking path starting points, which would mess things up.
+        sdsl::bit_vector redundancy_marks_temp = redundancy_marks; 
+        for(LL v = 1; v < boss.number_of_nodes(); v++){
+            if(redundancy_marks[v] == 0){
+                pair<int64_t, int64_t> I = boss.outedge_range(v);
+                for(LL i = I.first; i <= I.second; i++){
+                    LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
+                    LL counter = 0;
+                    while(redundancy_marks[u] == 1){
+                        counter++;
+                        if(counter == colorset_sampling_distance){
+                            redundancy_marks_temp[u] = 0; // new mark
+                            counter = 0;
+                        }
+                        pair<int64_t, int64_t> I_u = boss.outedge_range(u);
+                        if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
+                        u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
+                        // This loop is guaranteed to terminate. Proof:
+                        // If the in-degree and out-degree of u always stays 1, then we come back to v eventually,
+                        // which is marked as non-redundant, so we stop. Otherwise:
+                        // - If the out-degree of u becomes greater than 1 at some point, then the
+                        // successors of that u will be marked non-redundant by case (4)
+                        // - If the in-degree of u becomes greater than 1 at some point, then it is
+                        //   marked as non-redundant by case (3)
+                    }
+                }
+            }
+        }
+        redundancy_marks = redundancy_marks_temp;
     }
 
 };
-
 
 // Testcase: put in a couple of reference sequences, sweep different k. For each k-mer, 
 // ask what is the color set of that k-mer. It should coincide with the reads that contain
@@ -605,47 +619,20 @@ public:
 
     void run_testcase(TestCase tcase){
         cout << "Running testcase" << endl;
-        cout << tcase.k << endl;
-        cout << tcase.references << endl;
         string fastafilename = temp_file_manager.get_temp_file_name("ctest");
         throwing_ofstream fastafile(fastafilename);
         fastafile << tcase.fasta_data;
         fastafile.close();
         //BOSS<sdsl::bit_vector> boss = build_BOSS_with_bibwt(tcase.concat, tcase.k);
-        BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(tcase.references, tcase.k);
-        /*for(LL i = 0; i < boss.number_of_nodes(); i++){
-            cout << i << " " << boss.get_node_label(i) << "; ";
-            auto outrange = boss.outedge_range(i);
-            for(LL e = outrange.first; e <= outrange.second; e++){
-                cout << "(" << boss.outlabels_at(e) << "," << boss.walk(i, boss.outlabels_at(e)) << ") ";
-            }
-            cout << endl;
-        }*/
+        BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(tcase.references, tcase.k, false);
         Coloring coloring;
-        coloring.add_colors(boss, fastafilename, tcase.seq_id_to_color_id, 1000, 3);
+        coloring.add_colors(boss, fastafilename, tcase.seq_id_to_color_id, 1000, 3, 10);
 
-
-        //cout << tcase.colex_kmers << endl;
-        //cout << coloring.to_string_internals() << endl;
-
-        /*cout << tcase.references << endl;
-        cout << coloring.to_string(boss) << endl;
-        cout << boss.to_string() << endl;
-        for(LL i = 0; i < tcase.colex_kmers.size(); i++){
-            cout << i << " " << tcase.colex_kmers[i] << endl;
-        }
-        cout << "True color sets: " << endl;
-        for(LL i = 0; i < tcase.colex_kmers.size(); i++){
-            cout << i << " " << tcase.colex_kmers[i] << " " << tcase.kmer_to_ref_ids[tcase.colex_kmers[i]] << endl;
-        }*/
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
             LL node_id = boss.find_kmer(kmer);
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
             set<LL> colorset = coloring.get_colorset(node_id, boss);
-            //cout << node_id << endl;
-            //cout << correct_colorset << endl;
-            //cout << colorset << endl;
             assert(correct_colorset == colorset);
         }
     }

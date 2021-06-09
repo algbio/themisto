@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include "version.h"
+#include "cxxopts.hpp"
 
 using namespace std;
 
@@ -50,14 +51,6 @@ char get_rc(char c){
     }
 }
 
-string get_rc(string S){
-    string rc;
-    for(LL i = S.size()-1; i >= 0; i--){
-        rc += get_rc(S[i]);
-    }
-    return rc;
-}
-
 vector<string> read_lines(string filename){
     check_readable(filename);
     vector<string> lines;
@@ -71,103 +64,52 @@ vector<string> read_lines(string filename){
 
 int main2(int argc, char** argv){
 
-    if(argc == 1){
-        cerr << "" << endl;
-        cerr << "This program aligns query sequences against an index that has been built previously." << endl;
-        cerr << "The output is one line per input read. Each line consists of a space-separated" << endl;
-        cerr << "list of integers. The first integer specifies the rank of the read in the input" << endl; 
-        cerr << "file, and the rest of the integers are the identifiers of the colors of the" << endl;
-        cerr << "sequences that the read pseudoaligns with. If the program is ran with more than" << endl;
-        cerr << "one thread, the output lines are not necessarily in the same order as the reads" << endl;
-        cerr << "in the input file." << endl;
-        cerr << "" << endl;
-        cerr << "If the coloring data structure was built with the --color-file option, then the" << endl;
-        cerr << "integer identifiers of the colors can be mapped back to the provided color names" << endl;
-        cerr << "by parsing the file coloring-mapping-id_to_name in the index directory. This file" << endl;
-        cerr << "contains as many lines as there are distinct colors, and each line contains two" << endl;
-        cerr << "space-separated strings: the first is the integer identifier of a color, and the" << endl;
-        cerr << "second is the corresponding color name. In case the --auto-colors option was used," << endl;
-        cerr << "the integer identifiers are always numbers [0..n-1], where n is the total number of " << endl;
-        cerr << "reference sequences, and the identifiers are assigned in the same order as the" << endl;
-        cerr << "reference sequences were given to build_index." << endl;
-        cerr << "" << endl;
-        cerr << "The query can be given as one file, or as a file with a list of files." << endl;
-        cerr << "The query file(s) should be in fasta of fastq format. The format" << endl;
-        cerr << "is inferred from the file extension. Recognized file extensions for" << endl;
-        cerr << "fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for" << endl;
-        cerr << "fastq are: .fastq and .fq ." << endl;
-        cerr << "" << endl;
-        cerr << "To give a single query file, use the following two options: " << endl;
-        cerr << "  --query-file [filename]" << endl;
-        cerr << "  --outfile [path] (directory must exist before running)" << endl;
-        cerr << "To give a list of files, use the following two options. The list files" << endl;
-        cerr << "should contain one filename on each line." << endl;
-        cerr << "  --query-file-list [filename]" << endl;
-        cerr << "  --outfile-list [filename]" << endl;
-        cerr << "The index must be built before running this program. Specify the location" << endl;
-        cerr << "of the index with the following option:" << endl;
-        cerr << "  --index-dir [path] (always required, directory must exist before running)" << endl;
-        cerr << "The program needs to some disk space to run. Specify a directory for the" << endl;
-        cerr << "temporary disk files with the following option:" << endl;
-        cerr << "  --temp-dir [path] (always required, directory must exist before running)" << endl;
-        cerr << "If you want to align also to the reverse complement, give the following:" << endl;
-        cerr << "  --rc (optional, aligns with the reverse complement also)" << endl;
-        cerr << "The number of worker threads is given with the following option: " << endl;
-        cerr << "  --n-threads (optional, default 1)" << endl;
-        cerr << "The output of the program might be large. To output directly to gzipped " << endl;
-        cerr << "format, use the option below. The .gz suffix will be added to the output files. " << endl;
-        cerr << "  --gzip-output (optional)" << endl;
-        cerr << "To sort the lines of the output into increasing order of read ranks, use the" << endl;
-        cerr << "option below. This will temporarily take twice disk space of the output file." << endl;
-        cerr << "  --sort-output (optional)" << endl;
-        cerr << endl;
+    cxxopts::Options options(argv[0], "This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.\n\nIf the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.\n\n The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.\n\nThe query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq");
+
+    options.add_options()
+        ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value("")) 
+        ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
+        ("o,out-file", "Output filename.", cxxopts::value<string>()->default_value(""))
+        ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
+        ("i,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("temp-dir", "Temporary directory. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignemt.", cxxopts::value<bool>()->default_value("false")) 
+        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
+        ("h,help", "Print usage")
+    ;
+
+    LL old_argc = argc; // Must store this because the parser modifies it
+    auto opts = options.parse(argc, argv);
+
+    if (old_argc == 1 || opts.count("help")){
+        std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
-        cerr << "  ./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
+        cerr << "  ./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt" << endl;
+        cerr << "Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:" << endl;
+        cerr << "  ./pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt" << endl;
         cerr << "Pseudoalign reads.fna against an index using also reverse complements:" << endl;
         cerr << "  ./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
         exit(1);
     }
 
     Config C;
-    for(auto keyvalue : parse_args(argc, argv)){
-        string option = keyvalue.first;
-        vector<string> values = keyvalue.second;
-        if(option == "--query-file"){
-            check_true(values.size() == 1, "--query-file must be followed by a single filename");
-            check_true(C.query_files.size() == 0, "query files specified multiple times");
-            C.query_files.push_back(values[0]);
-        } else if(option == "--query-file-list"){
-            check_true(values.size() == 1, "--query-file-list must be followed by a single filename");
-            check_true(C.query_files.size() == 0, "query files specified multiple times");
-            C.query_files = read_lines(values[0]);
-        } else if(option == "--index-dir"){
-            check_true(values.size() == 1, "--index-dir must be followed by a single directory path");
-            C.index_dir = values[0];
-        } else if(option == "--temp-dir"){
-            check_true(values.size() == 1, "--temp-dir must be followed by a single directory path");
-            C.temp_dir = values[0];
-        } else if(option == "--outfile"){
-            check_true(values.size() == 1, "--outfile must be followed by a single filename");
-            C.outfiles.push_back(values[0]);  
-        } else if(option == "--outfile-list"){
-            check_true(values.size() == 1, "--outfile-list must be followed by a single filename");
-            C.outfiles = read_lines(values[0]);
-        } else if(option == "--rc"){
-            check_true(values.size() == 0, "--rc takes no parameters");
-            C.reverse_complements = true;
-        } else if(option == "--n-threads"){
-            check_true(values.size() == 1, "--n-threads must be followed by a single integer");
-            C.n_threads = stoll(values[0]);
-        } else if(option == "--gzip-output"){
-            C.gzipped_output = true;
-        } else if(option == "--sort-output"){
-            C.sort_output = true;
-        } else {
-            cerr << "Error parsing command line arguments. Unkown option: " << option << endl;
-            exit(1);
-        }
-    }
+    if(opts.count("query-file") && opts["query-file"].as<string>() != "") C.query_files.push_back(opts["query-file"].as<string>());
+    if(opts.count("query-file-list") && opts["query-file-list"].as<string>() != "") 
+        for(string line : read_lines(opts["query-file-list"].as<string>()))
+            C.query_files.push_back(line);
+    if(opts.count("out-file") && opts["out-file"].as<string>() != "") C.outfiles.push_back(opts["out-file"].as<string>());
+    if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "") 
+        for(string line : read_lines(opts["out-file-list"].as<string>()))
+            C.outfiles.push_back(line);
+    C.index_dir = opts["index-dir"].as<string>();
+    C.temp_dir = opts["temp-dir"].as<string>();
+    C.reverse_complements = opts["reverse-complements"].as<bool>();
+    C.n_threads = opts["n-threads"].as<LL>();
+    C.gzipped_output = opts["gzip-output"].as<bool>();
+    C.sort_output = opts["sort-output"].as<bool>();
 
     if(C.gzipped_output){
         for(string& filename : C.outfiles) filename += ".gz";

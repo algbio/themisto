@@ -61,11 +61,11 @@ void list_all_distinct_cyclic_kmers_in_memory(string input_fastafile, string out
 // where $ is the sequence separator defined in globals.hh and X is the byte 0x01
 // Writes into outputfile all distinct cyclic k-mers of C, one k-mer per line, in any order
 // MAY LIST THE SAME K-MER TWICE
-void list_all_distinct_cyclic_kmers_in_external_memory(string input_fastafile, string outputfile, int64_t k, int64_t ram_bytes, int64_t n_threads){
+/*void list_all_distinct_cyclic_kmers_in_external_memory(string input_fastafile, string outputfile, int64_t k, int64_t ram_bytes, int64_t n_threads){
     KMC_wrapper(k, max(ram_bytes / (LL)1e9, (LL)1), n_threads, input_fastafile, outputfile, temp_file_manager.get_dir());
     write_log("Adding ghost k-mers crossing sequence boundaries");
     add_extra_kmers(input_fastafile, outputfile, k);
-}
+}*/
 
 // Takes and output file from list_all_distinct_kmers
 // Writes into outfile the lines of the input file sorted
