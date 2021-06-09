@@ -106,7 +106,7 @@ int main2(int argc, char** argv){
             C.outfiles.push_back(line);
     C.index_dir = opts["index-dir"].as<string>();
     C.temp_dir = opts["temp-dir"].as<string>();
-    C.reverse_complements = opts["reverse-complements"].as<bool>();
+    C.reverse_complements = opts["rc"].as<bool>();
     C.n_threads = opts["n-threads"].as<LL>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
