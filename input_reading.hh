@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <cassert>
 #include "throwing_streams.hh"
 
 using namespace std; // Bad practice but whatever

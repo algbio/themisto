@@ -3,7 +3,6 @@
 #include <vector>
 #include <stack>
 #include <algorithm>
-#include "BD_BWT_index.hh"
 #include "input_reading.hh"
 #include "globals.hh"
 #include "BOSS.hh"

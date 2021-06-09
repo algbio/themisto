@@ -94,8 +94,6 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/vers
 ## Add local dependencies as targets
 add_subdirectory(${CMAKE_SOURCE_DIR}/sdsl-lite
                  ${CMAKE_BINARY_DIR}/external/sdsl-lite/build)
-add_subdirectory(${CMAKE_SOURCE_DIR}/BD_BWT_index
-                 ${CMAKE_BINARY_DIR}/external/BD_BWT_index/build)
 add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
                  ${CMAKE_BINARY_DIR}/external/KMC/build)
 
@@ -103,7 +101,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
 set_target_properties(divsufsort PROPERTIES EXCLUDE_FROM_ALL 1)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/BD_BWT_index/include ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/libwheeler)
+include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/libwheeler)
 
 ## Libraries & executables to build
 add_library(kmc_wrapper KMC_wrapper.cpp)
@@ -112,9 +110,9 @@ add_executable(build_index build_index.cpp)
 
 ## Fix compilation order
 add_dependencies(kmc_wrapper kmc)
-add_dependencies(bdbwt sdsl divsufsort64)
-add_dependencies(pseudoalign kmc_wrapper bdbwt)
-add_dependencies(build_index kmc_wrapper bdbwt)
+add_dependencies(sdsl divsufsort64)
+add_dependencies(pseudoalign kmc_wrapper)
+add_dependencies(build_index kmc_wrapper)
 
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
@@ -130,17 +128,16 @@ endif()
 
 ## Link
 target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(pseudoalign kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(build_index kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(pseudoalign kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(build_index kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_executable(themisto_tests tests.cpp)
-  add_dependencies(themisto_tests kmc_wrapper bdbwt)
-  add_dependencies(bdbwt_tests sdsl divsufsort64)
-  target_link_libraries(themisto_tests kmc_wrapper bdbwt Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+  add_dependencies(themisto_tests kmc_wrapper)
+  add_dependencies(sdsl divsufsort64)
+  target_link_libraries(themisto_tests kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 else()
-  set_target_properties(bdbwt_tests PROPERTIES EXCLUDE_FROM_ALL 1)
   set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
   set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
 endif()

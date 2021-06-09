@@ -2,7 +2,6 @@
 
 #include "libwheeler/BOSS.hh"
 #include "TempFileManager.hh"
-#include "BD_BWT_index.hh"
 #include "EM_algorithms.hh"
 #include "WorkDispatcher.hh"
 #include "libwheeler/BOSS_builder.hh"

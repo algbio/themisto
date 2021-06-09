@@ -6,7 +6,6 @@
 #include <stack>
 #include <set>
 #include <algorithm>
-#include "BD_BWT_index.hh"
 #include "input_reading.hh"
 #include "test_tools.hh"
 #include "globals.hh"
