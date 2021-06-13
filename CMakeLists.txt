@@ -97,11 +97,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/sdsl-lite
 add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
                  ${CMAKE_BINARY_DIR}/external/KMC/build)
 
-## Don't build the parts that we won't need
-set_target_properties(divsufsort PROPERTIES EXCLUDE_FROM_ALL 1)
-
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/libwheeler)
+include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/libwheeler)
 
 ## Libraries & executables to build
 add_library(kmc_wrapper KMC_wrapper.cpp)
