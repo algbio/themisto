@@ -72,7 +72,8 @@ public:
         srand(random_seed);
         vector<TestCase> testcases;
         LL n_reads = 10;
-        for(LL k = 1; k <= 31; k *= 2){
+        for(float k_float = 1; k_float <= 255; k_float *= 1.5){ // kmer class supports at most k == 255
+            LL k = k_float; // Cast to integer (floor)
             for(LL read_length = 1; read_length <= 128; read_length *= 2){
                 k = min(k,(LL)254); // 254 + 2 = 256 is the biggest the EM sort can do
                 TestCase tcase;

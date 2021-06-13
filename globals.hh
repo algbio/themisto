@@ -20,6 +20,10 @@
 #include <iomanip>
 #include <random>
 
+#ifndef KMER_MAX_LENGTH
+#define KMER_MAX_LENGTH 64
+#endif
+
 using namespace std;
 using namespace std::chrono;
 

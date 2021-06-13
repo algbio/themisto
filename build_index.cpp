@@ -30,6 +30,7 @@ struct Config{
 
         if(!load_boss){
             check_true(k != -1, "Parameter k not set");
+            check_true(k <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again.");
         }
 
         if(colorfile != ""){
@@ -91,9 +92,9 @@ int main2(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
-        cerr << "  ./build_index --k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
+        cerr << "  ./build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
         cerr << "Build only the BOSS" << endl;
-        cerr << "  ./build_index --k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
+        cerr << "  ./build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
         cerr << "Load a previously built BOSS from the index directory and compute the colors:" << endl;
         cerr << "  ./build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
         exit(1);
@@ -154,6 +155,7 @@ int main2(int argc, char** argv){
 
 int main(int argc, char** argv){
     write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
+    write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH));
     try{
         return main2(argc, argv);
     } catch (const std::runtime_error &e){

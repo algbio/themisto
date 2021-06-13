@@ -10,7 +10,7 @@ Enter the Themisto directory and run
 
 	cd build
 	cmake ..
-    make
+	make
 
 This will produce the build\_index, pseudoalignment, and
 themisto\_tests executables in the build/bin/ directory.

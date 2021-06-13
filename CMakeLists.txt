@@ -2,6 +2,16 @@ cmake_minimum_required (VERSION 3.1)
 project(Themisto)
 include(ExternalProject)
 
+## Set maximum k-mer length
+if(NOT MAX_KMER_LENGTH)
+  set(MAX_KMER_LENGTH 64) ## Default max k-mer length is 64
+endif()
+if(MAX_KMER_LENGTH GREATER 255)
+  message(${MAX_KMER_LENGTH})
+  message(FATAL_ERROR "Error: MAX_KMER_LENGTH can be at most 255")
+endif()
+add_definitions(-DKMER_MAX_LENGTH=${MAX_KMER_LENGTH})
+
 ## Determine build type and set flags accordingly
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release) ## Build Release by default
