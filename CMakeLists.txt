@@ -12,7 +12,7 @@ if(MAX_KMER_LENGTH GREATER 255)
 endif()
 add_definitions(-DKMER_MAX_LENGTH=${MAX_KMER_LENGTH})
 message(STATUS "Maximum k-mer length is: " ${MAX_KMER_LENGTH})
-message(STATUS "To change the maximum k-mer length, use the option -DKMER_MAX_LENGTH=n")
+message(STATUS "To change the maximum k-mer length, use the option -DMAX_KMER_LENGTH=n")
 message(STATUS "(n can be up to 255)")
 
 ## Determine build type and set flags accordingly
