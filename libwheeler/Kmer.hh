@@ -14,7 +14,7 @@ using namespace std;
 template<int64_t max_len> class kmer_colex_compare; // Compiler needs this forward declaration to make it a friend class
 
 // A bit-packed k-mer class containing at most max_len characters
-// MAXIMUM LENGTH SUPPORTED IS 255 because the length is stored in an uint8_t
+// Maximum length supported is 255 because the length is stored in an uint8_t
 template<int64_t max_len> 
 class Kmer{
 friend class std::hash<Kmer<max_len>>;
@@ -22,22 +22,15 @@ friend class kmer_colex_compare<max_len>;
 
 private:
 
-    // Two bits per character. Least significant bit pair is leftmost nucleotide.
-    // Like this: If 0 is the leftmost index in the string and n-1 is the rightmost,
-    // then the characters are arranged in the the blocks like this (for illustration block have size 3 here):
-    //
-    // block 0 | block 1 | block 2
-    //  8 7 6     5 4 3     2 1 0
-    //
-    // With this arrangement, colex comparison of equal-length k-mers
-    // is the lex-comparison of the blocks from left to right, such that
-    // each block is considered a single character. This means we can bit-
-    // parallelize the colex comparison.
+    // Two bits per character.
+    // The righmost character of the whole k-mer is at the most significant bits of block 0.
+    // See the function `get` for a precise definition of the data layout.
     static const int64_t DATA_ARRAY_SIZE = max_len /  32 + (max_len % 32 > 0);
     uint64_t data[DATA_ARRAY_SIZE]; 
-    uint8_t k; // this is an 8-bit value to save space so the maximum k is 2^8 - 1 = 255
-
+    uint8_t k;
+    
     char to_char(uint8_t x) const{
+        // Don't mess with these values because the bit parallelism depends on these
         switch(x){
             case 0x00: return 'A';
             case 0x01: return 'C';
@@ -49,6 +42,7 @@ private:
     }
 
     char to_bitpair(char c) const{
+        // Don't mess with these values because the bit parallelism depends on these
         switch(c){
             case 'A': return 0x00;
             case 'C': return 0x01;
@@ -95,19 +89,19 @@ public:
     char get(LL idx) const{
         assert(idx < max_len);
         if(idx >= k) return '\0';
-        LL block_idx = DATA_ARRAY_SIZE - 1 - idx / 32;
-        LL block_offset = idx % 32;
-        return to_char((data[block_idx] >> (block_offset*2)) & 0x03);
+        LL block_idx = (k-1-idx) / 32;
+        LL block_offset = (k-1-idx) % 32;
+        return to_char((data[block_idx] >> ((31 - block_offset)*2)) & 0x03);
     }
 
     // Get the character at index idx from the start
     void set(LL idx, char c){
         assert(idx >= 0 && idx < max_len);
         assert(c == 'A' || c == 'C' || c == 'G' || c == 'T');
-        LL block_idx = DATA_ARRAY_SIZE - 1 - idx / 32;
-        LL block_offset = idx % 32;
-        data[block_idx] &= (~(uint64_t)0) ^ ((uint64_t)0x03 << (block_offset*2)); // Clear
-        data[block_idx] |= (uint64_t)to_bitpair(c) << (block_offset*2); // Set
+        LL block_idx = (k-1-idx) / 32;
+        LL block_offset = (k-1-idx) % 32;
+        data[block_idx] &= (~(uint64_t)0) ^ ((uint64_t)0x03 << ((31 - block_offset)*2)); // Clear
+        data[block_idx] |= (uint64_t)to_bitpair(c) << ((31 - block_offset)*2); // Set
     }
 
     bool operator==(const Kmer &other) const {
@@ -122,16 +116,20 @@ public:
     }
 
     // Strict colexicographic comparison
+    // Returns true if this is smaller than the other
     bool operator<(const Kmer& other) const{
-        LL n = min(this->k, other.k);
-        for(LL i = 0; i < n; i++){
-            char c1 = this->get(this->k - 1 - i);
-            char c2 = other.get(other.k - 1 - i);
-            if(c1 < c2) return true;
-            else if(c1 > c2) return false;
-            else continue;
+        // If there is a mismatch in the data blocks, then
+        // case 1: the mismatch is in the k-mer part of both k-mers. Then the mismatch determines the order.
+        // case 2: the mismatch is past the end of the shorter k-mer. The shorter k-mer has an implicit 'A'
+        // in that position, so the longer k-mer must has something larger than 'A'. This decides the mismatch
+        // in favor of the shorter k-mer, which is correct.
+        for(LL i = 0; i < DATA_ARRAY_SIZE; i++){
+            if(this->data[i] < other.data[i]) return true;
+            if(this->data[i] > other.data[i]) return false;
         }
-        // One of the k-mers is a prefix of the other. Return the shorter
+        // All data blocks were equal. If the k-mer lengths are equal, then the k-mers are equal, so the answer is false.
+        // If the k-mer lengths are not equal, then one is a prefix of the othe (and the part of the other that is longer
+        // is all A-characters). Then, the shorter k-mer is the smaller.
         if(this->k < other.k) return true;
         else return false;
     }
@@ -140,17 +138,9 @@ public:
     Kmer dropleft(){
         assert(k > 0);
         // Shift block
-        for(LL block = DATA_ARRAY_SIZE - 1; block >= 0; block--){
-            data[block] >>= 2;
-            if(block != 0){ // Carry a character from the next block
-                data[block] |= (data[block-1] & 0x03) << (31*2); // Set
-            }
-        }
-
-        // Clear the leftmost character
-        LL last_block = DATA_ARRAY_SIZE - 1 - (k-1) / 32;
-        LL last_char_offset = (k-1) % 32;
-        data[last_block] &= (~(uint64_t)0) ^ ((uint64_t)0x03 << (last_char_offset*2)); // Clear
+        LL block_idx = (k-1) / 32;
+        LL block_offset = (k-1) % 32;
+        data[block_idx] &= (~(uint64_t)0) ^ ((uint64_t)0x03 << ((31 - block_offset)*2)); // Clear
         k--;
         return *this;
     }
@@ -158,9 +148,12 @@ public:
     // Drops rightmost nucleotide, i.e. returns a (k-1)-mer (itself)
     Kmer dropright(){
         assert(k > 0);
-        LL last_block = DATA_ARRAY_SIZE - 1 - (k-1) / 32;
-        LL last_char_offset = (k-1) % 32;
-        data[last_block] &= (~(uint64_t)0) ^ ((uint64_t)0x03 << (last_char_offset*2)); // Clear
+        for(LL block = 0; block < DATA_ARRAY_SIZE; block++){
+            data[block] <<= 2; // Shift
+            // Carry character from the next block
+            if(block != DATA_ARRAY_SIZE-1)
+                data[block] |= (data[block+1] >> (31*2)) & (uint64_t)0x03;
+        }
         k--;
         return *this;
     }
@@ -170,6 +163,14 @@ public:
     Kmer appendright(char c){
         assert(k < max_len);
         k++;
+        // Shift blocks to make room
+        for(LL i = DATA_ARRAY_SIZE-1; i >= 0; i--){
+            data[i] >>= 2;
+            if(i != 0){
+                // Carry last character of the previous block
+                data[i] |= (data[i-1] & (uint64_t)0x03) << (31*2);
+            }
+        }
         set(k-1, c);
         return *this;
     }
@@ -179,13 +180,6 @@ public:
     Kmer appendleft(char c){
         assert(k < max_len);
         k++;
-        for(LL i = 0; i < DATA_ARRAY_SIZE; i++){
-            data[i] <<= 2;
-            if(i != DATA_ARRAY_SIZE-1){
-                // Carry last character of the next block
-                data[i] |= (data[i+1] >> (31*2)) & (uint64_t)0x03;
-            }
-        }
         set(0, c); // append c to the left
         return *this;
     }
