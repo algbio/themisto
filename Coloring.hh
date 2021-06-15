@@ -462,7 +462,7 @@ private:
     }
 
     void mark_redundant_color_sets(string fastafile, BOSS<sdsl::bit_vector>& boss, LL colorset_sampling_distance){
-        // Mark all nodes that fulfill at least one of  the following
+        // Mark all nodes that fulfill at least one of the following
         // (1) the node is first k-mer of an input sequence
         // (2) a predecessor of the node is the last k-mer of a reference sequence
         // (3) have two or more incoming edges
