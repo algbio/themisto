@@ -130,7 +130,7 @@ int main2(int argc, char** argv){
     }
 
     Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    C.inputfile = fix_alphabet(sr); // Turns the file into fasta format also
+    C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
     C.input_format = "fasta"; // fix_alphabet returns a fasta file
     
     if(C.load_boss){

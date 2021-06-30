@@ -184,23 +184,130 @@ LL fix_alphabet_of_string(string& S){
     return chars_replaced;
 }
 
-
-// Makes a copy of the file and replaces a bad characters. Returns the new filename
+// Makes a copy of the file and replaces bad characters. Returns the new filename
 // The new file is in fasta format
-string fix_alphabet(Sequence_Reader& sr){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characeters from {A,C,G,T}");
-    //Sequence_Reader fr(fastafile, FASTA_MODE);
-    string new_filename = temp_file_manager.get_temp_file_name("seqs-");
-    throwing_ofstream out(new_filename);
-    LL chars_replaced = 0;
-    while(!sr.done()){
-        string read = sr.get_next_query_stream().get_all();
-        chars_replaced += fix_alphabet_of_string(read);
-        out << ">\n" << read << "\n";
+std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode){
+    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
+    
+    const std::string output_file = temp_file_manager.get_temp_file_name("seqs-");
+    
+    std::FILE* ip = std::fopen(input_file.c_str(), "rb");
+    std::FILE* op = std::fopen(output_file.c_str(), "wb");
+    
+    char* ibuf = new char[bufsiz];
+    char* obuf = new char[bufsiz];
+    std::size_t sz;
+    std::uint64_t replaced = 0;
+    
+    std::size_t j = 0;
+
+    // FASTA
+    if (mode == FASTA_MODE) {
+        bool in_header = false;
+        
+        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+            for (std::size_t i = 0; i < sz; ++i) {
+                
+                if (ibuf[i] == '>' || in_header) {
+                    in_header = true;
+
+                    if (ibuf[i] == '>') {
+                        obuf[j++] = '>';
+                    }
+                    else if (ibuf[i] == '\n') {
+                        in_header = false;
+                        obuf[j++] = '\n';
+                    }
+                }
+                
+                else {
+                    if (ibuf[i] == '\n') {
+                        obuf[j++] = '\n';
+                    }
+                    else {
+                        obuf[j] = fix_char(ibuf[i]);
+                        if (obuf[j] != ibuf[i]) {
+                            ++replaced;
+                        }
+                        ++j;
+                    }
+                }
+            }
+            std::fwrite(obuf, 1, j, op);
+            j = 0;
+        }
     }
-    write_log("Replaced " + to_string(chars_replaced) + " characters");
-    return new_filename;
+    // FASTQ
+    else {
+        enum FASTQ_line { seqname, seq, plus, qual };
+        FASTQ_line fl = seqname;
+
+        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+            
+            for (std::size_t i = 0; i < sz; ++i) {
+
+                switch(fl) {
+                    
+                case FASTQ_line::seqname : {
+                    if (ibuf[i] == '@') {
+                        obuf[j++] = '>';
+                    }
+                    else if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::seq;
+                        obuf[j++] = '\n';
+                    }
+                }
+                    break;
+
+                case FASTQ_line::seq : {
+                    if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::plus;
+                        obuf[j++] = '\n';
+                    }
+                    else {
+                        obuf[j] = fix_char(ibuf[i]);
+                        if (obuf[j] != ibuf[i]) {
+                            ++replaced;
+                        }
+                        ++j;
+                    }
+                }
+                    break;
+
+                case FASTQ_line::plus : {
+                    if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::qual;
+                    }
+                }
+                    break;
+
+                case FASTQ_line::qual : {
+                    if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::seqname;
+                    }
+                }
+                    break;
+                    
+                default :
+                    break;
+                }
+            }
+            std::fwrite(obuf, 1, j, op);
+            j = 0;
+        }
+    }
+
+    delete[] ibuf;
+    delete[] obuf;
+    
+    std::fclose(ip);
+    std::fclose(op);
+    
+    write_log("Replaced " + to_string(replaced) + " characters");
+    
+    return output_file;
 }
+
 
 void sigint_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
