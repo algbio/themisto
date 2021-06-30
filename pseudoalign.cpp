@@ -72,7 +72,7 @@ int main2(int argc, char** argv){
         ("o,out-file", "Output filename.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
-        ("temp-dir", "Temporary directory. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignemt.", cxxopts::value<bool>()->default_value("false")) 
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
@@ -110,6 +110,8 @@ int main2(int argc, char** argv){
     C.n_threads = opts["n-threads"].as<LL>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
+
+    create_directory_if_does_not_exist(C.temp_dir);
 
     if(C.gzipped_output){
         for(string& filename : C.outfiles) filename += ".gz";

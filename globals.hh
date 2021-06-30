@@ -19,6 +19,7 @@
 #include <chrono>
 #include <iomanip>
 #include <random>
+#include <filesystem>
 
 #ifndef KMER_MAX_LENGTH
 #define KMER_MAX_LENGTH 64
@@ -438,6 +439,9 @@ vector<string> split(const char* text, char delimiter){
     return split(string(text), delimiter);
 }
 
+void create_directory_if_does_not_exist(string path){
+    std::filesystem::create_directory(path);
+}
 
 // https://stackoverflow.com/questions/18100097/portable-way-to-check-if-directory-exists-windows-linux-c
 void check_dir_exists(string path){

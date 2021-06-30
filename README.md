@@ -3,7 +3,7 @@ Themisto is a compact colored de Bruijn graph supporting pseudo-alignment agains
 
 # Installation
 ## Requirements
-Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer.
+Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library <filesystem> header.
 
 ## Compiling
 Enter the Themisto directory and run

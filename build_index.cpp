@@ -78,7 +78,7 @@ int main2(int argc, char** argv){
         ("auto-colors", "Instead of a color file let the program automatically give colors integer names (0,1,2...)", cxxopts::value<bool>()->default_value("false"))
         ("o,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
-        ("temp-dir", "Temporary directory. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet", cxxopts::value<LL>()->default_value("4096"))
@@ -114,6 +114,9 @@ int main2(int argc, char** argv){
     C.auto_colors = opts["auto-colors"].as<bool>();
     C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
+
+    create_directory_if_does_not_exist(C.index_dir);
+    create_directory_if_does_not_exist(C.temp_dir);
 
     C.check_valid();
     temp_file_manager.set_dir(C.temp_dir);
