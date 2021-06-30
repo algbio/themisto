@@ -170,113 +170,36 @@ char fix_char(char c){
 	}
 }
 
-// Makes a copy of the file and replaces bad characters. Returns the new filename
+// Returns number of chars replaced
+LL fix_alphabet_of_string(string& S){
+    LL chars_replaced = 0;
+    for(LL i = 0; i < S.size(); i++){
+        char c = S[i];
+        char c_new = fix_char(c);
+        if(c_new != c){
+            S[i] = c_new;
+            chars_replaced++;
+        }
+    }
+    return chars_replaced;
+}
+
+
+// Makes a copy of the file and replaces a bad characters. Returns the new filename
 // The new file is in fasta format
-std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
-    
-    const std::string output_file = "output_file";
-    
-    std::FILE* ip = std::fopen(input_file.c_str(), "rb");
-    std::FILE* op = std::fopen(output_file.c_str(), "wb");
-    
-    char* ibuf = new char[bufsiz];
-    char* obuf = new char[bufsiz];
-    std::size_t sz;
-    std::uint64_t replaced = 0;
-    
-    std::size_t j = 0;
-
-    // FASTA
-    if (mode == 0) {
-        bool in_header = false;
-        
-        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
-            for (std::size_t i = 0; i < sz; ++i) {
-                
-                if (ibuf[i] == '>' || in_header) {
-                    in_header = true;
-
-                    if (ibuf[i] == '>') {
-                        obuf[j++] = '>';
-                    }
-                    else if (ibuf[i] == '\n') {
-                        in_header = false;
-                        obuf[j++] = '\n';
-                    }
-                }
-                
-                else {
-                    if (ibuf[i] == '\n') {
-                        obuf[j++] = '\n';
-                    }
-                    else {
-                        obuf[j] = fix_char(ibuf[i]);
-                        if (obuf[j] != ibuf[i]) {
-                            ++replaced;
-                        }
-                        ++j;
-                    }
-                }
-            }
-            std::fwrite(obuf, 1, j, op);
-            j = 0;
-        }
+string fix_alphabet(Sequence_Reader& sr){
+    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characeters from {A,C,G,T}");
+    //Sequence_Reader fr(fastafile, FASTA_MODE);
+    string new_filename = temp_file_manager.get_temp_file_name("seqs-");
+    throwing_ofstream out(new_filename);
+    LL chars_replaced = 0;
+    while(!sr.done()){
+        string read = sr.get_next_query_stream().get_all();
+        chars_replaced += fix_alphabet_of_string(read);
+        out << ">\n" << read << "\n";
     }
-    // FASTQ
-    else {
-        bool in_header = false;
-        bool in_descriptor = false;
-        
-        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
-
-            for (std::size_t i = 0; i < sz; ++i) {
-
-                if (ibuf[i] == '@' || in_header) {
-                    in_header = true;
-                    in_descriptor = false;
-
-                    if (ibuf[i] == '@') {
-                        obuf[j++] = '>';
-                    }
-                    else if (ibuf[i] == '\n') {
-                        in_header = false;
-                        obuf[j++] = '\n';
-                    }
-                }
-                
-                else if (ibuf[i] == '+' || in_descriptor) {
-                    in_descriptor = true;
-                }
-
-                else {
-                    if (ibuf[i] == '\n') {
-                        obuf[j++] = '\n';
-                    }
-                    else {
-                        obuf[j] = fix_char(ibuf[i]);
-                        if (obuf[j] != ibuf[i]) {
-                            ++replaced;
-                        }
-                        ++j;
-                    }
-                }
-
-            }
-            std::fwrite(obuf, 1, j, op);
-            j = 0;
-        }
-    }
-
-    delete[] ibuf;
-    delete[] obuf;
-    
-    std::fclose(ip);
-    std::fclose(op);
-    
-    write_log("Replaced " + to_string(replaced) + " characters");
-    
-    return output_file;
+    write_log("Replaced " + to_string(chars_replaced) + " characters");
+    return new_filename;
 }
 
 void sigint_handler(int sig) {

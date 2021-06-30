@@ -75,7 +75,7 @@ int main2(int argc, char** argv){
         ("k", "The k of the k-mers. Required only if --load-boss is not given", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color name per line. Required only if you want to build the colors.", cxxopts::value<string>()->default_value(""))
-        ("auto-colors", "Instead of a color file let the program automatically give colors integer names (0,1,2...))", cxxopts::value<bool>()->default_value("false"))
+        ("auto-colors", "Instead of a color file let the program automatically give colors integer names (0,1,2...)", cxxopts::value<bool>()->default_value("false"))
         ("o,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("temp-dir", "Temporary directory. Always required, directory must exist before running.", cxxopts::value<string>())
@@ -129,8 +129,9 @@ int main2(int argc, char** argv){
         C.inputfile = new_name;
     }
 
-    C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    C.input_format = "fasta";
+    Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    C.inputfile = fix_alphabet(sr); // Turns the file into fasta format also
+    C.input_format = "fasta"; // fix_alphabet returns a fasta file
     
     if(C.load_boss){
         write_log("Loading BOSS");
