@@ -46,7 +46,8 @@ may run into this limit. To increase the limit, run the command
 
 # Usage
 ## Indexing
-Examples:
+
+### Examples
 
 Build BOSS and colors:
 ```
@@ -64,10 +65,11 @@ Load a previously built BOSS from the index directory and compute the colors:
   ./build/bin/build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss
 ```
 
-Full instructions:
+### Full instructions
+
+This program builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters.
 
 ```
-Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters.
 Usage:
   ./build/bin/build_index [OPTION...]
 
@@ -114,7 +116,7 @@ Usage:
 
 ## Pseudoalignment
 
-Examples:
+### Examples
 
 Pseudoalign reads.fna against an index:
 ```
@@ -131,8 +133,8 @@ Pseudoalign reads.fna against an index using also reverse complements:
   ./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
 ```
 
-Full instructions:
-```
+### Full instructions
+
 This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
 
 If the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.
@@ -140,6 +142,8 @@ If the coloring data structure was built with the --color-file option, then the 
  The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
 
 The query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq
+
+```
 Usage:
   ./build/bin/pseudoalign [OPTION...]
 
