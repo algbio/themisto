@@ -221,32 +221,29 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
     }
     // FASTQ
     else {
-        bool in_header = false;
-        bool in_descriptor = false;
-        
-        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+        enum FASTQ_line { seqname, seq, plus, qual };
+        FASTQ_line fl = seqname;
 
+        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+            
             for (std::size_t i = 0; i < sz; ++i) {
 
-                if (ibuf[i] == '@' || in_header) {
-                    in_header = true;
-                    in_descriptor = false;
-
+                switch(fl) {
+                    
+                case FASTQ_line::seqname : {
                     if (ibuf[i] == '@') {
                         obuf[j++] = '>';
                     }
                     else if (ibuf[i] == '\n') {
-                        in_header = false;
+                        fl = FASTQ_line::seq;
                         obuf[j++] = '\n';
                     }
                 }
-                
-                else if (ibuf[i] == '+' || in_descriptor) {
-                    in_descriptor = true;
-                }
+                    break;
 
-                else {
+                case FASTQ_line::seq : {
                     if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::plus;
                         obuf[j++] = '\n';
                     }
                     else {
@@ -257,7 +254,25 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
                         ++j;
                     }
                 }
+                    break;
 
+                case FASTQ_line::plus : {
+                    if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::qual;
+                    }
+                }
+                    break;
+
+                case FASTQ_line::qual : {
+                    if (ibuf[i] == '\n') {
+                        fl = FASTQ_line::seqname;
+                    }
+                }
+                    break;
+                    
+                default :
+                    break;
+                }
             }
             std::fwrite(obuf, 1, j, op);
             j = 0;
