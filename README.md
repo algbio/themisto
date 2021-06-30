@@ -128,17 +128,17 @@ Usage:
 
 Pseudoalign reads.fna against an index:
 ```
-./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
+./build/bin/pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
 ```
 
 Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
 ```
-./pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
+./build/bin/pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
 ```
 
 Pseudoalign reads.fna against an index using also reverse complements:
 ```
-./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
+./build/bin/pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
 ```
 
 ### Full instructions for `pseudoalign`
