@@ -1,5 +1,5 @@
 # About Themisto
-Themisto is a compact colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto.
+Themisto is a compact colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true).
 
 # Installation
 ## Requirements
@@ -10,9 +10,9 @@ Enter the Themisto directory and run
 
 
 ```
-	cd build
-	cmake .. -DMAX_KMER_LENGTH=60
-    make
+cd build
+cmake .. -DMAX_KMER_LENGTH=60
+make
 ```
 
 Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes.
@@ -23,26 +23,34 @@ themisto\_tests executables in the build/bin/ directory.
 If you run into problems involving zlib or bzip2, you can instruct the
 build process to download & compile them from source with
 
-	cmake -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 ..
-	make
+```
+cmake -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 ..
+make
+```
 
 ## Compiling on macOS
 Compiling Themisto on macOS requires users to first install gcc-6.1 or
 newer from homebrew with
 
-	brew install gcc@6
+```
+brew install gcc@6
+```
 
 Afterwards, Themisto can be compiled by entering the directory and running
 
-	cd build
-	cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) ..
-	make
+```
+cd build
+cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) ..
+make
+```
 
 Note that macOS has a very small limit for the number of concurrently
 opened files. Themisto can use temporary files to conserve RAM, and
 may run into this limit. To increase the limit, run the command
 
-	ulimit -n 2048
+```
+ulimit -n 2048
+```
 
 # Usage
 ## Indexing
@@ -50,22 +58,22 @@ may run into this limit. To increase the limit, run the command
 ### Examples
 
 Build BOSS and colors:
-```
 
-  ./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp
+```
+./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp
 ```
 
 Build only the BOSS
 ```
-  ./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp
+./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp
 ```
 
 Load a previously built BOSS from the index directory and compute the colors:
 ```
-  ./build/bin/build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss
+./build/bin/build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss
 ```
 
-### Full instructions
+### Full instructions for `build_index`
 
 This program builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters.
 
@@ -120,20 +128,20 @@ Usage:
 
 Pseudoalign reads.fna against an index:
 ```
-  ./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
+./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
 ```
 
 Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
 ```
-  ./pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
+./pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
 ```
 
 Pseudoalign reads.fna against an index using also reverse complements:
 ```
-  ./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
+./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
 ```
 
-### Full instructions
+### Full instructions for `pseudoalign`
 
 This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
 
