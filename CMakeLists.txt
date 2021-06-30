@@ -4,13 +4,14 @@ include(ExternalProject)
 
 ## Set maximum k-mer length
 if(NOT MAX_KMER_LENGTH)
-  set(MAX_KMER_LENGTH 64) ## Default max k-mer length is 64
+  set(MAX_KMER_LENGTH 63) ## Default max k-mer length is 63
 endif()
 if(MAX_KMER_LENGTH GREATER 255)
   message(${MAX_KMER_LENGTH})
   message(FATAL_ERROR "Error: MAX_KMER_LENGTH can be at most 255")
 endif()
-add_definitions(-DKMER_MAX_LENGTH=${MAX_KMER_LENGTH})
+MATH(EXPR K_PLUS_1_MER_LENGTH "${MAX_KMER_LENGTH}+1") # +1 because the construction requires (k+1)-mers
+add_definitions(-DKMER_MAX_LENGTH=${K_PLUS_1_MER_LENGTH})
 message(STATUS "Maximum k-mer length is: " ${MAX_KMER_LENGTH})
 message(STATUS "To change the maximum k-mer length, use the option -DMAX_KMER_LENGTH=n")
 message(STATUS "(n can be up to 255)")
@@ -75,7 +76,7 @@ else()
   find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2)
 endif()
 
-## Require c++14
+## Require c++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

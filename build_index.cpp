@@ -156,7 +156,7 @@ int main2(int argc, char** argv){
 
 int main(int argc, char** argv){
     write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
-    write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH));
+    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
     try{
         return main2(argc, argv);
     } catch (const std::runtime_error &e){
