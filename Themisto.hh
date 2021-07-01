@@ -6,6 +6,7 @@
 #include <stack>
 #include <set>
 #include <algorithm>
+#include <filesystem>
 #include "input_reading.hh"
 #include "test_tools.hh"
 #include "globals.hh"
@@ -263,6 +264,12 @@ public:
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
         write_log("Building BOSS from KMC database");
         boss = builder.build(edgemer_stream, memory_bytes);
+
+        // Delete the KMC database files. The temp file manager can not do this because
+        // KMC appends suffixes to the filename and the manager does not know about that.
+        write_log("Deleting KMC database");
+        std::filesystem::remove(KMC_db_path_prefix + ".kmc_pre");
+        std::filesystem::remove(KMC_db_path_prefix + ".kmc_suf");
 
     }
 
