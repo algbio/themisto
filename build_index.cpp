@@ -72,7 +72,7 @@ int main2(int argc, char** argv){
 
     options.add_options()
         ("load-boss", "If given, loads a precomputed BOSS from the index directory", cxxopts::value<bool>()->default_value("false"))
-        ("k", "The k of the k-mers. Required only if --load-boss is not given", cxxopts::value<LL>())
+        ("k,node-length", "The k of the k-mers. Required only if --load-boss is not given", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color name per line. Required only if you want to build the colors.", cxxopts::value<string>()->default_value(""))
         ("auto-colors", "Instead of a color file let the program automatically give colors integer names (0,1,2...)", cxxopts::value<bool>()->default_value("false"))
