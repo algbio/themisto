@@ -209,23 +209,32 @@ public:
 
 
         virtual void callback(const char* S, LL S_size, int64_t string_id){
-            if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
-                temp_colorset_id_buffer.resize(S_size - k + 1);
-                if(reverse_complements) temp_colorset_id_buffer_rc.resize(S_size - k + 1);
+            if(S_size < k){
+                write_log("Warning: query is shorter than k");
+                output_buffer += std::to_string(string_id) + "\n";
+            }
+            else{
+                // Resize the buffers if they are too small
+                if(this->temp_colorset_id_buffer.size() < S_size - k + 1){
+                    temp_colorset_id_buffer.resize(S_size - k + 1);
+                    if(reverse_complements) temp_colorset_id_buffer_rc.resize(S_size - k + 1);
+                }
+
+                // Get the color sets
+                kl->get_nonempty_colorset_ids(S,S_size,temp_colorset_id_buffer);
+                if(reverse_complements){
+                    if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
+                    get_rc(S, S_size, rc_buffer);
+                    kl->get_nonempty_colorset_ids(rc_buffer.c_str(), S_size,temp_colorset_id_buffer_rc);
+                }
+                LL colorset_size = do_intersections(S_size);
+                output_buffer += std::to_string(string_id) + " ";
+                for(LL i = 0; i < colorset_size; i++)
+                    output_buffer += std::to_string(colorset_buffer[i]) + " ";
+                output_buffer += "\n";
             }
 
-            kl->get_nonempty_colorset_ids(S,S_size,temp_colorset_id_buffer);
-            if(reverse_complements){
-                if(rc_buffer.size() < S_size) rc_buffer.resize(S_size);
-                get_rc(S, S_size, rc_buffer);
-                kl->get_nonempty_colorset_ids(rc_buffer.c_str(), S_size,temp_colorset_id_buffer_rc);
-            }
-
-            LL colorset_size = do_intersections(S_size);
-            output_buffer += std::to_string(string_id) + " ";
-            for(LL i = 0; i < colorset_size; i++)
-                output_buffer += std::to_string(colorset_buffer[i]) + " ";
-            output_buffer += "\n";
+            // Flush buffer if needed
             if(output_buffer.size() > output_buffer_size){
                 out->write(output_buffer);
                 output_buffer.clear();
