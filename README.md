@@ -175,6 +175,16 @@ Usage:
   -h, --help                 Print usage
 ```
 
+# For developers: building the tests
+
+```
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DMAX_KMER_LENGTH=255
+make
+```
+
+This builds the tests to build/bin/themisto_tests
+
 # License
 
 This software is licensed under GPLv2. See LICENSE.txt.
