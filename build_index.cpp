@@ -69,8 +69,9 @@ struct Config{
 int main2(int argc, char** argv){
 
     // Legacy support: transform old option format --k to -k
+    string legacy_support_fix = "-k";
     for(LL i = 1; i < argc; i++){
-        if(string(argv[i]) == "--k") argv[i] = "-k";
+        if(string(argv[i]) == "--k") argv[i] = &(legacy_support_fix[0]);
     }
 
     cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
