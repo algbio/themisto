@@ -43,11 +43,11 @@ Afterwards, Themisto can be compiled by entering the directory and running
 
 ```
 cd build
-cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) ..
+cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=60 ..
 make
 ```
 
-Note that macOS has a very small limit for the number of concurrently
+Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Note that macOS has a very small limit for the number of concurrently
 opened files. Themisto can use temporary files to conserve RAM, and
 may run into this limit. To increase the limit, run the command
 
