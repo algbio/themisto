@@ -3,11 +3,10 @@ Themisto is a compact colored de Bruijn graph supporting pseudo-alignment agains
 
 # Installation
 ## Requirements
-Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library <filesystem> header.
+Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ## Compiling
-Enter the Themisto directory and run
-
+A c++-17-compliant compiler is required. Enter the Themisto directory and run
 
 ```
 cd build
@@ -20,6 +19,8 @@ Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer
 This will produce the build\_index, pseudoalignment, and
 themisto\_tests executables in the build/bin/ directory.
 
+### Troubleshooting
+
 If you run into problems involving zlib or bzip2, you can instruct the
 build process to download & compile them from source with
 
@@ -28,23 +29,25 @@ cmake -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 ..
 make
 ```
 
+If you run into problems involving the &lt;filesystem&gt; header, you probably need to update your compiler. The compiler `g++-8` should be sufficient. Install a new compiler and direct CMake to use it with the `-DCMAKE_CXX_COMPILER` option. For example, to set the compiler to `g++-8`, run CMake with the option `-DCMAKE_CXX_COMPILER=g++-8`. 
+
 ## Compiling on macOS
-Compiling Themisto on macOS requires users to first install gcc-6.1 or
+Compiling Themisto on macOS requires users to first install gcc-8 or
 newer from homebrew with
 
 ```
-brew install gcc@6
+brew install gcc@8
 ```
 
 Afterwards, Themisto can be compiled by entering the directory and running
 
 ```
 cd build
-cmake -DCMAKE_C_COMPILER=$(which gcc-6) -DCMAKE_CXX_COMPILER=$(which g++-6) ..
+cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=60 ..
 make
 ```
 
-Note that macOS has a very small limit for the number of concurrently
+Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Note that macOS has a very small limit for the number of concurrently
 opened files. Themisto can use temporary files to conserve RAM, and
 may run into this limit. To increase the limit, run the command
 
