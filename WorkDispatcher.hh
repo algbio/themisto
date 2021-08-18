@@ -87,7 +87,6 @@ class ParallelBinaryOutputWriter{
     }
 };
 
-
 struct Read_Batch{
     // This is better than vector<string> because this does not have memory fragmentation
 

@@ -209,10 +209,13 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     }
 
     // Copy final merge file to outfile
-    assert(cur_round.size() == 1);
-
-    copy_file(cur_round[0], outfile, 1024*1024);
-    temp_file_manager.delete_file(cur_round[0].c_str());
+    if(cur_round.size() == 0) // Function was called with empty input file
+        copy_file(infile, outfile, 1024*1024);
+    else{
+        assert(cur_round.size() == 1);
+        copy_file(cur_round[0], outfile, 1024*1024);
+        temp_file_manager.delete_file(cur_round[0].c_str());
+    }
 
 }
 
