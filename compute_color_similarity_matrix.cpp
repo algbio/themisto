@@ -51,7 +51,7 @@ int main2(int argc, char** argv){
 
     options.add_options()
         ("i,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
-        ("o,out-file", "Output filename.", cxxopts::value<string>()->default_value(""))
+        ("o,out-file", "Output filename.", cxxopts::value<string>())
         ("h,help", "Print usage")
     ;
 
