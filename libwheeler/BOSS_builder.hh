@@ -405,7 +405,7 @@ private:
     };
 
     // Returns number of prefixes added
-    LL process_prefixes(Kmer<KMER_MAX_LENGTH> x, Edgeset E, Kmer_sorter_in_memory<Edgeset>& new_sorter){
+    LL process_prefixes(Kmer<KMER_MAX_LENGTH> x, Edgeset E, Kmer_sorter_disk<Edgeset>& new_sorter){
         LL k = x.get_k();
         LL count = 0;
         if(!E.have_in('A') && !E.have_in('C') && !E.have_in('G') && !E.have_in('T')){
@@ -430,7 +430,7 @@ private:
 
     // Assumes the old sorter is already sorted and the other is just initialized.
     // Adds the new edges to the new sorter. Returns number of dummies added.
-    LL add_dummies(Kmer_sorter_in_memory<Edgeset>& old_sorter, Kmer_sorter_in_memory<Edgeset>& new_sorter){
+    LL add_dummies(Kmer_sorter_disk<Edgeset>& old_sorter, Kmer_sorter_disk<Edgeset>& new_sorter){
         string ACGT = "ACGT";
         Kmer<KMER_MAX_LENGTH> prev_kmer;
         Edgeset cur_edgeset;
@@ -468,7 +468,7 @@ public:
     boss_t build(edgemer_stream& input, LL mem_bytes){
         if(input.done()) return boss_t(); 
 
-        Kmer_sorter_in_memory<Edgeset> sorter1;
+        Kmer_sorter_disk<Edgeset> sorter1;
         sorter1.set_mem_budget(mem_bytes);
         LL k = 0;
         LL n_records_written = 0;
@@ -491,14 +491,14 @@ public:
         sorter1.sort();
 
         // Dummies
-        Kmer_sorter_in_memory<Edgeset> sorter2;
+        Kmer_sorter_disk<Edgeset> sorter2;
         sorter2.set_mem_budget(mem_bytes);
         LL n_dummies_disk = add_dummies(sorter1, sorter2);
         sorter2.sort();
         sorter1.reset_stream(); // Rewind back to start because add_dummies iterates over this
 
         // Build BOSS vectors
-        Kmer_stream_merger<Edgeset, Kmer_sorter_in_memory<Edgeset>> merger(sorter1, sorter2);
+        Kmer_stream_merger<Edgeset, Kmer_sorter_disk<Edgeset>> merger(sorter1, sorter2);
         
         vector<bool> I, O;
         string outlabels;
