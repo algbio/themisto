@@ -476,9 +476,9 @@ private:
         Sequence_Reader sr(fastafile, FASTA_MODE);
         while(!sr.done()){
             string read = sr.get_next_query_stream().get_all();
-            if(read.size() >= k){
+            if(read.size() >= k+1){ // Reads shorter than k+1 do not contribute to the graph
                 // condition (1)
-                LL first_node = boss.find_kmer(read.substr(0,k));
+                LL first_node = boss.find_kmer(read.substr(0,k)); // Guaranteed to be found in the graph
                 redundancy_marks[first_node] = 0;
 
                 // condition (2)
