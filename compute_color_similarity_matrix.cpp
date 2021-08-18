@@ -110,7 +110,7 @@ int main2(int argc, char** argv){
         LL n_c1_c2 = keyval.second;
         LL n_c1 = color_counts[c1];
         LL n_c2 = color_counts[c2];
-        cout << c1 << " " << c2 << " " << (double) n_c1_c2 / min(n_c1, n_c2) << "\n";
+        out << c1 << " " << c2 << " " << (double) n_c1_c2 / min(n_c1, n_c2) << "\n";
     }
 
     write_log("Finished");
