@@ -100,7 +100,7 @@ int main2(int argc, char** argv){
 
     if (old_argc == 1 || opts.count("help")){
         std::cerr << options.help() << std::endl;
-        // Todo
+        return 1;
     }
 
     string index_dir = opts["index-dir"].as<string>();

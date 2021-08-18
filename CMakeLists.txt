@@ -119,6 +119,7 @@ add_library(kmc_wrapper KMC_wrapper.cpp)
 add_executable(pseudoalign pseudoalign.cpp)
 add_executable(build_index build_index.cpp)
 add_executable(write_unitigs write_unitigs.cpp)
+add_executable(compute_color_similarity_matrix compute_color_similarity_matrix.cpp)
 
 ## Fix compilation order
 add_dependencies(kmc_wrapper kmc)
@@ -126,6 +127,7 @@ add_dependencies(sdsl divsufsort64)
 add_dependencies(pseudoalign kmc_wrapper)
 add_dependencies(build_index kmc_wrapper)
 add_dependencies(write_unitigs kmc_wrapper)
+add_dependencies(compute_color_similarity_matrix kmc_wrapper)
 
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
@@ -144,6 +146,7 @@ target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP
 target_link_libraries(pseudoalign kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(write_unitigs kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(compute_color_similarity_matrix kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
