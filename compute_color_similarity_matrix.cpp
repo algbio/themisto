@@ -81,7 +81,7 @@ int main2(int argc, char** argv){
     themisto.load_boss(index_dir + "/boss-");
     themisto.load_colors(index_dir + "/coloring-");
 
-    write_log("Writing the unitigs");
+    write_log("Computing the counts");
     throwing_ofstream out(outfile);
 
     unordered_map<pair<LL, LL>, LL, hash_pair> pair_counts;
@@ -104,6 +104,7 @@ int main2(int argc, char** argv){
         pp.job_done();
     }
 
+    write_log("Writing output");
     for(auto keyval : pair_counts){
         LL c1 = keyval.first.first; // Color 1
         LL c2 = keyval.first.second; // Color 2
