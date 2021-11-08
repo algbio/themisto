@@ -273,24 +273,11 @@ public:
 
     }
 
-    string generate_colorfile(string fastafile){
-        string colorfile = temp_file_manager.get_temp_file_name("");
-        throwing_ofstream out(colorfile);
-        Sequence_Reader fr(fastafile, FASTA_MODE);
-        LL seq_id = 0;
-        while(!fr.done()){
-            fr.get_next_query_stream().get_all();
-            out << seq_id << "\n";
-            seq_id++;
-        }
-        return colorfile;
-    }
-
     // Assumes boss has been built
     // colorfile: A filename for a file with one line for each sequence in fastafile. The line has the name of the color (a string).
     // If colorfile is emptry string, generates colors automatically
     void construct_colors(string fastafile, string colorfile, LL ram_bytes, LL n_threads, LL colorset_sampling_distance){
-        if(colorfile == "") colorfile = generate_colorfile(fastafile);
+        assert(colorfile != "");
         colors = parse_color_name_vector(colorfile);
         name_mapping.build_from_namefile(colorfile);
         coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), ram_bytes, n_threads, colorset_sampling_distance);

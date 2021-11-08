@@ -309,6 +309,45 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
     return output_file;
 }
 
+// Returns new inputfile and new colorfile
+pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile){
+    string new_colorfile = temp_file_manager.get_temp_file_name("");
+    string new_seqfile = temp_file_manager.get_temp_file_name("");
+
+    throwing_ifstream colors_in(colorfile);
+    throwing_ofstream colors_out(new_colorfile);
+
+    Sequence_Reader fr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    throwing_ofstream sequences_out(new_seqfile);
+    LL cur_color;
+    string cur_color_line_buffer;
+    while(!fr.done()){
+
+        // Read a sequence and its color
+        string seq = fr.get_next_query_stream().get_all();
+        getline(colors_in.stream, cur_color_line_buffer);
+        cur_color = stoll(cur_color_line_buffer);
+
+        // Chop the sequence into pieces that have only ACGT characters
+        seq += '$'; // Trick to avoid having a special case for the last sequence
+        string new_seq;
+        for(char c : seq){
+            assert((c >= 'A' && c <= 'Z') || c == '$');
+            if(c == 'A' || c == 'C' || c == 'G' || c == 'T')
+                new_seq += c;
+            else{
+                if(new_seq.size() > 0){
+                    sequences_out << ">\n" << new_seq << "\n";
+                    colors_out << cur_color << "\n";
+                    new_seq = "";
+                }
+            }
+        }       
+    }
+    return {new_seqfile, new_colorfile};
+}
+
+
 
 void sigint_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
@@ -474,7 +513,6 @@ void write_to_file(string path, T& thing){
     throwing_ofstream out(path);
     out << thing << endl;
 }
-
 
 template <typename T>
 void read_from_file(string path, T& thing){

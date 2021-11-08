@@ -12,12 +12,14 @@
 #include "BOSS_tests.hh"
 #include "version.h"
 #include "Kmer_tests.hh"
+#include "test_misc.hh"
 
 using namespace std;
 
 typedef int64_t LL; // long long
 
 int main2(int argc, char** argv){
+
     // If no CLI parameters are given, run all tests. Otherwise run
     // only tests that are specified
     bool run_pseudoalign = argc == 1;
@@ -25,6 +27,7 @@ int main2(int argc, char** argv){
     bool run_coloring = argc == 1;
     bool run_EM_sort = argc == 1;
     bool run_kmer_tests = argc == 1;
+    bool run_misc_tests = argc == 1;
 
     for(LL i = 1; i < argc; i++){
         if(string(argv[i]) == "-k") run_kmer_tests = true;
@@ -32,6 +35,7 @@ int main2(int argc, char** argv){
         if(string(argv[i]) == "-b") run_BOSS = true;
         if(string(argv[i]) == "-c") run_coloring = true;
         if(string(argv[i]) == "-s") run_EM_sort = true;
+        if(string(argv[i]) == "-m") run_misc_tests = true;
     }
 
     if(system("mkdir -p temp") != 0){
@@ -50,6 +54,7 @@ int main2(int argc, char** argv){
 
     disable_logging();
 
+    if(run_misc_tests) misc_tests();
     if(run_kmer_tests) kmer_tests();
     if(run_pseudoalign) test_pseudoalign("./temp");
     if(run_BOSS) test_BOSS();

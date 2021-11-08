@@ -19,6 +19,7 @@ struct Config{
     bool load_boss = false;
     LL memory_megas = 1000;
     bool auto_colors = false;
+    bool del_non_ACGT = false;
     LL pp_buf_siz = 1024*4;
     LL colorset_sampling_distance = 1;
     
@@ -66,6 +67,21 @@ struct Config{
     }
 };
 
+// Returns filename of a new color file that has one color for each sequence
+// Input format is either "fasta" or "fastq"
+string generate_default_colorfile(string inputfile, string file_format){
+    string colorfile = temp_file_manager.get_temp_file_name("");
+    throwing_ofstream out(colorfile);
+    Sequence_Reader fr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    LL seq_id = 0;
+    while(!fr.done()){
+        fr.get_next_query_stream().get_all();
+        out << seq_id << "\n";
+        seq_id++;
+    }
+    return colorfile;
+}
+
 int main2(int argc, char** argv){
 
     // Legacy support: transform old option format --k to -k
@@ -87,6 +103,7 @@ int main2(int argc, char** argv){
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("delete-non-ACGT", "Delete k-mers that have a letter outside of the DNA alphabet ACGT. If this option is not given, the non-ACGT letters are replaced with random nucleotides.", cxxopts::value<bool>()->default_value("false"))
         ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet", cxxopts::value<LL>()->default_value("4096"))
         ("h,help", "Print usage")
     ;
@@ -120,6 +137,7 @@ int main2(int argc, char** argv){
     C.auto_colors = opts["auto-colors"].as<bool>();
     C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
+    C.del_non_ACGT = opts["delete-non-ACGT"].as<bool>();
 
     create_directory_if_does_not_exist(C.index_dir);
     create_directory_if_does_not_exist(C.temp_dir);
@@ -138,9 +156,21 @@ int main2(int argc, char** argv){
         C.inputfile = new_name;
     }
 
+    if(C.colorfile == ""){
+        // Automatic colors
+        C.colorfile = generate_default_colorfile(C.inputfile, C.input_format);
+    }
+
+    // Deal with non-ACGT characters
+
     Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
-    C.input_format = "fasta"; // fix_alphabet returns a fasta file
+    if(C.del_non_ACGT){
+        std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
+        C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file
+    } else {
+        C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
+        C.input_format = "fasta"; // fix_alphabet returns a fasta file
+    }
     
     if(C.load_boss){
         write_log("Loading BOSS");
