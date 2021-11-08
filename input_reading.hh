@@ -108,7 +108,7 @@ public:
     bool upper_case_enabled;
 
     // mode is FASTA_MODE of FASTQ_MODE defined in this file
-    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode), upper_case_enabled(false) {
+    Sequence_Reader(string filename, int64_t mode) : file(filename, ios::in | ios::binary), mode(mode), upper_case_enabled(true) {
         if(mode == FASTA_MODE) {
             if(file.stream.peek() != '>'){
                 throw runtime_error("Error: FASTA-file does not start with '>'");
