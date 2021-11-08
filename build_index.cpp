@@ -62,6 +62,7 @@ struct Config{
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "Automatic colors = " << (auto_colors ? "true" : "false") << "\n";
         ss << "Load BOSS = " << (load_boss ? "true" : "false") << "\n";
+        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "Delete" : "Randomize") << "\n";
         ss << "Preprocessing buffer size = " << pp_buf_siz; // Last has no endline
         return ss.str();
     }
