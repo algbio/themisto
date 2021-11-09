@@ -131,7 +131,6 @@ public:
     void add_colors(BOSS<sdsl::bit_vector>& boss, string fastafile, vector<LL> colors_assignments, LL ram_bytes, LL n_threads, LL colorset_sampling_distance){
 
         n_colors = *std::max_element(colors_assignments.begin(), colors_assignments.end()) + 1;
-        assert(is_contiguous_integer_range(colors_assignments, 0,n_colors-1));
 
         write_log("Marking redundant color sets");
         mark_redundant_color_sets(fastafile, boss, colorset_sampling_distance);

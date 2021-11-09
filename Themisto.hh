@@ -13,7 +13,6 @@
 #include "libwheeler/BOSS.hh"
 #include "libwheeler/BOSS_builder.hh"
 #include "Coloring.hh"
-#include "NameMapping.hh"
 #include "WorkDispatcher.hh"
 #include "EM_sort.hh"
 #include "KMC_wrapper.hh"
@@ -253,7 +252,6 @@ public:
 
     BOSS<sdsl::bit_vector> boss;
     Coloring coloring;
-    NameMapping name_mapping; // color name <-> color id
     vector<string> colors; // sequence id -> color name
 
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
@@ -273,14 +271,23 @@ public:
 
     }
 
+    vector<LL> read_colorfile(string filename){
+        vector<LL> seq_to_color;
+        throwing_ifstream colors_in(filename);
+        string line;
+        while(colors_in.getline(line)){
+            seq_to_color.push_back(stoll(line));
+        }
+        return seq_to_color;
+    }
+
     // Assumes boss has been built
     // colorfile: A filename for a file with one line for each sequence in fastafile. The line has the name of the color (a string).
     // If colorfile is emptry string, generates colors automatically
     void construct_colors(string fastafile, string colorfile, LL ram_bytes, LL n_threads, LL colorset_sampling_distance){
         assert(colorfile != "");
-        colors = parse_color_name_vector(colorfile);
-        name_mapping.build_from_namefile(colorfile);
-        coloring.add_colors(boss, fastafile, name_mapping.names_to_ids(colors), ram_bytes, n_threads, colorset_sampling_distance);
+        vector<LL> seq_to_color = read_colorfile(colorfile);
+        coloring.add_colors(boss, fastafile, seq_to_color, ram_bytes, n_threads, colorset_sampling_distance);
     }
 
     void save_boss(string path_prefix){
@@ -289,9 +296,6 @@ public:
 
     void save_colors(string path_prefix){
         coloring.save_to_disk(path_prefix + "index-");
-        name_mapping.save_to_disk(path_prefix + "mapping-");
-        throwing_ofstream out(path_prefix + "names.txt");
-        for(string name : colors) out << name << "\n"; 
     }
 
     void load_boss(string path_prefix){
@@ -300,25 +304,6 @@ public:
 
     void load_colors(string path_prefix){
         coloring.load_from_disk(path_prefix + "index-");
-        name_mapping.load_from_disk(path_prefix + "mapping-");
-
-        throwing_ifstream in(path_prefix + "names.txt");
-
-        colors.clear();
-        string name;
-        while(in.getline(name)){
-            colors.push_back(name);
-        }
-    }
-
-    vector<string> parse_color_name_vector(string colorfile){
-        throwing_ifstream colorstream(colorfile);
-        vector<string> result;
-        string color_name;
-        while(colorstream.getline(color_name)){
-            result.push_back(color_name);
-        }
-        return result;
     }
 
     string to_string(){
@@ -524,14 +509,13 @@ public:
         public:
         vector<string> genomes;
         
-        unordered_map<string, set<string> > node_to_color_names; // kmer- > set of names
+        unordered_map<string, set<LL> > node_to_color_ids; // kmer- > set of color ids
         vector<string> queries;
         vector<string> colex_kmers;
-        LL n_colors;
+        LL n_colors; // Distinct colors
         LL k;
 
-        NameMapping nm;
-        vector<string> colors; // for each sequence: the color name of that sequence
+        vector<LL> seq_to_color_id; // for each sequence: the color of that sequence
     };
 
     LL random_seed = 123674;
@@ -563,19 +547,13 @@ public:
                 TestCase tcase;
                 tcase.k = k;
 
-                vector<string> distinct_color_names;
-                for(LL i = 0; i < n_colors; i++){
-                    distinct_color_names.push_back(get_random_dna_string(10,2) + to_string(i));
-                }
-
                 // Build genomes and assign color ids
                 for(LL i = 0; i < n_genomes; i++){
                     tcase.genomes.push_back(get_random_dna_string(genome_length,2));
-                    tcase.colors.push_back(distinct_color_names[rand() % n_colors]);
+                    tcase.seq_to_color_id.push_back(rand() % n_colors);
                 }
 
-                tcase.nm.build_from_name_vector(tcase.colors);
-                tcase.n_colors = tcase.nm.id_to_name.size();
+                tcase.n_colors = *std::max_element(tcase.seq_to_color_id.begin(), tcase.seq_to_color_id.end()) + 1;
 
                 // Get all k-mers and colex-sort them
                 set<string> all_kmers;
@@ -590,8 +568,7 @@ public:
                 vector<set<string> > color_to_kmer_set(n_colors);
                 for(LL genome_id = 0; genome_id < tcase.genomes.size(); genome_id++){
                     string genome = tcase.genomes[genome_id];
-                    string colorname = tcase.colors[genome_id];
-                    LL color_id = tcase.nm.name_to_id[colorname];
+                    LL color_id = tcase.seq_to_color_id[genome_id];
                     for(string kmer : get_all_distinct_kmers(genome,k)){
                         color_to_kmer_set[color_id].insert(kmer);
                     }
@@ -599,13 +576,13 @@ public:
 
                 // List all color names for each k-mer (!= each node)
                 for(string kmer : tcase.colex_kmers){
-                    set<string> colorset;
+                    set<LL> colorset;
                     for(LL color_id = 0; color_id < n_colors; color_id++){
                         if(color_to_kmer_set[color_id].count(kmer)){
-                            colorset.insert(tcase.nm.id_to_name[color_id]);
+                            colorset.insert(color_id);
                         }
                     }
-                    tcase.node_to_color_names[kmer] = colorset;
+                    tcase.node_to_color_ids[kmer] = colorset;
                 }
                 
 
@@ -636,7 +613,7 @@ public:
             cerr << "Running coloring testcase" << endl;
             
             ColoringTester::TestCase ct_testcase 
-                = ct.generate_testcase(tcase.genomes, tcase.nm.names_to_ids(tcase.colors), tcase.k);
+                = ct.generate_testcase(tcase.genomes, tcase.seq_to_color_id, tcase.k);
             ct.run_testcase(ct_testcase); // Check that this works
 
             cerr << "Running alignment testcase" << endl;
@@ -647,8 +624,8 @@ public:
             genomes_out.close();
 
             throwing_ofstream colors_out(temp_dir + "/colors.txt");
-            for(LL i = 0; i < tcase.colors.size(); i++){
-                colors_out << tcase.colors[i] << "\n";
+            for(LL i = 0; i < tcase.seq_to_color_id.size(); i++){
+                colors_out << tcase.seq_to_color_id[i] << "\n";
             }
             colors_out.close();
 
@@ -657,8 +634,6 @@ public:
                 queries_out << ">\n" << query << "\n";
             }
             queries_out.close();
-
-            NameMapping nm(temp_dir + "/colors.txt");
 
             {
                 Themisto kl_build;
@@ -692,38 +667,33 @@ public:
 
             for(LL i = 0; i < tcase.queries.size(); i++){
                 string query = tcase.queries[i];
-                set<string> brute = pseudoalign_to_colors_trivial(query, tcase, false);
-                set<string> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
-                
-                set<string> nonbrute;
-                for(LL id : our_results[i]) nonbrute.insert(nm.id_to_name[id]);
 
-                set<string> nonbrute_rc;
-                for(LL id : our_results_rc[i]) nonbrute_rc.insert(nm.id_to_name[id]);
+                set<LL> brute = pseudoalign_to_colors_trivial(query, tcase, false);
+                set<LL> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
 
-                assert(brute == nonbrute);
-                assert(brute_rc == nonbrute_rc);
+                assert(brute == our_results[i]);
+                assert(brute_rc == our_results_rc[i]);
             }
         }
 
     }
 
     // Returns set of color names
-    set<string> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
-        set<string> alignments;
-        for(LL i = 0; i < tcase.genomes.size(); i++) alignments.insert(tcase.colors[i]); // All color names
+    set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
+        set<LL> alignments;
+        for(LL i = 0; i < tcase.n_colors; i++) alignments.insert(i); // All color names
 
         bool at_least_one = false;
         // For each k-mer in query, get the color name set and intersect that with alignments
         for(string kmer : get_all_kmers(query, tcase.k)){
-            set<string> names = tcase.node_to_color_names[kmer];
+            set<LL> colorset = tcase.node_to_color_ids[kmer];
             if(reverse_complements){
-                set<string> names_rc = tcase.node_to_color_names[get_rc(kmer)];
-                for(string name : names_rc) names.insert(name);
+                set<LL> colorset_rc = tcase.node_to_color_ids[get_rc(kmer)];
+                for(LL color : colorset_rc) colorset.insert(color);
             }
-            if(names.size() >= 1) {
+            if(colorset.size() >= 1) {
                 at_least_one = true;
-                alignments = intersect(alignments, names);
+                alignments = intersect(alignments, colorset);
             }
         }
 
