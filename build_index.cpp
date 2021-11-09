@@ -202,5 +202,7 @@ int main(int argc, char** argv){
     } catch (const std::runtime_error &e){
         std::cerr << "Runtime error: " << e.what() << '\n';
         return 1;
+    } catch(const std::exception& e){
+        std::cerr << "Error: " << e.what() << '\n';
     }
 }

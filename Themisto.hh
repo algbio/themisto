@@ -261,7 +261,7 @@ public:
         Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
         write_log("Building BOSS from KMC database");
-        boss = builder.build(edgemer_stream, memory_bytes);
+        boss = builder.build(edgemer_stream, memory_bytes, n_threads);
 
         // Delete the KMC database files. The temp file manager can not do this because
         // KMC appends suffixes to the filename and the manager does not know about that.
@@ -269,20 +269,6 @@ public:
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_pre");
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_suf");
 
-    }
-
-    vector<LL> read_colorfile(string filename){
-        vector<LL> seq_to_color;
-        throwing_ifstream colors_in(filename);
-        string line;
-        while(colors_in.getline(line)){
-            try{
-                seq_to_color.push_back(stoll(line));
-            } catch(...){
-                throw std::runtime_error("Error parsing color file: could not parse integer: " + line);
-            }
-        }
-        return seq_to_color;
     }
 
     // Assumes boss has been built

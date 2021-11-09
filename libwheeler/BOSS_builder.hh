@@ -166,6 +166,7 @@ string sorted_filename;
 ofstream unsorted;
 ifstream sorted;
 LL mem_budget_bytes = 1e9;
+LL n_threads;
 
 pair<Kmer<KMER_MAX_LENGTH>, payload_t> top;
 
@@ -182,7 +183,7 @@ void update_top(){
 
 public:
 
-    Kmer_sorter_disk(){
+    Kmer_sorter_disk(LL n_threads) : n_threads(n_threads) {
         unsorted_filename = temp_file_manager.get_temp_file_name("kmers");
         sorted_filename = temp_file_manager.get_temp_file_name("kmers_sorted");
         unsorted.open(unsorted_filename, ios_base::binary);
@@ -209,7 +210,7 @@ public:
             B.load(y); // x is the concatenation of the serialization of a Kmer and an edgeset
             return A < B; // Colexicographic compare
         };
-        EM_sort_constant_binary(unsorted_filename, sorted_filename, cmp, mem_budget_bytes, 32, Kmer<KMER_MAX_LENGTH>::size_in_bytes() + payload_t::size_in_bytes(), 1);
+        EM_sort_constant_binary(unsorted_filename, sorted_filename, cmp, mem_budget_bytes, 32, Kmer<KMER_MAX_LENGTH>::size_in_bytes() + payload_t::size_in_bytes(), n_threads);
         is_sorted = true;
         sorted.open(sorted_filename, ios_base::binary);
         update_top();
@@ -465,10 +466,10 @@ private:
 
 public:
 
-    boss_t build(edgemer_stream& input, LL mem_bytes){
+    boss_t build(edgemer_stream& input, LL mem_bytes, LL n_threads){
         if(input.done()) return boss_t(); 
 
-        Kmer_sorter_disk<Edgeset> sorter1;
+        Kmer_sorter_disk<Edgeset> sorter1(n_threads);
         sorter1.set_mem_budget(mem_bytes);
         LL k = 0;
         LL n_records_written = 0;
@@ -491,7 +492,7 @@ public:
         sorter1.sort();
 
         // Dummies
-        Kmer_sorter_disk<Edgeset> sorter2;
+        Kmer_sorter_disk<Edgeset> sorter2(n_threads);
         sorter2.set_mem_budget(mem_bytes);
         LL n_dummies_disk = add_dummies(sorter1, sorter2);
         sorter2.sort();

@@ -158,7 +158,7 @@ public:
         cout << "KMC DONE" << endl;
         Kmer_stream_from_KMC_DB kmer_stream(KMC_db, reverse_complements);
         BOSS_builder<boss_t, Kmer_stream_from_KMC_DB> bb;
-        boss_t boss_KMC = bb.build(kmer_stream, 1e9);
+        boss_t boss_KMC = bb.build(kmer_stream, 1e9, 2);
 
         cout << "maps" << endl << boss_maps.to_string() << endl;
         cout << "kmc" << endl << boss_KMC.to_string() << endl;

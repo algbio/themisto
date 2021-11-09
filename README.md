@@ -1,7 +1,7 @@
 # About Themisto
 Themisto is a compact colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true).
 
-Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built wihtout colors.
+Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built wihtout colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
 
 The de Bruijn graph is defined so that the nodes represent k-mers and edges (k+1)-mers. There is an edge from u to v if there is a (k+1)-mer in the data that is suffixed by u and prefixed by v. The set of nodes is the set of endpoints of all edges. Note that this implies that orphan k-mers (those that are not connected to any edge) are not in the graph.
 
