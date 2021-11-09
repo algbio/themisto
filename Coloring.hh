@@ -98,7 +98,9 @@ public:
         virtual void callback(const char* S, LL S_size, int64_t seq_id){
             LL color = (*seq_id_to_color_id)[seq_id];
             write_log("Adding colors for sequence " + std::to_string(seq_id));
-            if(S_size >= boss->get_k()){
+            if(S_size >= boss->get_k() + 1){
+                // We have a +1 in the if condition because the graph is edge centric (= defined by (k+1)-mers),
+                // so sequences of size exactly k should not produce colors.
                 LL node = boss->find_kmer(S);
                 assert(node >= 0);
                 write(node, color);
