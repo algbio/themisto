@@ -276,7 +276,11 @@ public:
         throwing_ifstream colors_in(filename);
         string line;
         while(colors_in.getline(line)){
-            seq_to_color.push_back(stoll(line));
+            try{
+                seq_to_color.push_back(stoll(line));
+            } catch(...){
+                throw std::runtime_error("Error parsing color file: could not parse integer: " + line);
+            }
         }
         return seq_to_color;
     }
