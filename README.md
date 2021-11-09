@@ -1,6 +1,10 @@
 # About Themisto
 Themisto is a compact colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true).
 
+The de Bruijn graph is defined so that the nodes represent k-mers and edges (k+1)-mers. There is an edge from u to v if there is a (k+1)-mer in the data that is suffixed by u and prefixed by v. The set of nodes is the set of endpoints of all edges. Note that this implies that orphan k-mers (those that are not connected to any edge) are not in the graph.
+
+We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. Since KMC3 only works with the DNA alphabet ACGT, we must preprocess the data so that it does not have any characters outside of the alphabet ACGT. The default behavior is the replace those characters with random nucleotides. If instead you would like to *delete* all k-mers that are not from the alphabet ACGT, pass in the option `--delete-non-ACGT`. This effectively removes all nodes and edges that would contain a character outside of the alphabet ACGT. If you would like to deal with non-ACGT characters differently, please preprocess the data yourself.
+
 # Installation
 ## Requirements
 Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
@@ -84,45 +88,53 @@ This program builds an index consisting of compact de Bruijn graph using the BOS
 Usage:
   ./build/bin/build_index [OPTION...]
 
-      --load-boss               If given, loads a precomputed BOSS from the
+      --load-boss               If given, loads a precomputed BOSS from the 
                                 index directory
-  -k, arg                       The k of the k-mers. Required only if
+  -k, --node-length arg         The k of the k-mers. Required only if 
                                 --load-boss is not given
-  -i, --input-file arg          The input sequences in FASTA or FASTQ format.
-                                The format is inferred from the file
-                                extension. Recognized file extensions for fasta are:
-                                .fasta, .fna, .ffn, .faa and .frn . Recognized
-                                extensions for fastq are: .fastq and .fq . If
-                                the file ends with .gz, it is uncompressed
-                                into a temporary directory and the temporary file
-                                is deleted after use.
-  -c, --color-file arg          One color per sequence in the fasta file, one
-                                color name per line. Required only if you
-                                want to build the colors. (default: )
-      --auto-colors             Instead of a color file let the program
-                                automatically give colors integer names (0,1,2...)
-  -o, --index-dir arg           Directory where the index will be built.
-                                Always required, directory must exist before
-                                running.
+  -i, --input-file arg          The input sequences in FASTA or FASTQ 
+                                format. The format is inferred from the 
+                                file extension. Recognized file extensions 
+                                for fasta are: .fasta, .fna, .ffn, .faa and 
+                                .frn . Recognized extensions for fastq are: 
+                                .fastq and .fq . If the file ends with .gz, 
+                                it is uncompressed into a temporary 
+                                directory and the temporary file is deleted 
+                                after use.
+  -c, --color-file arg          One color per sequence in the fasta file, 
+                                one color name per line. Required only if 
+                                you want to build the colors. (default: "")
+      --auto-colors             Instead of a color file let the program 
+                                automatically give colors integer names 
+                                (0,1,2...)
+  -o, --index-dir arg           Directory where the index will be built. 
+                                Always required, directory must exist 
+                                before running.
   -d, --colorset-pointer-tradeoff arg
-                                This option controls a time-space tradeoff
-                                for storing and querying color sets. If given a
-                                value d, we store color set pointers only for
-                                every d nodes on every unitig. The higher the
-                                value of d, the smaller then index, but the
-                                slower the queries. The savings might be
-                                significant if the number of distinct color sets is
-                                small and the graph is large and has long
+                                This option controls a time-space tradeoff 
+                                for storing and querying color sets. If 
+                                given a value d, we store color set 
+                                pointers only for every d nodes on every 
+                                unitig. The higher the value of d, the 
+                                smaller then index, but the slower the 
+                                queries. The savings might be significant 
+                                if the number of distinct color sets is 
+                                small and the graph is large and has long 
                                 unitigs. (default: 1)
-      --temp-dir arg            Temporary directory. Always required,
-                                directory must exist before running.
-  -m, --mem-megas arg           Number of megabytes allowed for external
-                                memory algorithms. Default: 1000 (default: 1000)
-  -t, --n-threads arg           Number of parallel exectuion threads.
+      --temp-dir arg            Directory for temporary files.
+  -m, --mem-megas arg           Number of megabytes allowed for external 
+                                memory algorithms. Default: 1000 (default: 
+                                1000)
+  -t, --n-threads arg           Number of parallel exectuion threads. 
                                 Default: 1 (default: 1)
-      --pp-buf-siz arg          Size of preprocessing buffer (in bytes) for
+      --delete-non-ACGT         Delete k-mers that have a letter outside of 
+                                the DNA alphabet ACGT. If this option is 
+                                not given, the non-ACGT letters are 
+                                replaced with random nucleotides.
+      --pp-buf-siz arg          Size of preprocessing buffer (in bytes) for 
                                 fixing alphabet (default: 4096)
   -h, --help                    Print usage
+
 ```
 
 ## Pseudoalignment
