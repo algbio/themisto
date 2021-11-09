@@ -636,7 +636,27 @@ public:
         }
     }
 
+    void test_kmer_edge_case(){
+        // The coloring should not have a k-mer if it is not inside some (k+1)-mer
+        vector<string> seqs = {"AACA", "ATAACAGACT"};
+        vector<LL> colors = {0,1};
+        LL k = 4;
+        string fastafile = temp_file_manager.get_temp_file_name("");
+        write_as_fasta(seqs, fastafile);
+        BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(seqs, k, false);
+        Coloring coloring;
+        coloring.add_colors(boss, fastafile, colors, 1e6, 1, 1);
+        
+        LL node_id = boss.find_kmer("AACA");
+        vector<LL> correct_colorset = {1}; // no color 0 because it does not have a (4+1)-mer
+        set<LL> colorset_set = coloring.get_colorset(node_id, boss);
+        vector<LL> colorset_vec(colorset_set.begin(), colorset_set.end());
+        cout << "== Colorset edge case test == " << endl << correct_colorset << endl << colorset_vec << endl << "==" << endl;
+        assert(correct_colorset == colorset_vec);
+    }
+
     void test(){
+        test_kmer_edge_case();
         for(TestCase tcase : generate_testcases()){
             run_testcase(tcase);
         }

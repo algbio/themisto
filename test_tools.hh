@@ -110,6 +110,11 @@ vector<string> get_sorted_suffixes(string S){
     return suffixes;
 }
 
+void write_as_fasta(vector<string>& seqs, string fasta_filename){
+    throwing_ofstream out(fasta_filename);
+    for(string& S : seqs) out << ">\n" << S << "\n";
+}
+
 template <typename S, typename T>
 ostream& operator<<(ostream& os, const unordered_map<S,T>& v){
     os << "[";
