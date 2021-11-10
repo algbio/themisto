@@ -70,7 +70,7 @@ int main(int argc, char** argv){
     write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
     write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH));
     if(KMER_MAX_LENGTH != 255 + 1){
-        write_log("Error: tests must be compiled with -DKMER_MAX_LENGTH=255 to cmake"); // 255 is kmer length, 255+1 is edgemer length
+        write_log("Error: tests must be compiled with -DMAX_KMER_LENGTH=255 to cmake"); // 255 is kmer length, 255+1 is edgemer length
         return 1;
     }
     (void)argc; (void)argv; // not used
