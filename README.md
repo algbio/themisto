@@ -66,11 +66,13 @@ ulimit -n 2048
 
 ### Quick start
 
-There is an example dataset at example_output. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp`as temporary storage, using four threads and up to 4GB of memory, deleting non-ACGT-characters, run the following:
+There is an example dataset at example_output. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp`as temporary storage, using four threads and up to 1GB of memory, deleting non-ACGT-characters, run the following:
 
 ```
-./build/bin/build_index --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 4000 -t 4 --delete-non-ACGT
+./build/bin/build_index --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 -t 4 --delete-non-ACGT
 ```
+
+This might take a few minutes on a reasonable desktop workstation.
 
 ### Full instructions for `build_index`
 
