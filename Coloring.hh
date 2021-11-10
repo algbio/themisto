@@ -96,6 +96,9 @@ public:
         }
 
         virtual void callback(const char* S, LL S_size, int64_t seq_id){
+            if(seq_id >= seq_id_to_color_id->size()){
+                throw std::runtime_error("Error: less colors than input sequences");
+            }
             LL color = (*seq_id_to_color_id)[seq_id];
             write_log("Adding colors for sequence " + std::to_string(seq_id));
             if(S_size >= boss->get_k() + 1){
