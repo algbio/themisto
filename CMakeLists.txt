@@ -11,7 +11,7 @@ if(MAX_KMER_LENGTH GREATER 255)
   message(FATAL_ERROR "Error: MAX_KMER_LENGTH can be at most 255")
 endif()
 MATH(EXPR K_PLUS_1_MER_LENGTH "${MAX_KMER_LENGTH}+1") # +1 because the construction requires (k+1)-mers
-add_definitions(-DKMER_MAX_LENGTH=${K_PLUS_1_MER_LENGTH})
+add_definitions(-DKMER_MAX_LENGTH=${K_PLUS_1_MER_LENGTH}) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
 message(STATUS "Maximum k-mer length is: " ${MAX_KMER_LENGTH})
 message(STATUS "To change the maximum k-mer length, use the option -DMAX_KMER_LENGTH=n")
 message(STATUS "(n can be up to 255)")

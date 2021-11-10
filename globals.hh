@@ -309,16 +309,38 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
     return output_file;
 }
 
+// We need this function because the standard library stoll function accepts all kinds of crap,
+// such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid
+// number and returns that number, or throws an error otherwise.
+LL string_to_integer_safe(const string& S){
+
+    // Figure out leading and trailing whitespace
+    LL pos_of_first_digit = 1e18;
+    LL pos_of_last_digit = -1;
+    for(LL i = 0; i < (LL)S.size(); i++){
+        if(!std::isdigit(S[i]) && !std::isspace(S[i]))
+            throw std::runtime_error("Error parsing color file: could not parse integer: " + S);
+        if(std::isdigit(S[i])){
+            pos_of_first_digit = min(pos_of_first_digit, i);
+            pos_of_last_digit = max(pos_of_last_digit, i);
+        }
+    }
+    if(pos_of_last_digit == -1) throw std::runtime_error("Error parsing color file: could not parse integer: " + S); // No digits found
+
+    // Check that there are no internal spaces
+    for(LL i = pos_of_first_digit; i <= pos_of_last_digit; i++)
+        if(!std::isdigit(S[i])) throw std::runtime_error("Error parsing color file: could not parse integer: " + S); // Internat whitespace
+
+    // Checks ok, convert to integer
+    return stoll(S);
+}
+
 vector<LL> read_colorfile(string filename){
     vector<LL> seq_to_color;
     throwing_ifstream colors_in(filename);
     string line;
     while(colors_in.getline(line)){
-        try{
-            seq_to_color.push_back(stoll(line));
-        } catch(...){
-            throw std::runtime_error("Error parsing color file: could not parse integer: " + line);
-        }
+        seq_to_color.push_back(string_to_integer_safe(line));
     }
     return seq_to_color;
 }

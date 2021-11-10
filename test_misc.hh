@@ -12,7 +12,7 @@
 #include "globals.hh"
 #include <cassert>
 
-bool misc_tests(){
+bool misc_test_delete_non_ACGT(){
 
     string fasta_data = ">\nNNAGTATTGNNCTGTAGXGTCAGTGCTACGTACTNN\n>\nAGTTCTNNTAGTGCNNTNXNAGCCA\n";
     //                      ^^       ^^      ^                ^^           ^^      ^^ ^^^
@@ -53,6 +53,42 @@ bool misc_tests(){
     assert(correct_out_seqs == out_seqs);
     assert(correct_out_colors == out_colors);
 
-    return true;
+    cerr << "Delete non-ACGT test passed" << endl;
 
+    return true;
+}
+
+bool misc_test_string_to_integer_safe(){
+    try{
+        string_to_integer_safe("1 2 3");
+        assert(false); // Should have thrown an exception
+    } catch(...){}
+    try{
+        string_to_integer_safe("  12 33 ");
+        assert(false); // Should have thrown an exception
+    } catch(...){}
+    try{
+        string_to_integer_safe("  12X33 ");
+        assert(false); // Should have thrown an exception
+    } catch(...){}
+    try{
+        string_to_integer_safe("  123XX ");
+        assert(false); // Should have thrown an exception
+    } catch(...){}
+    try{
+        string_to_integer_safe("   ");
+        assert(false); // Should have thrown an exception
+    } catch(...){}
+
+    assert(string_to_integer_safe("  \n\t  \r 1234567890\n  \r\n") == 1234567890);
+
+    cerr << "string_to_integer_safe test passed" << endl;
+    return true;
+}
+
+bool misc_tests(){
+    bool success = true;
+    success &= misc_test_delete_non_ACGT();
+    success &= misc_test_string_to_integer_safe();
+    return success;
 }
