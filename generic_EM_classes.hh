@@ -55,8 +55,9 @@ class Block_Consumer : public Generic_Block_Consumer{ // Works for any type of b
 public:
 
     vector<string> filenames;
+    LL thread_id;
 
-    Block_Consumer(){}
+    Block_Consumer(LL thread_id) : thread_id(thread_id) {}
 
     virtual void run(ParallelBoundedQueue<Generic_Block*>& Q, const std::function<bool(const char* x, const char* y)>& cmp){
         while(true){
@@ -65,9 +66,9 @@ public:
                 Q.push(nullptr, 0);
                 break; // No more work available
             }
-            write_log("Starting to sort a block");
+            write_log("Thread " + to_string(thread_id) + ": Starting to sort a block.");
             block->sort(cmp);
-            write_log("Block sorted");
+            write_log("Thread " + to_string(thread_id) + ": Finished sorting a block.");
             filenames.push_back(temp_file_manager.get_temp_file_name(""));
             block->write_to_file(filenames.back());
             delete block; // Initially allocated by a producer

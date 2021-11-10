@@ -204,10 +204,10 @@ public:
 
     void sort(){
         unsorted.close();
-        Kmer<KMER_MAX_LENGTH> A, B;
-        auto cmp = [&A, &B](const char* x, const char* y){
+        auto cmp = [](const char* x, const char* y){
+            Kmer<KMER_MAX_LENGTH> A, B;
             A.load(x); // x is the concatenation of the serialization of a Kmer and an edgeset
-            B.load(y); // x is the concatenation of the serialization of a Kmer and an edgeset
+            B.load(y); // y is the concatenation of the serialization of a Kmer and an edgeset
             return A < B; // Colexicographic compare
         };
         EM_sort_constant_binary(unsorted_filename, sorted_filename, cmp, mem_budget_bytes, 32, Kmer<KMER_MAX_LENGTH>::size_in_bytes() + payload_t::size_in_bytes(), n_threads);

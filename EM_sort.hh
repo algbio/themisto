@@ -226,7 +226,7 @@ void EM_sort_constant_binary(string infile, string outfile, const std::function<
     Generic_Block_Producer* producer = new Constant_Block_Producer(infile, record_size);
     vector<Generic_Block_Consumer*> consumers;
     for(LL i = 0; i < n_threads; i++)
-        consumers.push_back(new Block_Consumer());
+        consumers.push_back(new Block_Consumer(i));
     Generic_Record_Reader* reader = new Constant_Record_Reader(record_size);
     Generic_Record_Writer* writer = new Constant_Record_Writer(record_size);
 
@@ -256,7 +256,7 @@ void EM_sort(string infile, string outfile, const std::function<bool(const char*
     vector<Generic_Block_Consumer*> consumers;
 
     for(LL i = 0; i < n_threads; i++)
-        consumers.push_back(new Block_Consumer());
+        consumers.push_back(new Block_Consumer(i));
     
     Generic_Record_Reader* reader;
     if(mode == EM_LINES)
