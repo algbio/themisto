@@ -64,22 +64,12 @@ ulimit -n 2048
 # Usage
 ## Indexing
 
-### Examples
+### Quick start
 
-Build BOSS and colors:
+There is an example dataset at example_output. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp`as temporary storage, using four threads and up to 4GB of memory, deleting non-ACGT-characters, run the following:
 
 ```
-./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp
-```
-
-Build only the BOSS
-```
-./build/bin/build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp
-```
-
-Load a previously built BOSS from the index directory and compute the colors:
-```
-./build/bin/build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss
+./build/bin/build_index --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 4000 -t 4 --delete-non-ACGT
 ```
 
 ### Full instructions for `build_index`
@@ -162,9 +152,7 @@ Pseudoalign reads.fna against an index using also reverse complements:
 
 This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
 
-If the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.
-
- The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
+The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
 
 The query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq
 
