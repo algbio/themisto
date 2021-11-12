@@ -2,9 +2,10 @@
 
 #include "Kmer.hh"
 #include "BOSS.hh"
-#include "../EM_sort.hh"
+#include "EM_sort.hh"
 #include "stdafx.h"
 #include "kmc_file.h"
+#include "test_tools.hh"
 #include <unordered_map>
 #include <stdexcept>
 
@@ -616,7 +617,7 @@ BOSS<bitvector_t> build_BOSS_with_maps(vector<string> reads, LL k, bool include_
     // Make sure the root node exists
     if(M.find("") == M.end()) M[""] = Edge_Info();
 
-    cerr << "map build added " << M.size() - M_copy.size() << " dummies (k = " << k << ")" << endl;
+    write_log("map build added " + to_string(M.size() - M_copy.size()) + " dummies (k = " + to_string(k) + ")");
 
 
     // Build the boss data structures    

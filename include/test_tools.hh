@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <map>
 #include "globals.hh"
+#include "stdlib_printing.hh"
 #include <cassert>
 
 using namespace std;
@@ -113,65 +114,4 @@ vector<string> get_sorted_suffixes(string S){
 void write_as_fasta(vector<string>& seqs, string fasta_filename){
     throwing_ofstream out(fasta_filename);
     for(string& S : seqs) out << ">\n" << S << "\n";
-}
-
-template <typename S, typename T>
-ostream& operator<<(ostream& os, const unordered_map<S,T>& v){
-    os << "[";
-    for(auto it = v.begin(); it != v.end(); it++) {
-        if(it != v.begin()) os << ", ";
-        os << it->first << ": " << it->second;
-    }
-    os << "]";
-    return os;
-}
-
-template <typename S, typename T>
-ostream& operator<<(ostream& os, const map<S,T>& v){
-    os << "{";
-    for(auto it = v.begin(); it != v.end(); it++) {
-        if(it != v.begin()) os << ", ";
-        os << it->first << ": " << it->second;
-    }
-    os << "}";
-    return os;
-}
-
-template <typename T>
-ostream& operator<<(ostream& os, const vector<T>& v){
-    os << "[";
-    for(auto it = v.begin(); it != v.end(); it++) {
-        if(it != v.begin()) os << ", ";
-        os << *it;
-    }
-    os << "]";
-    return os;
-}
-
-template <typename T>
-ostream& operator<<(ostream& os, const set<T>& v){
-    os << "[";
-    for(auto it = v.begin(); it != v.end(); it++) {
-        if(it != v.begin()) os << ", ";
-        os << *it;
-    }
-    os << "]";
-    return os;
-}
-
-template <typename T>
-ostream& operator<<(ostream& os, const multiset<T>& v){
-    os << "[";
-    for(auto it = v.begin(); it != v.end(); it++) {
-        if(it != v.begin()) os << ", ";
-        os << *it;
-    }
-    os << "]";
-    return os;
-}
-
-template <typename S, typename T>
-ostream& operator<<(ostream& os, const pair<S,T>& x){
-    os << "(" << x.first << ", " << x.second << ")";
-    return os;
 }

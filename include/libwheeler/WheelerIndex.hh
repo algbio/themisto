@@ -9,6 +9,7 @@
 #include "sdsl/wavelet_trees.hpp"
 #include "IO.hh"
 #include <type_traits>
+#include "globals.hh"
 
 namespace wgi{
 

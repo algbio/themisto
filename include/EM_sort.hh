@@ -172,7 +172,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
         threads.push_back(std::thread([i, &Q, &block_files, &cmp, &consumers](){
             write_log("Starting thread " + to_string(i));
             consumers[i]->run(Q,cmp);
-            write_log("Thread " + to_string(i) + " done");
+            write_log("Thread " + to_string(i) + ": done");
         }));
     }
 

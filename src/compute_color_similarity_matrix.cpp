@@ -87,7 +87,6 @@ int main2(int argc, char** argv){
     unordered_map<pair<LL, LL>, LL, hash_pair> pair_counts;
     vector<LL> color_counts(themisto.coloring.n_colors);
 
-    BOSS<sdsl::bit_vector>& boss = themisto.boss;
     Progress_printer pp(themisto.boss.number_of_nodes(), 100);
     for(LL v = 0; v < themisto.boss.number_of_nodes(); v++){
         set<LL> colorset = themisto.coloring.get_colorset(v, themisto.boss);

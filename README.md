@@ -72,7 +72,7 @@ There is an example dataset at example_output. To build the index with order k =
 ./build/bin/build_index --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 -t 4 --delete-non-ACGT
 ```
 
-This might take a few minutes on a reasonable desktop workstation.
+We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input.
 
 ### Full instructions for `build_index`
 
@@ -182,10 +182,44 @@ Usage:
   -h, --help                 Print usage
 ```
 
+## Extracting unitigs with `extract_unitigs`
+
+This program dumps the unitigs and optionally their colors out of an existing Themisto index.
+
+```
+  ./build/bin/extract_unitigs [OPTION...]
+
+  -i, --index-dir arg    Location of the Themisto index.
+      --unitigs-out arg  Output filename for the unitigs (outputted in 
+                         FASTA format). (default: "")
+      --colors-out arg   Output filename for the unitig colors. If this 
+                         option is not given, the colors are not computed. 
+                         Note that giving this option affects the unitigs 
+                         written to unitigs-out: if a unitig has nodes with 
+                         different color sets, the unitig is split into 
+                         maximal segments of nodes that have equal color 
+                         sets. The file format of the color file is as 
+                         follows: there is one line for each unitig. The 
+                         lines contain space-separated strings. The first 
+                         string on a line is the FASTA header of a unitig, 
+                         and the following strings on the line are the 
+                         integer color labels of the colors of that unitig. 
+                         The unitigs appear in the same order as in the 
+                         FASTA file. (default: "")
+  -h, --help             Print usage
+
+
+```
+
 # For developers: building the tests
 
 ```
+cd googletest
+mkdir build
 cd build
+cmake ..
+make
+cd ../../build
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DMAX_KMER_LENGTH=255
 make
 ```

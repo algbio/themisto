@@ -206,7 +206,7 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
     if (mode == FASTA_MODE) {
         bool in_header = false;
         
-        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+        while ((sz = std::fread(ibuf, 1, bufsiz, ip))) {
             for (std::size_t i = 0; i < sz; ++i) {
                 
                 if (ibuf[i] == '>' || in_header) {
@@ -243,7 +243,7 @@ std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz
         enum FASTQ_line { seqname, seq, plus, qual };
         FASTQ_line fl = seqname;
 
-        while (sz = std::fread(ibuf, 1, bufsiz, ip)) {
+        while ((sz = std::fread(ibuf, 1, bufsiz, ip))) {
             
             for (std::size_t i = 0; i < sz; ++i) {
 
@@ -599,6 +599,21 @@ void check_true(bool condition, string error_message){
     if(!condition){
         throw std::runtime_error(error_message);
     }
+}
+
+// Returns filename of a new color file that has one color for each sequence
+// Input format is either "fasta" or "fastq"
+string generate_default_colorfile(string inputfile, string file_format){
+    string colorfile = temp_file_manager.get_temp_file_name("");
+    throwing_ofstream out(colorfile);
+    Sequence_Reader fr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    LL seq_id = 0;
+    while(!fr.done()){
+        fr.get_next_query_stream().get_all();
+        out << seq_id << "\n";
+        seq_id++;
+    }
+    return colorfile;
 }
 
 class Progress_printer{

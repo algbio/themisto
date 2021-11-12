@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../globals.hh"
+#include "../tests/setup_tests.hh"
+#include <gtest/gtest.h>
 #include "Kmer.hh"
 
 char get_random_DNA_char(){
@@ -19,20 +21,20 @@ string debug_test_get_random_DNA_string(LL len){
     return S;
 }
 
-void Kmer_basic_tests(){
+TEST(KMER, basic){
     for(LL len = 1; len <= 255; len++){
         string S = debug_test_get_random_DNA_string(len);
         Kmer<255> kmer(S);
 
         // Check that the constructor worked right
-        assert(kmer.get_k() == S.size());
+        ASSERT_TRUE(kmer.get_k() == S.size());
         for(LL i = 0; i < len; i++){
-            assert(kmer.get(i) == S[i]);
+            ASSERT_TRUE(kmer.get(i) == S[i]);
         }
 
         // Test copy
         Kmer<255> kmer_copy = kmer.copy();
-        assert(kmer_copy == kmer);
+        ASSERT_TRUE(kmer_copy == kmer);
 
         // Edit characters randomly
         for(LL i = 0; i < 1000; i++){
@@ -40,57 +42,56 @@ void Kmer_basic_tests(){
             char c = get_random_DNA_char();
             kmer.set(idx, c);
             S[idx] = c;
-            assert(kmer.get(idx) == S[idx]);
+            ASSERT_TRUE(kmer.get(idx) == S[idx]);
         }
 
         // Check that the edits worked out right
         for(LL i = 0; i < len; i++){
-            assert(kmer.get(i) == S[i]);
+            ASSERT_TRUE(kmer.get(i) == S[i]);
         }
 
         // Test drop left
         Kmer<255> left = kmer.copy().dropleft();
-        assert(left.get_k() == len-1);
+        ASSERT_TRUE(left.get_k() == len-1);
         for(LL i = 0; i < len-1; i++){
-            assert(left.get(i) == S[i+1]);
+            ASSERT_TRUE(left.get(i) == S[i+1]);
         }
 
         // Test append left
         Kmer<255> left_append = left.copy().appendleft(kmer.first());
-        assert(left_append.get_k() == len);
-        assert(left_append == kmer);
+        ASSERT_TRUE(left_append.get_k() == len);
+        ASSERT_TRUE(left_append == kmer);
 
         // Test drop right
         Kmer<255> right = kmer.copy().dropright();
-        assert(right.get_k() == len-1);
+        ASSERT_TRUE(right.get_k() == len-1);
         for(LL i = 0; i < len-1; i++){
-            assert(right.get(i) == S[i]);
+            ASSERT_TRUE(right.get(i) == S[i]);
         }
 
         // Test append right
         Kmer<255> right_append = right.copy().appendright(kmer.last());
-        assert(right_append.get_k() == len);
-        assert(right_append == kmer);
+        ASSERT_TRUE(right_append.get_k() == len);
+        ASSERT_TRUE(right_append == kmer);
     }
-    cerr << "Kmer copy, access, modify, dropleft, appendleft, dropright and appendright tests passed" << endl;
 }
 
-void serialization_test(){
+TEST(KMER, serialization){
     string S = debug_test_get_random_DNA_string(255);
     Kmer<255> kmer(S);
-    ofstream out("serialization_test.bin", ios_base::binary);
+    string filename = temp_file_manager.get_temp_file_name("kmer-serialization");
+    ofstream out(filename, ios_base::binary);
     kmer.serialize(out);
     out.flush();
-    ifstream in("serialization_test.bin", ios_base::binary);
+    ifstream in(filename, ios_base::binary);
     Kmer<255> loaded;
     loaded.load(in);
-    assert(kmer == loaded);
-    assert(kmer.to_string() == S);
-    assert(kmer.get_k() == S.size());
-    cerr << "Kmer serialization test passed" << endl;
+    ASSERT_TRUE(kmer == loaded);
+    ASSERT_TRUE(kmer.to_string() == S);
+    ASSERT_TRUE(kmer.get_k() == S.size());
 }
 
-void Kmer_colex_tests(){
+TEST(KMER, colex){
     vector<string> strings;
     vector<Kmer<255>> kmers;
 
@@ -124,19 +125,11 @@ void Kmer_colex_tests(){
     for(int i = 0; i < strings.size(); i++){
         for(int j = 0; j < strings.size(); j++){
             if(strings[i] == strings[j]){
-                assert(kmers[i] == kmers[j]);
-                assert((kmers[i] < kmers[j]) == false);
+                ASSERT_TRUE(kmers[i] == kmers[j]);
+                ASSERT_TRUE((kmers[i] < kmers[j]) == false);
             } else{
-                assert(colex_compare(strings[i], strings[j]) == (kmers[i] < kmers[j]));
+                ASSERT_TRUE(colex_compare(strings[i], strings[j]) == (kmers[i] < kmers[j]));
             }
         }
     }
-
-    cerr << "Kmer colex comparison test passed" << endl;
-}
-
-void kmer_tests(){
-    Kmer_basic_tests();
-    Kmer_colex_tests();
-    serialization_test();
 }

@@ -9,10 +9,15 @@
 #include <set>
 #include <unordered_map>
 #include <map>
-#include "globals.hh"
+#include <gtest/gtest.h>
+#include "../stdlib_printing.hh"
+#include "../globals.hh"
+#include "setup_tests.hh"
 #include <cassert>
 
-bool misc_test_delete_non_ACGT(){
+TEST(MISC_TEST, delete_non_ACGT){
+
+    temp_file_manager.set_dir("temp");
 
     string fasta_data = ">\nNNAGTATTGNNCTGTAGXGTCAGTGCTACGTACTNN\n>\nAGTTCTNNTAGTGCNNTNXNAGCCA\n";
     //                      ^^       ^^      ^                ^^           ^^      ^^ ^^^
@@ -49,46 +54,35 @@ bool misc_test_delete_non_ACGT(){
     Sequence_Reader sr(fasta2, FASTA_MODE);
     while(!sr.done()) out_seqs.push_back(sr.get_next_query_stream().get_all());
 
-    cerr << correct_out_seqs << endl << out_seqs << endl << correct_out_colors << endl << out_colors << endl;
-    assert(correct_out_seqs == out_seqs);
-    assert(correct_out_colors == out_colors);
+    //log << correct_out_seqs << endl << out_seqs << endl << correct_out_colors << endl << out_colors << endl;
+    logger << "test" << 2 << out_seqs << std::endl<char, std::char_traits<char>>;
+    ASSERT_EQ(correct_out_seqs, out_seqs);
+    ASSERT_EQ(correct_out_colors, out_colors);
 
-    cerr << "Delete non-ACGT test passed" << endl;
-
-    return true;
 }
 
-bool misc_test_string_to_integer_safe(){
+TEST(MISC_TEST, string_to_integer_safe){
     try{
         string_to_integer_safe("1 2 3");
-        assert(false); // Should have thrown an exception
+        FAIL(); // Should have thrown an exception
     } catch(...){}
     try{
         string_to_integer_safe("  12 33 ");
-        assert(false); // Should have thrown an exception
+        FAIL(); // Should have thrown an exception
     } catch(...){}
     try{
         string_to_integer_safe("  12X33 ");
-        assert(false); // Should have thrown an exception
+        FAIL(); // Should have thrown an exception
     } catch(...){}
     try{
         string_to_integer_safe("  123XX ");
-        assert(false); // Should have thrown an exception
+        FAIL(); // Should have thrown an exception
     } catch(...){}
     try{
         string_to_integer_safe("   ");
-        assert(false); // Should have thrown an exception
+        FAIL(); // Should have thrown an exception
     } catch(...){}
 
-    assert(string_to_integer_safe("  \n\t  \r 1234567890\n  \r\n") == 1234567890);
+    ASSERT_EQ(string_to_integer_safe("  \n\t  \r 1234567890\n  \r\n"), 1234567890);
 
-    cerr << "string_to_integer_safe test passed" << endl;
-    return true;
-}
-
-bool misc_tests(){
-    bool success = true;
-    success &= misc_test_delete_non_ACGT();
-    success &= misc_test_string_to_integer_safe();
-    return success;
 }

@@ -11,12 +11,11 @@
 #include <cstring>
 #include <cstdio>
 #include <cassert>
-#include "globals.hh"
-#include "EM_sort.hh"
-#include "test_tools.hh"
-
-namespace EM_sort_tests{
-
+#include <gtest/gtest.h>
+#include "../globals.hh"
+#include "../EM_sort.hh"
+#include "../test_tools.hh"
+#include "setup_tests.hh"
 
 // Returns filename
 string generate_line_based_testcase(LL n_lines, LL line_length){
@@ -48,26 +47,13 @@ void test_line_sort(string infile, const std::function<bool(const char*, const c
     string fileB = temp_file_manager.get_temp_file_name("");
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
-    cerr << "Sorting lines with " << ram << " RAM and " << merge_k << "-way merge" << endl;
+    logger << "Sorting lines with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort(infile, fileB, cmp, ram, merge_k, 3, EM_LINES);
-    assert(files_are_equal(fileA, fileB));
+    ASSERT_TRUE(files_are_equal(fileA, fileB));
 
     temp_file_manager.delete_file(fileA);
     temp_file_manager.delete_file(fileB);
     
-}
-
-void run_line_sort_testcases(){
-
-    for(LL n_lines = 1; n_lines <= 1e6; n_lines *= 2){
-        for(LL line_length = 1; line_length <= 1e6 && n_lines*line_length <= 1e6; line_length *= 2){
-            cerr << n_lines << " " << line_length << endl;
-            string infile = generate_line_based_testcase(n_lines, line_length);
-            test_line_sort(infile, lex_compare_cstrings);
-            test_line_sort(infile, colex_compare_cstrings);
-        }
-    }
-
 }
 
 string generate_variable_binary_testcase(LL max_record_len_bytes, LL n_records){
@@ -121,7 +107,7 @@ string binary_sort_stdlib(string infile, const std::function<bool(const char*, c
     // Verify that the sort worked
     for(LL i = 1; i < block->starts.size(); i++){
         // record i must not be strictly less than record i-1
-        assert(!cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
+        EXPECT_FALSE(cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
     }
 
     string outfile = temp_file_manager.get_temp_file_name("");
@@ -147,7 +133,7 @@ string constant_binary_sort_stdlib(string infile, LL rec_len, const std::functio
     // Verify that the sort worked
     for(LL i = 1; i < block->starts.size(); i++){
         // record i must not be strictly less than record i-1
-        assert(!cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
+        EXPECT_FALSE(cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
     }
 
     string outfile = temp_file_manager.get_temp_file_name("");
@@ -165,9 +151,9 @@ void test_variable_binary_sort(string infile, const std::function<bool(const cha
     string fileB = temp_file_manager.get_temp_file_name("");
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
-    cerr << "Sorting variable binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
+    logger << "Sorting variable binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort(infile, fileB, cmp, ram, merge_k, 3, EM_VARIABLE_BINARY);
-    assert(files_are_equal(fileA, fileB));
+    ASSERT_TRUE(files_are_equal(fileA, fileB));
 
     temp_file_manager.delete_file(fileA);
     temp_file_manager.delete_file(fileB);
@@ -180,31 +166,31 @@ void test_constant_binary_sort(string infile, LL record_len, const std::function
     string fileB = temp_file_manager.get_temp_file_name("");
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
-    cerr << "Sorting constant-binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
+    logger << "Sorting constant-binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort_constant_binary(infile, fileB, cmp, ram, merge_k, record_len, 3);
-    assert(files_are_equal(fileA, fileB));
+    ASSERT_TRUE(files_are_equal(fileA, fileB));
 
     temp_file_manager.delete_file(fileA);
     temp_file_manager.delete_file(fileB);
     
 }
 
-void run_variable_binary_sort_testcases(){
+TEST(TEST_EM_SORT, variable_binary_sort){
     for(LL max_record_len_bytes = 8; max_record_len_bytes <= 1e6; max_record_len_bytes *= 2){
         // Max record length must be at least 8 because of the long long at the start that tells the length
         for(LL n_records = 1; n_records <= 1e6 && max_record_len_bytes*n_records <= 1e6; n_records *= 2){
-            cerr << max_record_len_bytes << " " << n_records << endl;
+            logger << max_record_len_bytes << " " << n_records << endl;
             string infile = generate_variable_binary_testcase(max_record_len_bytes, n_records);
             test_variable_binary_sort(infile, memcmp_variable_binary_records);
         }
     }
 }
 
-void run_constant_binary_sort_testcases(){
+TEST(TEST_EM_SORT, constant_binary_sort){
     
     for(LL record_len = 1; record_len <= 1e6; record_len *= 2){
         for(LL n_records = 1; n_records <= 1e6 && record_len*n_records <= 1e6; n_records *= 2){
-            cerr << record_len << " " << n_records << endl;
+            logger << record_len << " " << n_records << endl;
 
             auto cmp = [&](const char* x, const char* y){
                 return memcmp(x,y,record_len) < 0;
@@ -216,12 +202,14 @@ void run_constant_binary_sort_testcases(){
     }
 }
 
-}
+TEST(TEST_EM_SORT, line_sort){
+    for(LL n_lines = 1; n_lines <= 1e6; n_lines *= 2){
+        for(LL line_length = 1; line_length <= 1e6 && n_lines*line_length <= 1e6; line_length *= 2){
+            logger << n_lines << " " << line_length << endl;
+            string infile = generate_line_based_testcase(n_lines, line_length);
+            test_line_sort(infile, lex_compare_cstrings);
+            test_line_sort(infile, colex_compare_cstrings);
+        }
+    }
 
-void test_EM_sort(){
-    srand(247829347);
-    EM_sort_tests::run_line_sort_testcases();
-    EM_sort_tests::run_constant_binary_sort_testcases();
-    EM_sort_tests::run_variable_binary_sort_testcases();
-    
 }

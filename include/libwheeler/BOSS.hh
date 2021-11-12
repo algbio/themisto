@@ -6,7 +6,7 @@
 #include <stack>
 #include <set>
 #include <algorithm>
-#include "../throwing_streams.hh"
+#include "throwing_streams.hh"
 #include "sdsl/wavelet_trees.hpp"
 #include "WheelerIndex.hh"
 
@@ -246,18 +246,22 @@ public:
         return true;
     }
 
-    LL count_dummies() const{
+    vector<bool> get_dummy_node_marks() const{
         LL count = 0;
         vector<pair<LL,LL>> dfs_stack; // pairs (node, depth)
         dfs_stack.push_back({0, 0});
         // dfs to depth k-1
         // the dummy part is a tree so no visited-list is required
 
+        vector<bool> marks(Base::number_of_nodes());
         LL v,d; // node,depth
         while(!dfs_stack.empty()){
             tie(v,d) = dfs_stack.back();
             dfs_stack.pop_back();
-            if(d < k) count++;
+            if(d < k){
+                count++;
+                marks[v] = 1;
+            }
             if(d < k-1){ // Push children
                 LL out_l, out_r; tie(out_l, out_r) = Base::outedge_range(v);
                 for(LL i = out_l; i <= out_r; i++){
@@ -266,7 +270,7 @@ public:
                 }
             }
         }
-        return count;
+        return marks;
     }
 
     vector<LL> char_counts_to_C_array(const vector<LL>& counts){

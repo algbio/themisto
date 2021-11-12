@@ -10,6 +10,7 @@
 #include <tuple>
 #include <cstring>
 #include <cstdio>
+#include <functional>
 #include "bit_level_stuff.hh"
 
 using namespace std;

@@ -112,22 +112,22 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
                  ${CMAKE_BINARY_DIR}/external/KMC/build)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/libwheeler)
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include)
 
 ## Libraries & executables to build
-add_library(kmc_wrapper KMC_wrapper.cpp)
-add_executable(pseudoalign pseudoalign.cpp)
-add_executable(build_index build_index.cpp)
-add_executable(write_unitigs write_unitigs.cpp)
-add_executable(dump_color_information dump_color_information.cpp)
-add_executable(compute_color_similarity_matrix compute_color_similarity_matrix.cpp)
+add_library(kmc_wrapper src/KMC_wrapper.cpp)
+add_executable(pseudoalign src/pseudoalign.cpp)
+add_executable(build_index src/build_index.cpp)
+add_executable(extract_unitigs src/extract_unitigs.cpp)
+add_executable(dump_color_information src/dump_color_information.cpp)
+add_executable(compute_color_similarity_matrix src/compute_color_similarity_matrix.cpp)
 
 ## Fix compilation order
 add_dependencies(kmc_wrapper kmc)
 add_dependencies(sdsl divsufsort64)
 add_dependencies(pseudoalign kmc_wrapper)
 add_dependencies(build_index kmc_wrapper)
-add_dependencies(write_unitigs kmc_wrapper)
+add_dependencies(extract_unitigs kmc_wrapper)
 add_dependencies(compute_color_similarity_matrix kmc_wrapper)
 add_dependencies(dump_color_information kmc_wrapper)
 
@@ -147,17 +147,20 @@ endif()
 target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(pseudoalign kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(build_index kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(write_unitigs kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(extract_unitigs kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(compute_color_similarity_matrix kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 target_link_libraries(dump_color_information kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-  add_executable(themisto_tests tests.cpp)
+  add_executable(themisto_tests tests/test_main.cpp)
+
   add_dependencies(themisto_tests kmc_wrapper)
+
   add_dependencies(sdsl divsufsort64)
-  target_link_libraries(themisto_tests kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+  find_library(GTEST NAMES gtest PATHS googletest/build/lib/)
+  target_link_libraries(themisto_tests kmc_wrapper ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 else()
-  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
-  set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
+#  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
+#  set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
 endif()

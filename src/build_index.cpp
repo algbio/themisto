@@ -68,21 +68,6 @@ struct Config{
     }
 };
 
-// Returns filename of a new color file that has one color for each sequence
-// Input format is either "fasta" or "fastq"
-string generate_default_colorfile(string inputfile, string file_format){
-    string colorfile = temp_file_manager.get_temp_file_name("");
-    throwing_ofstream out(colorfile);
-    Sequence_Reader fr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    LL seq_id = 0;
-    while(!fr.done()){
-        fr.get_next_query_stream().get_all();
-        out << seq_id << "\n";
-        seq_id++;
-    }
-    return colorfile;
-}
-
 int main2(int argc, char** argv){
 
     // Legacy support: transform old option format --k to -k
@@ -91,7 +76,7 @@ int main2(int argc, char** argv){
         if(string(argv[i]) == "--k") argv[i] = &(legacy_support_fix[0]);
     }
 
-    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
+    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
 
     options.add_options()
         ("load-boss", "If given, loads a precomputed BOSS from the index directory", cxxopts::value<bool>()->default_value("false"))
@@ -159,6 +144,7 @@ int main2(int argc, char** argv){
 
     if(C.colorfile == ""){
         // Automatic colors
+        write_log("Assigning colors");
         C.colorfile = generate_default_colorfile(C.inputfile, C.input_format);
     }
 
@@ -185,7 +171,7 @@ int main2(int argc, char** argv){
 
     if(C.colorfile != "" || C.auto_colors){
         write_log("Building colors");
-        themisto.construct_colors(C.inputfile, C.auto_colors ? "" : C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
+        themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         themisto.save_colors(C.index_dir + "/coloring-");
     }
 
