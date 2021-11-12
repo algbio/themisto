@@ -76,7 +76,7 @@ We recommend to use a fast SSD drive for the temporary directory. With a reasona
 
 ### Full instructions for `build_index`
 
-This program builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemeted as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.
+This program builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.
 
 ```
 Usage:
@@ -214,6 +214,8 @@ This program dumps the unitigs and optionally their colors out of an existing Th
 # For developers: building the tests
 
 ```
+git submodule init
+git submodule update
 cd googletest
 mkdir build
 cd build
