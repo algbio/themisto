@@ -95,11 +95,11 @@ int pseudoalign_main(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
-        cerr << "  pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt" << endl;
+        cerr << argv[0] << " --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt" << endl;
         cerr << "Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:" << endl;
-        cerr << "  pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt" << endl;
+        cerr << argv[0] << " --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt" << endl;
         cerr << "Pseudoalign reads.fna against an index using also reverse complements:" << endl;
-        cerr << "  pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
+        cerr << argv[0] << " --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
         exit(1);
     }
 
