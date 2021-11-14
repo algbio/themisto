@@ -133,8 +133,7 @@ int pseudoalign_main(int argc, char** argv){
 
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_boss(C.index_dir + "/boss-");
-    themisto.load_colors(C.index_dir + "/coloring-");
+    themisto.load_from_directory(C.index_dir);
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");

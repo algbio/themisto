@@ -54,8 +54,7 @@ int main2(int argc, char** argv){
 
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_boss(C.index_dir + "/boss-");
-    themisto.load_colors(C.index_dir + "/coloring-");
+    themisto.load_from_directory(C.index_dir);
 
     write_log("Dumping colors");    
 

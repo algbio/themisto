@@ -93,6 +93,8 @@ public:
             if(desc != -1){
                 used_names.insert(name);
                 close(desc);
+                // Success. Let's delete the empty file that was created
+                std::filesystem::remove(name);
                 return name;
             } else if(errno != EEXIST){
                 cerr << std::strerror(errno) << " " << name << endl;

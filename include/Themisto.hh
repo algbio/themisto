@@ -262,20 +262,30 @@ public:
         coloring.add_colors(boss, fastafile, seq_to_color, ram_bytes, n_threads, colorset_sampling_distance);
     }
 
-    void save_boss(string path_prefix){
-        boss.save_to_disk(path_prefix);
+    void save_boss_to_directory(string dir){
+        boss.save_to_disk(dir + "/boss-");
     }
 
-    void save_colors(string path_prefix){
-        coloring.save_to_disk(path_prefix + "index-");
+    void save_colors_to_directory(string dir){
+        coloring.save_to_disk(dir + "/coloring-");
     }
 
-    void load_boss(string path_prefix){
-        boss.load_from_disk(path_prefix);
+    void save_to_directory(string dir){
+        save_boss_to_directory(dir);
+        save_colors_to_directory(dir);
     }
 
-    void load_colors(string path_prefix){
-        coloring.load_from_disk(path_prefix + "index-");
+    void load_boss_from_directory(string dir){
+        boss.load_from_disk(dir + "/boss-");
+    }
+
+    void load_colors_from_directory(string dir){
+        coloring.load_from_disk(dir + "/coloring-");
+    }
+
+    void load_from_directory(string dir){
+        load_boss_from_directory(dir);
+        load_colors_from_directory(dir);
     }
 
     string to_string(){

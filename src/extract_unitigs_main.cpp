@@ -64,8 +64,7 @@ int extract_unitigs_main(int argc, char** argv){
     write_log("Starting");
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_boss(index_dir + "/boss-");
-    themisto.load_colors(index_dir + "/coloring-");
+    themisto.load_from_directory(index_dir);
 
     write_log("Extracting unitigs");
     

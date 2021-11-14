@@ -14,9 +14,11 @@
 #include "../globals.hh"
 #include "setup_tests.hh"
 #include "Themisto.hh"
+#include "Argv.hh"
 #include "extract_unitigs.hh"
 #include <cassert>
 #include <sstream>
+#include "commands.hh"
 
 class EXTRACT_UNITIGS_TEST : public testing::Test {
    protected:
@@ -26,30 +28,25 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         if (themisto == nullptr) {
             logger << "Building Themisto for extract_unitigs test suite" << endl;
             
+            themisto = new Themisto();
             string seqfile = "example_input/coli3.fna";
             string colorfile = "example_input/colors.txt";
             LL k = 30;
-
-            //string seqfile = "example_input/megares.fna";
-            //string colorfile = generate_default_colorfile(seqfile, "fasta");
-            //LL k = 30;
-
-            //string seqfile = "tiny_example/seqs2.fna";
-            //string colorfile = "tiny_example/colors2.txt";
-            //LL k = 5;
-
-            std::tie(seqfile, colorfile) = split_all_seqs_at_non_ACGT(seqfile, "fasta", colorfile); // Turns the file into fasta format also
-
-            themisto = new Themisto();
             
             enable_logging();
 
             // Build Themisto
 
-            themisto->construct_boss(seqfile, k, 1024*1024*1024, 2, false);
-            themisto->construct_colors(seqfile, colorfile, 1024*1024*1024, 2, 1);
+            string index_dir = get_temp_file_manager().create_filename();
 
-            write_log("Getting dummy marks");
+            stringstream argstring;
+            argstring << "build -k"  << k << " --n-threads " << 4 << " --mem-megas " << 1024 << " -i " << seqfile << " -c " << colorfile << " -o " << index_dir << " --temp-dir " << get_temp_file_manager().get_dir();
+            Argv argv(split(argstring.str()));
+            build_index_main(argv.size, argv.array);
+            
+            themisto->load_from_directory(index_dir);
+
+            logger << "Getting dummy marks" << endl;
             is_dummy = themisto->boss.get_dummy_node_marks();
             
             // Extract unitigs and their colors

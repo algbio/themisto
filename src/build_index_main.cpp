@@ -161,18 +161,18 @@ int build_index_main(int argc, char** argv){
     
     if(C.load_boss){
         write_log("Loading BOSS");
-        themisto.load_boss(C.index_dir + "/boss-");
+        themisto.load_boss_from_directory(C.index_dir);
     } else{
         write_log("Building BOSS");
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
-        themisto.save_boss(C.index_dir + "/boss-");
+        themisto.save_boss_to_directory(C.index_dir);
         write_log("Building BOSS finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
     if(C.colorfile != "" || C.auto_colors){
         write_log("Building colors");
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
-        themisto.save_colors(C.index_dir + "/coloring-");
+        themisto.save_colors_to_directory(C.index_dir);
     }
 
     write_log("Finished");
