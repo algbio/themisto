@@ -13,8 +13,6 @@
          5 Dec 2019  Modified by Jarno N. Alanko
  */
 
-#pragma once
-
 #include "zpipe.hh"
 
 int gz_decompress(std::string infile, std::string outfile)
@@ -57,6 +55,7 @@ int gz_decompress(std::string infile, std::string outfile)
             switch (ret) {
             case Z_NEED_DICT:
                 ret = Z_DATA_ERROR;     /* fall through intended */
+                [[fallthrough]];
             case Z_DATA_ERROR:
             case Z_MEM_ERROR:
                 (void)inflateEnd(&strm);
