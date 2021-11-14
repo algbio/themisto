@@ -27,6 +27,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Our sources, excluding the file with the main function
+set(THEMISTO_SOURCES src/pseudoalign_main.cpp src/globals.cpp src/EM_sort.cpp src/Block.cpp src/EM_algorithms.cpp src/test_tools.cpp src/Themisto.cpp src/WorkDispatcher.cpp src/zpipe.cpp src/build_index_main.cpp src/pseudoalign_main.cpp)
+
 ## Check if we should compile zlib or bzip2
 if(CMAKE_BUILD_ZLIB)
   configure_file(CMakeLists_zlib.txt.in ${CMAKE_BINARY_DIR}/external/zlib-download/CMakeLists.txt)
@@ -116,20 +119,12 @@ include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libw
 
 ## Libraries & executables to build
 add_library(kmc_wrapper src/KMC_wrapper.cpp)
-add_executable(pseudoalign src/pseudoalign.cpp)
-add_executable(build_index src/build_index.cpp)
-add_executable(extract_unitigs src/extract_unitigs.cpp)
-add_executable(dump_color_information src/dump_color_information.cpp)
-add_executable(compute_color_similarity_matrix src/compute_color_similarity_matrix.cpp)
+add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
 ## Fix compilation order
 add_dependencies(kmc_wrapper kmc)
 add_dependencies(sdsl divsufsort64)
-add_dependencies(pseudoalign kmc_wrapper)
-add_dependencies(build_index kmc_wrapper)
-add_dependencies(extract_unitigs kmc_wrapper)
-add_dependencies(compute_color_similarity_matrix kmc_wrapper)
-add_dependencies(dump_color_information kmc_wrapper)
+add_dependencies(themisto kmc_wrapper)
 
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
@@ -145,15 +140,11 @@ endif()
 
 ## Link
 target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(pseudoalign kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(build_index kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(extract_unitigs kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(compute_color_similarity_matrix kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(dump_color_information kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(themisto kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-  add_executable(themisto_tests tests/test_main.cpp)
+  add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
 
   add_dependencies(themisto_tests kmc_wrapper)
 

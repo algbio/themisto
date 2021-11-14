@@ -64,7 +64,7 @@ vector<string> read_lines(string filename){
 
 
 
-int main2(int argc, char** argv){
+int pseudoalign_main(int argc, char** argv){
 
     // Legacy support: transform old option format --outfile --out-file
     string legacy_support_fix = "--out-file";
@@ -95,11 +95,11 @@ int main2(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Pseudoalign reads.fna against an index:" << endl;
-        cerr << "  ./pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt" << endl;
+        cerr << "  pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt" << endl;
         cerr << "Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:" << endl;
-        cerr << "  ./pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt" << endl;
+        cerr << "  pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt" << endl;
         cerr << "Pseudoalign reads.fna against an index using also reverse complements:" << endl;
-        cerr << "  ./pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
+        cerr << "  pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt" << endl;
         exit(1);
     }
 
@@ -157,15 +157,4 @@ int main2(int argc, char** argv){
     write_log("Finished");
 
     return 0;
-}
-
-int main(int argc, char** argv){
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
-    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
-    try{
-        return main2(argc, argv);
-    } catch (const std::runtime_error &e){
-        std::cerr << "Runtime error: " << e.what() << '\n';
-        return 1;
-    }
 }

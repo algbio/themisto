@@ -68,7 +68,7 @@ struct Config{
     }
 };
 
-int main2(int argc, char** argv){
+int build_index_main(int argc, char** argv){
 
     // Legacy support: transform old option format --k to -k
     string legacy_support_fix = "-k";
@@ -101,11 +101,11 @@ int main2(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
-        cerr << "  ./build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
+        cerr << "  build_index -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
         cerr << "Build only the BOSS" << endl;
-        cerr << "  ./build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
+        cerr << "  build_index -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
         cerr << "Load a previously built BOSS from the index directory and compute the colors:" << endl;
-        cerr << "  ./build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
+        cerr << "  build_index --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
         exit(1);
     }    
 
@@ -178,17 +178,4 @@ int main2(int argc, char** argv){
     write_log("Finished");
 
     return 0;
-}
-
-int main(int argc, char** argv){
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
-    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
-    try{
-        return main2(argc, argv);
-    } catch (const std::runtime_error &e){
-        std::cerr << "Runtime error: " << e.what() << '\n';
-        return 1;
-    } catch(const std::exception& e){
-        std::cerr << "Error: " << e.what() << '\n';
-    }
 }

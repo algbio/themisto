@@ -35,34 +35,13 @@ set<T> intersect(const set<T>& S1, const set<T>& S2){
 // Stores the intersection into buf1 and returns the number of elements in the
 // intersection (does not resize buf1). Buffer elements must be sorted.
 // Assumes all elements in a buffer are distinct
-LL intersect_buffers(vector<LL>& buf1, LL buf1_len, vector<LL>& buf2, LL buf2_len){
-
-    LL i = 0, j = 0, k = 0;
-    while(i < buf1_len && j < buf2_len){
-        if(buf1[i] < buf2[j]) i++;
-        else if(buf1[i] > buf2[j]) j++;
-        else{
-            buf1[k] = buf1[i];
-            i++; j++; k++;
-        }
-    }
-    return k;
-
-}
+LL intersect_buffers(vector<LL>& buf1, LL buf1_len, vector<LL>& buf2, LL buf2_len);
 
 // Stores the union into buf1 and returns the number of elements in the
 // intersection (does not resize buf1). Buffers elements must be sorted.
 // Assumes all elements in a buffer are distinct. result_buf must have enough
 // space to accommodate the union
-LL union_buffers(vector<LL>& buf1, LL buf1_len, vector<LL>& buf2, LL buf2_len, vector<LL>& result_buf){
-
-    auto end = std::set_union(
-                    buf1.begin(), buf1.begin() + buf1_len, 
-                    buf2.begin(), buf2.begin() + buf2_len, 
-                    result_buf.begin()
-    );
-    return end - result_buf.begin();
-}
+LL union_buffers(vector<LL>& buf1, LL buf1_len, vector<LL>& buf2, LL buf2_len, vector<LL>& result_buf);
 
 class Themisto{
 
@@ -257,7 +236,8 @@ public:
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
 
         write_log("Building KMC database");
-        string KMC_db_path_prefix = KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, temp_file_manager.get_dir(), revcomps);
+        string KMC_db_path_prefix = temp_file_manager.get_temp_file_name("KMC");
+        KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, temp_file_manager.get_dir(), KMC_db_path_prefix, revcomps);
         Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
         write_log("Building BOSS from KMC database");

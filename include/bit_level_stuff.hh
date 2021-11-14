@@ -2,7 +2,7 @@
 
 #include "globals.hh"
 
-LL byte_to_int(char c){
+inline LL byte_to_int(char c){
     return static_cast<int>(*reinterpret_cast<unsigned char*>(&c));
 }
 

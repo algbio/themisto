@@ -17,15 +17,10 @@
 #include <functional>
 #include "timer.h"
 #include "kmc.h"
-//#include "meta_oper.h"
-//#include "globals.hh"
 #include "Argv.hh"
-#include "TempFileManager.hh"
 #include "throwing_streams.hh"
 
 using namespace std;
-
-extern Temp_File_Manager temp_file_manager;
 
 uint64 total_reads, total_fastq_size;
 
@@ -484,8 +479,7 @@ void call_kmc(int argc, _TCHAR* argv[])
 }
 
 // Only works for alphabet {a,c,g,t,A,C,G,T}
-// Return the prefix of the databse filename
-string KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string tempdir, bool only_canonical_kmers){
+void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string tempdir, string database_filename_prefix, bool only_canonical_kmers){
 
 	// Check that the alphabet is {a,c,g,t,A,C,G,T} (otherwise k-mers would be dropped silently)
 	throwing_ifstream fasta_input(fastafile);
@@ -502,8 +496,6 @@ string KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fasta
 			}
 		}
 	}
-
-	string KMC_database_file = temp_file_manager.get_temp_file_name("KMC");
 	
 	vector<string> argv = {"kmc", 
 	                      "-fm", 
@@ -514,7 +506,7 @@ string KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fasta
 						  "-cx4294967295", // Excluding k-mers that occur more than times 4294967295 (the largest value it supports)
 						  "-t" + to_string(n_threads),
 						  fastafile, 
-						  KMC_database_file, 
+						  database_filename_prefix, 
 						  tempdir};
 	if(!only_canonical_kmers){
 		argv.insert(argv.begin()+1, "-b");
@@ -526,8 +518,6 @@ string KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fasta
 	
 	Argv A(argv);
     call_kmc(argv.size(), A.array);
-
-	return KMC_database_file;
 
 }
 

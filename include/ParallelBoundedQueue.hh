@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <utility>
+#include <cassert>
 #include <atomic>
 
 using namespace std;
@@ -100,7 +101,7 @@ class ParallelBoundedQueue
 
  public:
  
-  ParallelBoundedQueue<T>(LL max_load) : current_load(0), max_load(max_load)  {
+  ParallelBoundedQueue<T>(int64_t max_load) : current_load(0), max_load(max_load)  {
       assert(max_load > 0);
   }
 
@@ -110,13 +111,13 @@ class ParallelBoundedQueue
         queueEmptyCV.wait(lock);
 
     // Critical section below
-    pair<T,LL> item = queue.front(); queue.pop();
+    pair<T,int64_t> item = queue.front(); queue.pop();
     current_load -= item.second;
     queueFullCV.notify_all();
     return item.first;
   } // Lock is released when leaving this function
  
-  void push(const T& item, LL load){
+  void push(const T& item, int64_t load){
     std::unique_lock<std::mutex> lock(queueLock);
     while(current_load > max_load) // Check the condition
         queueFullCV.wait(lock);
@@ -128,12 +129,12 @@ class ParallelBoundedQueue
   } // Lock is released when leaving the function
  
   private:
-  std::queue<pair<T,LL> > queue; // (Element, load) pairs
+  std::queue<pair<T,int64_t> > queue; // (Element, load) pairs
   std::mutex queueLock;
   std::condition_variable queueEmptyCV;
   std::condition_variable queueFullCV;
 
-  LL current_load;
-  const LL max_load;
+  int64_t current_load;
+  const int64_t max_load;
 
 };

@@ -19,7 +19,7 @@
 
 // Returns filename
 string generate_line_based_testcase(LL n_lines, LL line_length){
-    string outfile = get_temp_file_name("");
+    string outfile = temp_file_manager.get_temp_file_name("");
     throwing_ofstream out(outfile);
     for(LL i = 0; i < n_lines; i++){
         out << get_random_string(line_length, 2) << "\n";
@@ -35,7 +35,7 @@ string sort_lines_stdlib(string infile, const std::function<bool(const char* x, 
     
     vector<string> lines = get_all_lines(infile);
     sort(lines.begin(), lines.end(), cmp_wrap);
-    string outfile = get_temp_file_name("");
+    string outfile = temp_file_manager.get_temp_file_name("");
     throwing_ofstream out(outfile);
     for(string line : lines) out << line << "\n";
     return outfile;

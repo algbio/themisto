@@ -146,8 +146,9 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     throwing_ofstream out(fastafile);
     for(string S : tcase.reads) out << ">\n" << S << "\n";
     out.flush();
-    string KMC_db = KMC_wrapper(tcase.k+1, 1, 2, fastafile, temp_file_manager.get_dir(), reverse_complements);
-    Kmer_stream_from_KMC_DB kmer_stream(KMC_db, reverse_complements);
+    string KMC_db_path_prefix = temp_file_manager.get_temp_file_name("KMC");
+    KMC_wrapper(tcase.k+1, 1, 2, fastafile, temp_file_manager.get_dir(), KMC_db_path_prefix, reverse_complements);
+    Kmer_stream_from_KMC_DB kmer_stream(KMC_db_path_prefix, reverse_complements);
     BOSS_builder<boss_t, Kmer_stream_from_KMC_DB> bb;
     boss_t boss_KMC = bb.build(kmer_stream, 1e9, 2);
 
