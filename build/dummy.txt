@@ -1,1 +1,0 @@
-This file is to force this directory to exist in Git.

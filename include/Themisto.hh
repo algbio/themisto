@@ -236,8 +236,9 @@ public:
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
 
         write_log("Building KMC database");
-        string KMC_db_path_prefix = create_temp_filename("KMC");
+        string KMC_db_path_prefix = create_temp_filename("KMC-");
         KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, get_temp_dir(), KMC_db_path_prefix, revcomps);
+        write_log("Building KMC database finished");
         Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
         write_log("Building BOSS from KMC database");
@@ -246,6 +247,7 @@ public:
         // Delete the KMC database files. The temp file manager can not do this because
         // KMC appends suffixes to the filename and the manager does not know about that.
         write_log("Deleting KMC database");
+        
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_pre");
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_suf");
 

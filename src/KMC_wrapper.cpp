@@ -464,7 +464,7 @@ void call_kmc(int argc, _TCHAR* argv[])
 
 	if(!parse_parameters(argc, argv))
 	{
-		cerr << "Error calling KMC" << endl;
+		cerr << "Error parsing KMC parameters" << endl;
         exit(1);
 	}
 	

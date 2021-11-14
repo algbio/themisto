@@ -83,6 +83,11 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Fix for GCC (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90050 )
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set(CXX_FILESYSTEM_LIBRARIES "stdc++fs")
+endif()
+
 ## Check dependencies
 find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -139,8 +144,8 @@ if(CMAKE_BUILD_BZIP2)
 endif()
 
 ## Link
-target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
-target_link_libraries(themisto kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
+target_link_libraries(themisto kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -150,7 +155,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 
   add_dependencies(sdsl divsufsort64)
   find_library(GTEST NAMES gtest PATHS googletest/build/lib/)
-  target_link_libraries(themisto_tests kmc_wrapper ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB})
+  target_link_libraries(themisto_tests kmc_wrapper ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
 #  set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)

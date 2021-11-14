@@ -22,6 +22,14 @@
 #include "test_extract_unitigs.hh"
 
 int main(int argc, char **argv) {
-    setup_tests(argc, argv);
-    return RUN_ALL_TESTS();
+    try{
+        setup_tests(argc, argv);
+        return RUN_ALL_TESTS();
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        return 1;
+    } catch(const std::exception& e){
+        std::cerr << "Error: " << e.what() << '\n';
+        return 1;
+    }
 }
