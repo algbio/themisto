@@ -18,7 +18,6 @@ void print_help(int argc, char** argv){
 
 int main(int argc, char** argv){
 
-
     write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
     write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
 

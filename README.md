@@ -62,25 +62,40 @@ ulimit -n 2048
 ```
 
 # Usage
-## Indexing
 
-### Quick start
+## Quick start
 
-There is an example dataset at example_output. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp`as temporary storage, using four threads and up to 1GB of memory, deleting non-ACGT-characters, run the following:
+There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp` as temporary storage, using four threads and up to 1GB of memory, deleting non-ACGT-characters, run the following:
 
 ```
-./build/bin/build_index --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 -t 4 --delete-non-ACGT
+./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 --n-threads 4 --delete-non-ACGT
 ```
 
-We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input.
 
-### Full instructions for `build_index`
+We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input. To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
 
-This program builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.
+```
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-dir example_index --temp-dir temp --out-file out.txt --n-threads 4
+```
+
+This should produce the following output file:
+
+```
+0 43 748 
+1 524 
+2 855 
+3 787 
+```
+
+There is one line for each query sequence. The lines may appear in a different order if parallelism was used. The first integer on a line is the 0-based rank of a query sequence in the query file, and the rest of the integers are the colors that are pseudoaligned with the query. For example, here the query with rank 2 (i.e. the 3rd sequence in the query file) pseudoaligns to color 855.
+
+## Full instructions for index construction
+
+This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.
 
 ```
 Usage:
-  ./build/bin/build_index [OPTION...]
+  build [OPTION...]
 
       --load-boss               If given, loads a precomputed BOSS from the 
                                 index directory
@@ -131,28 +146,9 @@ Usage:
 
 ```
 
-## Pseudoalignment
+## Full instructions for `pseudoalign`
 
-### Examples
-
-Pseudoalign reads.fna against an index:
-```
-./build/bin/pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
-```
-
-Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
-```
-./build/bin/pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
-```
-
-Pseudoalign reads.fna against an index using also reverse complements:
-```
-./build/bin/pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
-```
-
-### Full instructions for `pseudoalign`
-
-This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
+This command aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
 
 The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
 
@@ -182,12 +178,29 @@ Usage:
   -h, --help                 Print usage
 ```
 
+Examples:
+
+Pseudoalign reads.fna against an index:
+```
+./build/bin/themisto pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
+```
+
+Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
+```
+./build/bin/themisto pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
+```
+
+Pseudoalign reads.fna against an index using also reverse complements:
+```
+./build/bin/themisto pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
+```
+
 ## Extracting unitigs with `extract_unitigs`
 
 This program dumps the unitigs and optionally their colors out of an existing Themisto index.
 
 ```
-  ./build/bin/extract_unitigs [OPTION...]
+  extract_unitigs [OPTION...]
 
   -i, --index-dir arg    Location of the Themisto index.
       --unitigs-out arg  Output filename for the unitigs (outputted in 
