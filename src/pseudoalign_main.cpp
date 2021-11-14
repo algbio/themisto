@@ -8,7 +8,7 @@
 
 using namespace std;
 
-struct Config{
+struct Pseudoalign_Config{
     vector<string> query_files;
     vector<string> outfiles;
     string index_dir;
@@ -103,7 +103,7 @@ int pseudoalign_main(int argc, char** argv){
         exit(1);
     }
 
-    Config C;
+    Pseudoalign_Config C;
     if(opts.count("query-file") && opts["query-file"].as<string>() != "") C.query_files.push_back(opts["query-file"].as<string>());
     if(opts.count("query-file-list") && opts["query-file-list"].as<string>() != "") 
         for(string line : read_lines(opts["query-file-list"].as<string>()))

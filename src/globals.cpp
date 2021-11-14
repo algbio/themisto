@@ -70,7 +70,7 @@ map<string,vector<string> > parse_args(int argc, char** argv){
 }
 
 string figure_out_file_format(string filename){
-    for(LL i = filename.size()-1; i >= 0; i--){
+    for(LL i = (LL)filename.size()-1; i >= 0; i--){
         if(filename[i] == '.'){
             string end = filename.substr(i);
             

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-struct Config{
+struct Build_Config{
     LL k = -1;
     LL n_threads = 1;
     string inputfile;
@@ -109,7 +109,7 @@ int build_index_main(int argc, char** argv){
         exit(1);
     }    
 
-    Config C;
+    Build_Config C;
     Themisto themisto;
     C.k = opts["k"].as<LL>();
     C.inputfile = opts["input-file"].as<string>();
