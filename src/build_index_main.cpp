@@ -129,14 +129,14 @@ int build_index_main(int argc, char** argv){
     create_directory_if_does_not_exist(C.temp_dir);
 
     C.check_valid();
-    set_temp_dir(C.temp_dir);
+    get_temp_file_manager().set_dir(C.temp_dir);
 
     cerr << C.to_string() << endl;
     write_log("Starting");
 
     if(C.input_format == "gzip"){
         write_log("Decompressing the input file");
-        string new_name = create_temp_filename("input");
+        string new_name = get_temp_file_manager().create_filename("input");
         check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
         C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
         C.inputfile = new_name;

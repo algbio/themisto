@@ -2,30 +2,9 @@
 
 #include "globals.hh"
 
-Temp_File_Manager temp_file_manager;
-
-void set_temp_dir(string dir){
-    temp_file_manager.set_dir(dir);
-}
-
-string get_temp_dir(){
-    return temp_file_manager.get_dir();
-}
-
-void delete_all_temp_files(){
-    temp_file_manager.clean_up();
-}
-
-string create_temp_filename(){
-    return create_temp_filename("");
-}
-
-string create_temp_filename(string prefix){
-    return temp_file_manager.get_temp_file_name(prefix);
-}
-
-void delete_temp_file(string filename){
-    temp_file_manager.delete_file(filename);
+Temp_File_Manager& get_temp_file_manager(){
+    static Temp_File_Manager temp_file_manager; // Singleton
+    return temp_file_manager;
 }
 
 long long cur_time_millis(){
@@ -185,7 +164,7 @@ LL fix_alphabet_of_string(string& S){
 std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode){
     write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
     
-    const std::string output_file = temp_file_manager.get_temp_file_name("seqs-");
+    const std::string output_file = get_temp_file_manager().create_filename("seqs-");
     
     std::FILE* ip = std::fopen(input_file.c_str(), "rb");
     std::FILE* op = std::fopen(output_file.c_str(), "wb");
@@ -342,8 +321,8 @@ vector<LL> read_colorfile(string filename){
 
 // Returns new inputfile and new colorfile
 pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile){
-    string new_colorfile = temp_file_manager.get_temp_file_name("");
-    string new_seqfile = temp_file_manager.get_temp_file_name("");
+    string new_colorfile = get_temp_file_manager().create_filename();
+    string new_seqfile = get_temp_file_manager().create_filename();
 
     throwing_ofstream colors_out(new_colorfile);
 
@@ -381,14 +360,14 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
 void sigint_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
     cerr << "Cleaning up temporary files" << endl;
-    temp_file_manager.clean_up();
+    get_temp_file_manager().delete_all_files();
     exit(1);
 }
 
 void sigabrt_handler(int sig) {
     cerr << "caught signal: " << sig << endl;
     cerr << "Cleaning up temporary files" << endl;
-    temp_file_manager.clean_up();
+    get_temp_file_manager().delete_all_files();
     cerr << "Aborting" << endl;
     exit(1);
 }
@@ -567,7 +546,7 @@ void check_true(bool condition, string error_message){
 // Returns filename of a new color file that has one color for each sequence
 // Input format is either "fasta" or "fastq"
 string generate_default_colorfile(string inputfile, string file_format){
-    string colorfile = temp_file_manager.get_temp_file_name("");
+    string colorfile = get_temp_file_manager().create_filename();
     throwing_ofstream out(colorfile);
     Sequence_Reader fr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     LL seq_id = 0;

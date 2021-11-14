@@ -236,8 +236,8 @@ public:
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
 
         write_log("Building KMC database");
-        string KMC_db_path_prefix = create_temp_filename("KMC-");
-        KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, get_temp_dir(), KMC_db_path_prefix, revcomps);
+        string KMC_db_path_prefix = get_temp_file_manager().create_filename("KMC-");
+        KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, get_temp_file_manager().get_dir(), KMC_db_path_prefix, revcomps);
         write_log("Building KMC database finished");
         Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;
@@ -407,7 +407,7 @@ public:
 
         if(sort_after){
             write_log("Sorting output file");
-            string tempfile = create_temp_filename("results_temp");
+            string tempfile = get_temp_file_manager().create_filename("results_temp");
             if(gzipped_output){
                 zstr::ifstream instream(outfile);
                 zstr::ofstream outstream(tempfile);

@@ -124,12 +124,12 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         testcase_id++;
         logger << "Running alignment testcase" << endl;
 
-        string genomes_outfilename = create_temp_filename("genomes-");
-        string colors_outfilename = create_temp_filename("colors-");
-        string queries_outfilename = create_temp_filename("queries-");
-        string colorfile_outfilename = create_temp_filename("colorfile-");
-        string boss_outfilename = create_temp_filename("boss-");
-        string coloring_outfilename = create_temp_filename("coloring-");
+        string genomes_outfilename = get_temp_file_manager().create_filename("genomes-");
+        string colors_outfilename = get_temp_file_manager().create_filename("colors-");
+        string queries_outfilename = get_temp_file_manager().create_filename("queries-");
+        string colorfile_outfilename = get_temp_file_manager().create_filename("colorfile-");
+        string boss_outfilename = get_temp_file_manager().create_filename("boss-");
+        string coloring_outfilename = get_temp_file_manager().create_filename("coloring-");
 
         throwing_ofstream genomes_out(genomes_outfilename);
         for(string genome : tcase.genomes){
@@ -166,13 +166,13 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         ASSERT_TRUE(ref_boss == kl.boss);
 
         // Run without rc
-        string final_file = create_temp_filename("finalfile-");
+        string final_file = get_temp_file_manager().create_filename("finalfile-");
         Sequence_Reader sr(queries_outfilename, FASTA_MODE);
         kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false, true);
         vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
 
         // Run with rc
-        string final_file_rc = create_temp_filename("finalfile_rc-");
+        string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
         Sequence_Reader sr2(queries_outfilename, FASTA_MODE);
         kl.pseudoalign_parallel(n_threads, sr2, final_file_rc, true, 300, false, true);
         vector<set<LL> > our_results_rc = kl.parse_output_format_from_disk(final_file_rc);

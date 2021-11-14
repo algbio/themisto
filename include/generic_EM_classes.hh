@@ -69,7 +69,7 @@ public:
             write_log("Thread " + to_string(thread_id) + ": Starting to sort a block.");
             block->sort(cmp);
             write_log("Thread " + to_string(thread_id) + ": Finished sorting a block.");
-            filenames.push_back(create_temp_filename());
+            filenames.push_back(get_temp_file_manager().create_filename());
             block->write_to_file(filenames.back());
             delete block; // Initially allocated by a producer
         }

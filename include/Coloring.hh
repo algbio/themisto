@@ -143,23 +143,23 @@ public:
 
         write_log("Sorting (node,color) pairs");
         string sorted = EM_sort_big_endian_LL_pairs(node_color_pairs_file, ram_bytes, 0, n_threads);
-        delete_temp_file(node_color_pairs_file);
+        get_temp_file_manager().delete_file(node_color_pairs_file);
 
         write_log("Deleting duplicate (node,color) pairs");
         string filtered_binary = EM_delete_duplicate_LL_pair_records(sorted);
-        delete_temp_file(sorted);
+        get_temp_file_manager().delete_file(sorted);
 
         write_log("Collecting color sets");
         string collected = EM_collect_colorsets_binary(filtered_binary);
-        delete_temp_file(filtered_binary);
+        get_temp_file_manager().delete_file(filtered_binary);
 
         write_log("Sorting color sets");
         string by_colorsets = EM_sort_by_colorsets_binary(collected, ram_bytes, n_threads);
-        delete_temp_file(collected);
+        get_temp_file_manager().delete_file(collected);
 
         write_log("Collecting node sets");
         string collected2 = EM_collect_nodes_by_colorset_binary(by_colorsets);
-        delete_temp_file(by_colorsets);
+        get_temp_file_manager().delete_file(by_colorsets);
 
         write_log("Building packed representation");
         build_packed_representation(collected2, ram_bytes, boss, n_threads);
@@ -298,7 +298,7 @@ private:
     // Returns a file of pairs (node, color), sorted by node, with possible duplicates
     string get_node_color_pairs(BOSS<sdsl::bit_vector>& boss, string fastafile, vector<LL>& seq_id_to_color_id, LL n_threads){
         //vector<pair<LL,LL> > node_color_pairs;
-        string node_color_pair_filename = create_temp_filename();
+        string node_color_pair_filename = get_temp_file_manager().create_filename();
         ParallelBinaryOutputWriter writer(node_color_pair_filename);
 
         vector<DispatcherConsumerCallback*> threads;
@@ -394,7 +394,7 @@ private:
         // Iterate all distinct color sets
         //string line;
         throwing_ifstream in(infile, ios::binary);
-        string node_to_color_id_pairs_filename = create_temp_filename();
+        string node_to_color_id_pairs_filename = get_temp_file_manager().create_filename();
         throwing_ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
         LL n_marks = 0;
         vector<char> buffer(16);
@@ -454,7 +454,7 @@ private:
         // Build node_to_color_set_id
         node_to_color_set_id = sdsl::int_vector<>(n_marks, 0, ceil(log2(n_classes)));
         string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
-        delete_temp_file(node_to_color_id_pairs_filename);
+        get_temp_file_manager().delete_file(node_to_color_id_pairs_filename);
         throwing_ifstream sorted_in(sorted_out);
         vector<char> buffer2(8+8);
         LL idx = 0;
@@ -466,7 +466,7 @@ private:
             idx++;
         }
 
-        delete_temp_file(sorted_out);
+        get_temp_file_manager().delete_file(sorted_out);
 
         sdsl::util::init_support(nonempty_rs, &nonempty);
         sdsl::util::init_support(color_set_starts_ss, &color_set_starts);

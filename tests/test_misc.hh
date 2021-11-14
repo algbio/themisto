@@ -17,7 +17,7 @@
 
 TEST(MISC_TEST, delete_non_ACGT){
 
-    set_temp_dir("temp");
+    get_temp_file_manager().set_dir("temp");
 
     string fasta_data = ">\nNNAGTATTGNNCTGTAGXGTCAGTGCTACGTACTNN\n>\nAGTTCTNNTAGTGCNNTNXNAGCCA\n";
     //                      ^^       ^^      ^                ^^           ^^      ^^ ^^^
@@ -28,8 +28,8 @@ TEST(MISC_TEST, delete_non_ACGT){
 
     // Write to files
 
-    string fasta1 = create_temp_filename("fasta1");
-    string colors1 = create_temp_filename("colors1");
+    string fasta1 = get_temp_file_manager().create_filename("fasta1");
+    string colors1 = get_temp_file_manager().create_filename("colors1");
     
     throwing_ofstream fasta1_outstream(fasta1);
     fasta1_outstream << fasta_data;

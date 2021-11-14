@@ -13,6 +13,7 @@
 #include <mutex>
 #include <cstring>
 #include <set>
+#include <filesystem>
 
 using namespace std;
 
@@ -56,6 +57,7 @@ public:
 
 
     Temp_File_Manager() : urandom("/dev/urandom") {
+        cerr << "Constructing new temp file manager" << endl;
         for(char c = 'a'; c <= 'z'; c++) alphabet.push_back(c);
         for(char c = 'A'; c <= 'Z'; c++) alphabet.push_back(c);
         for(char c = '0'; c <= '9'; c++) alphabet.push_back(c);
@@ -71,7 +73,11 @@ public:
         return this->temp_dir;
     }
 
-    string get_temp_file_name(string prefix){
+    string create_filename(){
+        return create_filename("");
+    }
+
+    string create_filename(string prefix){
         // Make sure only one thread runs in this function at once
         std::lock_guard<std::mutex> lg(mutex);
         if(temp_dir == ""){
@@ -100,17 +106,17 @@ public:
             cerr << "Error: tried to delete a temp file that thet temp file manager did not create: " << filename << endl;
             exit(1);
         }
-        remove(filename.c_str());
+        std::filesystem::remove(filename.c_str());
         used_names.erase(filename);
     }
 
-    void clean_up(){
+    void delete_all_files(){
         for(string name : used_names) remove(name.c_str());
         used_names.clear();
     }
 
     ~Temp_File_Manager(){
-        clean_up();
+        delete_all_files();
     }
 
 };

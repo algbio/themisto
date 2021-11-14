@@ -31,12 +31,8 @@ using namespace std::chrono;
 typedef int64_t LL;
 static const char read_separator = '$';
 
-void set_temp_dir(string dir);
-string get_temp_dir();
-void delete_all_temp_files(); // Manually delete all temp files. In any case, all temp files are deleted when the program is finished.
-string create_temp_filename();
-string create_temp_filename(string prefix);
-void delete_temp_file(string filename); // Always delete temp files through this function or delete_all_temp_files()
+// Returns a reference to the singleton temp file manager
+Temp_File_Manager& get_temp_file_manager();
 
 long long cur_time_millis();
 double seconds_since_program_start();
