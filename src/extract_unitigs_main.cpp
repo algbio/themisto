@@ -9,20 +9,7 @@
 
 using namespace std;
 
-class NullStream : public std::ostream {
-public:
-  NullStream() : std::ostream(nullptr) {}
-  NullStream(const NullStream &) : std::ostream(nullptr) {}
-};
-
-template <class T>
-const NullStream &operator<<(NullStream &&os, const T &value) { 
-  return os;
-}
-
-
-
-int main2(int argc, char** argv){
+int extract_unitigs_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
 
@@ -87,15 +74,4 @@ int main2(int argc, char** argv){
 
     return 0;
     
-}
-
-int main(int argc, char** argv){
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
-    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
-    try{
-        return main2(argc, argv);
-    } catch (const std::runtime_error &e){
-        std::cerr << "Runtime error: " << e.what() << '\n';
-        return 1;
-    }
 }
