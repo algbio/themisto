@@ -46,11 +46,14 @@ void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, Sequence_Reader& s
         Read_stream input = sr.get_next_query_stream();
         char c;
         bool start = true;
+        LL len = 0;
         while(input.getchar(c)){
             rb.data += c;
             rb.read_starts.push_back(start);
             start = false;
+            len++;
         }
+        if(len == 0) throw runtime_error("Error: encountered empty sequence: " + input.header);
         read_id_of_next++;
         
         if(rb.data.size() > buffer_size || sr.done()){
