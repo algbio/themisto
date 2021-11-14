@@ -8,7 +8,7 @@
 
 using namespace std;
 
-static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs"};
+static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "stats"};
 
 void print_help(int argc, char** argv){
     cerr << "Available commands: " << endl;
@@ -40,6 +40,7 @@ int main(int argc, char** argv){
         if(command == "build") return build_index_main(argc, argv);
         else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
         else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
+        else if(command == "stats") return stats_main(argc, argv);
         else if(command == "lookup-kmer") write_log("Error: not implemented.");
         else if(command == "lookup-color") write_log("Error: not implemented.");
         else{
