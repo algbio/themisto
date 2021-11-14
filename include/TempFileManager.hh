@@ -57,7 +57,6 @@ public:
 
 
     Temp_File_Manager() : urandom("/dev/urandom") {
-        cerr << "Constructing new temp file manager" << endl;
         for(char c = 'a'; c <= 'z'; c++) alphabet.push_back(c);
         for(char c = 'A'; c <= 'Z'; c++) alphabet.push_back(c);
         for(char c = '0'; c <= '9'; c++) alphabet.push_back(c);
