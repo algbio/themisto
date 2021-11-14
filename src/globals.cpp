@@ -1,5 +1,3 @@
-#pragma once
-
 #include "globals.hh"
 
 Temp_File_Manager& get_temp_file_manager(){

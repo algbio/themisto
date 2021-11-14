@@ -11,6 +11,7 @@ using namespace std;
 static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "stats"};
 
 void print_help(int argc, char** argv){
+    (void) argc; // Unused parameter
     cerr << "Available commands: " << endl;
     for(string S : commands) cerr << "   " << argv[0] << " " << S << endl;
     cerr << "Running a command without arguments prints the usage instructions for the command." << endl;
