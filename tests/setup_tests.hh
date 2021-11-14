@@ -57,10 +57,10 @@ void setup_tests(int argc, char** argv){
     for(LL i = 1; i < argc; i++)
         if(argv[i] == string("--verbose") || argv[i] == string("-v")) verbose = true;
 
+    set_temp_dir("temp");
+
     verbose ? enable_test_logging() : disable_test_logging(); // test logger
     disable_logging(); // main logger
-    
-    temp_file_manager.set_dir("temp");
 
     ::testing::InitGoogleTest(&argc, argv);
 

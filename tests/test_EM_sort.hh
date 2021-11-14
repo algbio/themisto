@@ -19,7 +19,7 @@
 
 // Returns filename
 string generate_line_based_testcase(LL n_lines, LL line_length){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile);
     for(LL i = 0; i < n_lines; i++){
         out << get_random_string(line_length, 2) << "\n";
@@ -35,7 +35,7 @@ string sort_lines_stdlib(string infile, const std::function<bool(const char* x, 
     
     vector<string> lines = get_all_lines(infile);
     sort(lines.begin(), lines.end(), cmp_wrap);
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile);
     for(string line : lines) out << line << "\n";
     return outfile;
@@ -44,20 +44,20 @@ string sort_lines_stdlib(string infile, const std::function<bool(const char* x, 
 void test_line_sort(string infile, const std::function<bool(const char*, const char*)> & cmp){
     
     string fileA = sort_lines_stdlib(infile, cmp);
-    string fileB = temp_file_manager.get_temp_file_name("");
+    string fileB = create_temp_filename();
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
     logger << "Sorting lines with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort(infile, fileB, cmp, ram, merge_k, 3, EM_LINES);
     ASSERT_TRUE(files_are_equal(fileA, fileB));
 
-    temp_file_manager.delete_file(fileA);
-    temp_file_manager.delete_file(fileB);
+    delete_temp_file(fileA);
+    delete_temp_file(fileB);
     
 }
 
 string generate_variable_binary_testcase(LL max_record_len_bytes, LL n_records){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < n_records; i++){
         LL record_len = max((LL)8, rand() % (max_record_len_bytes + 1));
@@ -72,7 +72,7 @@ string generate_variable_binary_testcase(LL max_record_len_bytes, LL n_records){
 }
 
 string generate_constant_binary_testcase(LL record_len, LL n_records){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < n_records; i++){
         for(LL b = 0; b < record_len; b++){
@@ -110,7 +110,7 @@ string binary_sort_stdlib(string infile, const std::function<bool(const char*, c
         EXPECT_FALSE(cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
     }
 
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < block->starts.size(); i++){
         LL length = parse_big_endian_LL(block->data + block->starts[i]);
@@ -136,7 +136,7 @@ string constant_binary_sort_stdlib(string infile, LL rec_len, const std::functio
         EXPECT_FALSE(cmp(block->data + block->starts[i], block->data + block->starts[i-1]));
     }
 
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     throwing_ofstream out(outfile, ios::binary);
     for(LL i = 0; i < block->starts.size(); i++){
         out.write(block->data + block->starts[i], rec_len);
@@ -148,30 +148,30 @@ string constant_binary_sort_stdlib(string infile, LL rec_len, const std::functio
 void test_variable_binary_sort(string infile, const std::function<bool(const char*, const char*)> & cmp){
     
     string fileA = binary_sort_stdlib(infile, cmp);
-    string fileB = temp_file_manager.get_temp_file_name("");
+    string fileB = create_temp_filename();
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
     logger << "Sorting variable binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort(infile, fileB, cmp, ram, merge_k, 3, EM_VARIABLE_BINARY);
     ASSERT_TRUE(files_are_equal(fileA, fileB));
 
-    temp_file_manager.delete_file(fileA);
-    temp_file_manager.delete_file(fileB);
+    delete_temp_file(fileA);
+    delete_temp_file(fileB);
     
 }
 
 void test_constant_binary_sort(string infile, LL record_len, const std::function<bool(const char*, const char*)> & cmp){
     
     string fileA = constant_binary_sort_stdlib(infile, record_len, cmp);
-    string fileB = temp_file_manager.get_temp_file_name("");
+    string fileB = create_temp_filename();
     LL ram = rand() % 10000 + 1;
     LL merge_k = rand() % 6 + 2;
     logger << "Sorting constant-binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
     EM_sort_constant_binary(infile, fileB, cmp, ram, merge_k, record_len, 3);
     ASSERT_TRUE(files_are_equal(fileA, fileB));
 
-    temp_file_manager.delete_file(fileA);
-    temp_file_manager.delete_file(fileB);
+    delete_temp_file(fileA);
+    delete_temp_file(fileB);
     
 }
 

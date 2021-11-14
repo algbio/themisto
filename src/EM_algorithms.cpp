@@ -23,7 +23,7 @@ string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_thr
         }
     };
 
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     EM_sort_constant_binary(infile, outfile, cmp, ram_bytes, 4, 8+8, n_threads);
     return outfile;
 }
@@ -46,13 +46,13 @@ string EM_line_sort_pairs(string infile, int (*cmp_1) (const char* x_1, const ch
         return b < 0;
     };
     
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     EM_sort(infile, outfile, cmp, ram_bytes, 4, n_threads, EM_LINES);
     return outfile;
 }
 
 string EM_delete_duplicate_lines_from_sorted_file(string infile){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile);
     throwing_ofstream out(outfile);
@@ -71,7 +71,7 @@ string EM_delete_duplicate_lines_from_sorted_file(string infile){
 }
 
 string debug_binary_to_string_form(string infile){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile,ios::binary);
     throwing_ofstream out(outfile);
@@ -89,7 +89,7 @@ string debug_binary_to_string_form(string infile){
 }
 
 string EM_delete_duplicate_LL_pair_records(string infile){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile, ios::binary);
     throwing_ofstream out(outfile, ios::binary);
@@ -114,7 +114,7 @@ string EM_delete_duplicate_LL_pair_records(string infile){
 
 // (node, color) pairs to (node, color list) pairs
 string EM_collect_colorsets_binary(string infile){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile, ios::binary);
     throwing_ofstream out(outfile, ios::binary);
@@ -177,13 +177,13 @@ string EM_sort_by_colorsets_binary(string infile, LL ram_bytes, LL n_threads){
         }
     };
     
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
     EM_sort(infile, outfile, cmp, ram_bytes, 4, n_threads, EM_VARIABLE_BINARY);
     return outfile;
 }
 
 string EM_collect_nodes_by_colorset_binary(string infile){
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile, ios::binary);
     throwing_ofstream out(outfile, ios::binary);
@@ -259,7 +259,7 @@ string EM_collect_nodes_by_colorset_binary(string infile){
 string EM_collect(string infile, LL key_pos){
     assert(key_pos == 0 || key_pos == 1);
 
-    string outfile = temp_file_manager.get_temp_file_name("");
+    string outfile = create_temp_filename();
 
     throwing_ifstream in(infile);
     throwing_ofstream out(outfile);

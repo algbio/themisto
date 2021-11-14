@@ -185,8 +185,8 @@ void update_top(){
 public:
 
     Kmer_sorter_disk(LL n_threads) : n_threads(n_threads) {
-        unsorted_filename = temp_file_manager.get_temp_file_name("kmers");
-        sorted_filename = temp_file_manager.get_temp_file_name("kmers_sorted");
+        unsorted_filename = create_temp_filename("kmers");
+        sorted_filename = create_temp_filename("kmers_sorted");
         unsorted.open(unsorted_filename, ios_base::binary);
         if(!unsorted.good()){
             write_log("Error writing to file " + unsorted_filename);

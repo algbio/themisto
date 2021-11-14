@@ -129,7 +129,7 @@ int pseudoalign_main(int argc, char** argv){
 
     write_log("Starting");
 
-    temp_file_manager.set_dir(C.temp_dir);
+    set_temp_dir(C.temp_dir);
 
     write_log("Loading the index");    
     Themisto themisto;
@@ -142,7 +142,7 @@ int pseudoalign_main(int argc, char** argv){
         string inputfile = C.query_files[i];
         string file_format = figure_out_file_format(inputfile);
         if(file_format == "gzip"){
-            string new_name = temp_file_manager.get_temp_file_name("input");
+            string new_name = create_temp_filename("input");
             check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
             file_format = figure_out_file_format(inputfile.substr(0,inputfile.size() - 3));
             inputfile = new_name;
@@ -151,7 +151,7 @@ int pseudoalign_main(int argc, char** argv){
         Sequence_Reader sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         sr.set_upper_case(true);
         themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
-        temp_file_manager.clean_up();
+        delete_all_temp_files();
     }
 
     write_log("Finished");

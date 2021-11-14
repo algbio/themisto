@@ -2,11 +2,37 @@
 
 #include "globals.hh"
 
+Temp_File_Manager temp_file_manager;
+
+void set_temp_dir(string dir){
+    temp_file_manager.set_dir(dir);
+}
+
+string get_temp_dir(){
+    return temp_file_manager.get_dir();
+}
+
+void delete_all_temp_files(){
+    temp_file_manager.clean_up();
+}
+
+string create_temp_filename(){
+    return create_temp_filename("");
+}
+
+string create_temp_filename(string prefix){
+    return temp_file_manager.get_temp_file_name(prefix);
+}
+
+void delete_temp_file(string filename){
+    temp_file_manager.delete_file(filename);
+}
+
 long long cur_time_millis(){
 	return (std::chrono::duration_cast< milliseconds >(system_clock::now().time_since_epoch())).count();
 }
 
-static long long int program_start_millis = cur_time_millis();
+long long int program_start_millis = cur_time_millis();
 
 double seconds_since_program_start(){
 	return (cur_time_millis() - program_start_millis) / 1000.0;
@@ -18,7 +44,7 @@ string getTimeString(){
     return time.substr(0,time.size() - 1); // Trim the trailing newline
 }
 
-static bool logging_enabled = true;
+bool logging_enabled = true;
 
 void enable_logging(){
     logging_enabled = true;
@@ -28,7 +54,7 @@ void disable_logging(){
     logging_enabled = false;
 }
 
-static std::mutex write_log_mutex;
+std::mutex write_log_mutex;
 
 void write_log(string message){
     std::lock_guard<std::mutex> lock(write_log_mutex);
@@ -367,8 +393,8 @@ void sigabrt_handler(int sig) {
     exit(1);
 }
 
-static auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the SIGINT handler
-static auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler
+auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the SIGINT handler
+auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler
 
 vector<string> get_first_and_last_kmers(string fastafile, LL k){
     // todo: this is pretty expensive because this has to read the whole reference data

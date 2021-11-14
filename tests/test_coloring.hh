@@ -89,7 +89,7 @@ TEST(COLORING_TESTS, kmer_edge_case){
     vector<string> seqs = {"AACA", "ATAACAGACT"};
     vector<LL> colors = {0,1};
     LL k = 4;
-    string fastafile = temp_file_manager.get_temp_file_name("");
+    string fastafile = create_temp_filename();
     write_as_fasta(seqs, fastafile);
     BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(seqs, k, false);
     Coloring coloring;
@@ -106,7 +106,7 @@ TEST(COLORING_TESTS, kmer_edge_case){
 TEST(COLORING_TESTS, random_testcases){
     for(ColoringTestCase tcase : generate_testcases()){
         logger << "Running testcase" << endl;
-        string fastafilename = temp_file_manager.get_temp_file_name("ctest");
+        string fastafilename = create_temp_filename("ctest");
         throwing_ofstream fastafile(fastafilename);
         fastafile << tcase.fasta_data;
         fastafile.close();

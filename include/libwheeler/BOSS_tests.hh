@@ -142,12 +142,12 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     boss_t boss_maps = build_BOSS_with_maps(tcase.reads, tcase.k, reverse_complements);
 
     // Build from KMC
-    string fastafile = temp_file_manager.get_temp_file_name("");
+    string fastafile = create_temp_filename();
     throwing_ofstream out(fastafile);
     for(string S : tcase.reads) out << ">\n" << S << "\n";
     out.flush();
-    string KMC_db_path_prefix = temp_file_manager.get_temp_file_name("KMC");
-    KMC_wrapper(tcase.k+1, 1, 2, fastafile, temp_file_manager.get_dir(), KMC_db_path_prefix, reverse_complements);
+    string KMC_db_path_prefix = create_temp_filename("KMC");
+    KMC_wrapper(tcase.k+1, 1, 2, fastafile, get_temp_dir(), KMC_db_path_prefix, reverse_complements);
     Kmer_stream_from_KMC_DB kmer_stream(KMC_db_path_prefix, reverse_complements);
     BOSS_builder<boss_t, Kmer_stream_from_KMC_DB> bb;
     boss_t boss_KMC = bb.build(kmer_stream, 1e9, 2);

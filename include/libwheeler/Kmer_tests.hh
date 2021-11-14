@@ -79,7 +79,7 @@ TEST(KMER, basic){
 TEST(KMER, serialization){
     string S = debug_test_get_random_DNA_string(255);
     Kmer<255> kmer(S);
-    string filename = temp_file_manager.get_temp_file_name("kmer-serialization");
+    string filename = create_temp_filename("kmer-serialization");
     ofstream out(filename, ios_base::binary);
     kmer.serialize(out);
     out.flush();

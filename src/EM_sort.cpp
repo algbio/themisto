@@ -159,7 +159,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
         for(LL i = 0; i < cur_round.size(); i += k){
             // Merge
             vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + k, (LL)cur_round.size()));
-            string round_file = temp_file_manager.get_temp_file_name("");
+            string round_file = create_temp_filename();
             writer->open_file(round_file);
             reader->open_files(to_merge);
             merge_files_generic(cmp, merge_count, reader, writer);
@@ -169,7 +169,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
 
             // Clear files
             for(LL j = i; j < min(i+k, (LL)cur_round.size()); j++){
-                temp_file_manager.delete_file(cur_round[j].c_str());
+                delete_temp_file(cur_round[j].c_str());
             }
         }
         cur_round = next_round;
@@ -181,7 +181,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     else{
         assert(cur_round.size() == 1);
         copy_file(cur_round[0], outfile, 1024*1024);
-        temp_file_manager.delete_file(cur_round[0].c_str());
+        delete_temp_file(cur_round[0].c_str());
     }
 
 }
