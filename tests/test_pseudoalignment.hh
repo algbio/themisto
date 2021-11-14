@@ -8,6 +8,8 @@
 #include "../Themisto.hh"
 #include "setup_tests.hh"
 #include <gtest/gtest.h>
+#include "Argv.hh"
+#include "commands.hh"
 
 using namespace std;
 
@@ -114,7 +116,6 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
     LL testcase_id = -1;
     LL ref_length = 100;
     LL n_refs = 50;
-    LL n_threads = 3;
     LL n_queries = 10000;
     LL query_length = 20;
     LL k_min = 1;
@@ -124,12 +125,10 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         testcase_id++;
         logger << "Running alignment testcase" << endl;
 
-        string genomes_outfilename = get_temp_file_manager().create_filename("genomes-");
-        string colors_outfilename = get_temp_file_manager().create_filename("colors-");
-        string queries_outfilename = get_temp_file_manager().create_filename("queries-");
-        string colorfile_outfilename = get_temp_file_manager().create_filename("colorfile-");
-        string boss_outfilename = get_temp_file_manager().create_filename("boss-");
-        string coloring_outfilename = get_temp_file_manager().create_filename("coloring-");
+        string genomes_outfilename = get_temp_file_manager().create_filename("genomes-",".fna");
+        string queries_outfilename = get_temp_file_manager().create_filename("queries-",".fna");
+        string colorfile_outfilename = get_temp_file_manager().create_filename("colorfile-",".txt");
+        string index_dir = get_temp_file_manager().get_dir() + "/test_index";
 
         throwing_ofstream genomes_out(genomes_outfilename);
         for(string genome : tcase.genomes){
@@ -149,33 +148,29 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         }
         queries_out.close();
 
-        {
-            Themisto kl_build;
-            kl_build.construct_boss(genomes_outfilename, tcase.k, 1000, 2, true);
-            kl_build.construct_colors(genomes_outfilename, colorfile_outfilename, 1000, 3, 10);
-            kl_build.save_boss(boss_outfilename);
-            kl_build.save_colors(coloring_outfilename);
-        }
+        stringstream build_argstring;
+        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 1 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_dir << " --temp-dir " << get_temp_file_manager().get_dir();
+        Argv build_argv(split(build_argstring.str()));
 
-        Themisto kl; // Load back to test serialization
-        kl.load_boss(boss_outfilename);
-        kl.load_colors(coloring_outfilename);
-
-        // Check against reference boss
-        BOSS<sdsl::bit_vector> ref_boss = build_BOSS_with_maps(tcase.genomes, tcase.k, true); // Reverse complements enabled because the KMC construction uses those
-        ASSERT_TRUE(ref_boss == kl.boss);
+        ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
 
         // Run without rc
         string final_file = get_temp_file_manager().create_filename("finalfile-");
-        Sequence_Reader sr(queries_outfilename, FASTA_MODE);
-        kl.pseudoalign_parallel(n_threads, sr, final_file, false, 300, false, true);
-        vector<set<LL> > our_results = kl.parse_output_format_from_disk(final_file);
+        stringstream pseudoalign_argstring;
+        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_dir << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        Argv pseudoalign_argv(split(pseudoalign_argstring.str()));
+        ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
+
+        vector<set<LL> > our_results = Themisto::parse_output_format_from_disk(final_file);
 
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
-        Sequence_Reader sr2(queries_outfilename, FASTA_MODE);
-        kl.pseudoalign_parallel(n_threads, sr2, final_file_rc, true, 300, false, true);
-        vector<set<LL> > our_results_rc = kl.parse_output_format_from_disk(final_file_rc);
+        stringstream pseudoalign_rc_argstring;
+        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_dir << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
+        ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
+
+        vector<set<LL> > our_results_rc = Themisto::parse_output_format_from_disk(final_file_rc);
 
         for(LL i = 0; i < tcase.queries.size(); i++){
             string query = tcase.queries[i];

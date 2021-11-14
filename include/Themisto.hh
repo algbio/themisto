@@ -418,6 +418,7 @@ public:
                 sort_parallel_output_file(instream, outstream);
             }
             copy_file(tempfile, outfile, 1024*1024);
+            get_temp_file_manager().delete_file(tempfile);
         }
     }
 
@@ -449,8 +450,8 @@ public:
     }
 
     // returns a vector where element i is the ref ids aligned with query i
-    vector<set<LL> > parse_output_format_from_disk(string filename){
-        vector<set<LL> > results;
+    static vector<set<LL> > parse_output_format_from_disk(string filename){
+        vector<pair<LL, set<LL>>> results; // Pairs (query id, color set)
         check_readable(filename);
         throwing_ifstream input(filename);
         string line;
@@ -460,15 +461,18 @@ public:
             vector<LL> tokens = parse_tokens<LL>(line);
             assert(tokens.size() >= 1);
             LL query_id = tokens[0];
-            assert(query_id == line_number);
             set<LL> alignments;
             for(LL i = 1; i < tokens.size(); i++){
                 alignments.insert(tokens[i]);
             }
-            results.push_back(alignments);
+            results.push_back({query_id, alignments});
             line_number++;
         }
-        return results;
+
+        sort(results.begin(), results.end());
+        vector<set<LL> > just_color_sets;
+        for(auto X : results) just_color_sets.push_back(X.second);
+        return just_color_sets;
     }
 
 };

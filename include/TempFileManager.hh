@@ -73,10 +73,14 @@ public:
     }
 
     string create_filename(){
-        return create_filename("");
+        return create_filename("","");
     }
 
     string create_filename(string prefix){
+        return create_filename(prefix, "");
+    }
+
+    string create_filename(string prefix, string suffix){
         // Make sure only one thread runs in this function at once
         std::lock_guard<std::mutex> lg(mutex);
         if(temp_dir == ""){
@@ -84,7 +88,7 @@ public:
             exit(1);
         }
         while(true){
-            string name = temp_dir + "/" + prefix + get_random_string(25); // 62^25 >= 10^44 different possibilities
+            string name = temp_dir + "/" + prefix + get_random_string(25) + suffix; // 62^25 >= 10^44 different possibilities
             auto desc = open(name.c_str(), O_CREAT | O_EXCL, S_IRWXU); // Fails if file exists, otherwise creates it
             if(desc != -1){
                 used_names.insert(name);

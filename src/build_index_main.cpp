@@ -101,11 +101,11 @@ int build_index_main(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build BOSS and colors:" << endl;
-        cerr << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
+        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
         cerr << "Build only the BOSS" << endl;
-        cerr << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
+        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
         cerr << "Load a previously built BOSS from the index directory and compute the colors:" << endl;
-        cerr << argv[0] << " .-mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
+        cerr << "  " << argv[0] << " .-mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
         exit(1);
     }    
 
