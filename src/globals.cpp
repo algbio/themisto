@@ -318,15 +318,26 @@ vector<LL> read_colorfile(string filename){
 }
 
 // Returns new inputfile and new colorfile
+// If colorfile == "", the returned colorfile is also ""
+// Input file can't be ""
 pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile){
-    string new_colorfile = get_temp_file_manager().create_filename();
+    if(inputfile == "") throw std::runtime_error("Empty input file");
+    if(inputfile_format != "fasta" && inputfile_format != "fastq") throw std::runtime_error("Unkown input format" + inputfile_format);
+
+    string new_colorfile = (colorfile == "" ? "" : get_temp_file_manager().create_filename());
     string new_seqfile = get_temp_file_manager().create_filename();
 
-    throwing_ofstream colors_out(new_colorfile);
+    vector<LL> colors;
+    throwing_ofstream colors_out;
+
+    if(colorfile != "") {
+        colors = read_colorfile(colorfile);
+        colors_out.open(new_colorfile);
+    }
+
+    throwing_ofstream sequences_out(new_seqfile);
 
     Sequence_Reader fr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    throwing_ofstream sequences_out(new_seqfile);
-    vector<LL> colors = read_colorfile(colorfile);
     LL seq_id = 0;
     while(!fr.done()){
 
@@ -343,7 +354,7 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
             else{
                 if(new_seq.size() > 0){
                     sequences_out << ">\n" << new_seq << "\n";
-                    colors_out << colors[seq_id] << "\n";
+                    if(colorfile != "") colors_out << colors[seq_id] << "\n";
                     new_seq = "";
                 }
             }

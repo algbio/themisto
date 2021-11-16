@@ -91,7 +91,7 @@ TEST(MISC_TEST, string_to_integer_safe){
 
 }
 
-// If no colorfile is given, should assign colors automatically
+// If no colorfile is given, should assign colors automatically for each sequence
 TEST(MISC_TEST, cli_auto_colors){
     vector<string> seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
     LL k = 3;
@@ -115,6 +115,24 @@ TEST(MISC_TEST, cli_auto_colors){
 }
 
 // If --no-colors is given, should not build colors
-/*TEST(MISC_TEST, no_colors){
-    FAIL();
-}*/
+TEST(MISC_TEST, no_colors){
+    vector<string> seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
+    LL k = 3;
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
+    string indexdir = get_temp_file_manager().create_filename();
+    string tempdir = get_temp_file_manager().get_dir();
+    write_as_fasta(seqs, fastafile);
+    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    Themisto themisto;
+    themisto.load_boss_from_directory(indexdir); // Should work
+    try{
+        themisto.load_colors_from_directory(indexdir); // Should throw
+        FAIL(); // Did not throw
+    } catch (const std::runtime_error &e){
+        ASSERT_EQ(string(e.what()), "Error loading color data structure");
+    }
+}
+
+// todo: check that --no-colors is not given if color file is given?

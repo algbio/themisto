@@ -255,36 +255,47 @@ public:
 
     void load_from_disk(string path_prefix){
 
-        sdsl::load_from_file(color_sets, path_prefix + "colorsets");
-        sdsl::load_from_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
-        sdsl::load_from_file(nonempty, path_prefix + "colors-nonempty");
-        sdsl::load_from_file(color_set_starts, path_prefix + "colors-starts");
-        sdsl::load_from_file(redundancy_marks, path_prefix + "redundancy-marks");
-        sdsl::load_from_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
+        bool success = true;
+        success &= sdsl::load_from_file(color_sets, path_prefix + "colorsets");
+        success &= sdsl::load_from_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
+        success &= sdsl::load_from_file(nonempty, path_prefix + "colors-nonempty");
+        success &= sdsl::load_from_file(color_set_starts, path_prefix + "colors-starts");
+        success &= sdsl::load_from_file(redundancy_marks, path_prefix + "redundancy-marks");
+        success &= sdsl::load_from_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
 
-        sdsl::load_from_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
+        success &= sdsl::load_from_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
+
         nonempty_rs.set_vector(&nonempty);
-        sdsl::load_from_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
+
+        success &= sdsl::load_from_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
+
         color_set_starts_ss.set_vector(&color_set_starts);
-        sdsl::load_from_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
+
+        success &= sdsl::load_from_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
+        
         nonempty_and_nonredundant_rs.set_vector(&nonempty_and_nonredundant);
 
         n_colors = 0;
         for(LL i = 0; i < color_sets.size(); i++) n_colors = max(n_colors, (LL)(color_sets[i]+1));
 
+        if(!success) throw std::runtime_error("Error loading color data structure");
+
     }
 
     void save_to_disk(string path_prefix){
 
-        sdsl::store_to_file(color_sets, path_prefix + "colorsets");
-        sdsl::store_to_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
-        sdsl::store_to_file(nonempty, path_prefix + "colors-nonempty");
-        sdsl::store_to_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
-        sdsl::store_to_file(color_set_starts, path_prefix + "colors-starts");
-        sdsl::store_to_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
-        sdsl::store_to_file(redundancy_marks, path_prefix + "redundancy-marks");
-        sdsl::store_to_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
-        sdsl::store_to_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
+        bool success = true;
+        success &= sdsl::store_to_file(color_sets, path_prefix + "colorsets");
+        success &= sdsl::store_to_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
+        success &= sdsl::store_to_file(nonempty, path_prefix + "colors-nonempty");
+        success &= sdsl::store_to_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
+        success &= sdsl::store_to_file(color_set_starts, path_prefix + "colors-starts");
+        success &= sdsl::store_to_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
+        success &= sdsl::store_to_file(redundancy_marks, path_prefix + "redundancy-marks");
+        success &= sdsl::store_to_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
+        success &= sdsl::store_to_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
+
+        if(!success) throw std::runtime_error("Error saving color data structure");
 
     }
 
