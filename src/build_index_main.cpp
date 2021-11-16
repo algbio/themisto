@@ -123,7 +123,7 @@ int build_index_main(int argc, char** argv){
     C.auto_colors = opts["auto-colors"].as<bool>();
     C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
-    C.del_non_ACGT = opts["delete-non-ACGT"].as<bool>();
+    C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
 
     create_directory_if_does_not_exist(C.index_dir);
     create_directory_if_does_not_exist(C.temp_dir);
