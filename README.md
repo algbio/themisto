@@ -9,9 +9,13 @@ We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. 
 
 # Installation
 ## Requirements
-Compilation: C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
+
+We currently support only Linux and MacOS. For compilation, you will need a C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ## Compiling
+
+### Linux
+
 A c++-17-compliant compiler is required. Enter the Themisto directory and run
 
 ```
@@ -20,25 +24,13 @@ cmake .. -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
 make
 ```
 
-Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best.
+Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best. This will create the binary at`build/bin/themisto`.
 
-This will create the binary at`build/bin/themisto`.
+**Troubleshooting**: If you run into problems involving the &lt;filesystem&gt; header, you probably need to update your compiler. The compiler `g++-8` should be sufficient. Install a new compiler and direct CMake to use it with the `-DCMAKE_CXX_COMPILER` option. For example, to set the compiler to `g++-8`, run CMake with the option `-DCMAKE_CXX_COMPILER=g++-8`. 
 
-### Troubleshooting
+## MacOS
 
-If you run into problems involving zlib or bzip2, you can instruct the
-build process to download & compile them from source with
-
-```
-cmake -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 ..
-make
-```
-
-If you run into problems involving the &lt;filesystem&gt; header, you probably need to update your compiler. The compiler `g++-8` should be sufficient. Install a new compiler and direct CMake to use it with the `-DCMAKE_CXX_COMPILER` option. For example, to set the compiler to `g++-8`, run CMake with the option `-DCMAKE_CXX_COMPILER=g++-8`. 
-
-## Compiling on macOS
-Compiling Themisto on macOS requires users to first install gcc-8 or
-newer from homebrew with
+Compiling Themisto on macOS requires users to first install gcc-8 or newer from homebrew with
 
 ```
 brew install gcc@8
