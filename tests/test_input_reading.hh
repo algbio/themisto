@@ -150,37 +150,19 @@ TEST(INPUT_PARSING, fastq_headers){
     rs.get_all();
 }
 
-/*
-
-TEST(INPUT_PARSING, fastq_multiple_lines){
-    vector<string> seqs = {"AAGTGCTGTANAYA","ACGTURYKMSWBDHVN-"};
-    string fasta;
-
-    // Write 3 chars per line
-    for(string seq : seqs){
-        fasta += ">\n";
-        for(LL i = 0; i < (LL)seq.size(); i += 3){
-            fasta += seq.substr(i,3) + "\n";
-        }
-    }
-    logger << fasta << endl << seqs << endl;
-    string filename = string_to_temp_file(fasta);
-    check_sequence_reader_output(seqs, filename);
+TEST(INPUT_PARSING, fastq_things_after_plus){
+    vector<string> seqs =  {"AAGTGCTGTANAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","ACGTURYKMSWBDHVN-"};
+    vector<string> quals = {"!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", "IIIIIIIIIIIIIIIII"};
+    string fastq = "@\n" + seqs[0] + "\n+SOMETHING\n" + quals[0] + "\n" +
+                   "@\n" + seqs[1] + "\n+SOMETHING2\n" + quals[1] + "\n";
+    logger << fastq << endl << seqs << " " << quals << endl;
+    string filename = string_to_temp_file(fastq);
+    check_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
+
+/*
+TEST(INPUT_PARSING, fastq_multiple_lines){
+    // We don't support multi-line sequences in FASTQ
+}
 */
-
-//TEST(INPUT_PARSING, fastq){
-    // Check upper-casing
-
-    // Check multiple lines
-
-    // Check super long line (should not overflow any buffer)
-
-    // @-symbols in quality line
-
-    // +-symbols in quality line
-
-    // optional things after '+'
-
-//}
