@@ -22,8 +22,7 @@ make
 
 Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best.
 
-This will produce the build\_index, pseudoalignment, and
-themisto\_tests executables in the build/bin/ directory.
+This will create the binary at`build/bin/themisto`.
 
 ### Troubleshooting
 
