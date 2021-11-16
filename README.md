@@ -85,7 +85,7 @@ There is one line for each query sequence. The lines may appear in a different o
 
 ## Full instructions for index construction
 
-This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integeres) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence.
+This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence.
 
 ```
 Usage:
