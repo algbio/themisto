@@ -19,7 +19,7 @@ class BOSS_TestCase{
 };
 
 // Test fixture
-class BOSS_Test : public ::testing::Test {
+class BOSS_TEST : public ::testing::Test {
     public:
     vector<BOSS_TestCase> testcases;
 
@@ -118,7 +118,7 @@ TEST_F(BOSS_Test, search){
     }
 }
 
-TEST_F(BOSS_Test, walk){
+TEST_F(BOSS_TEST, walk){
     for(BOSS_TestCase& tcase : testcases){
         boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
         ASSERT_TRUE(boss.walk(-1,*tcase.alphabet.begin()) == -1); // Walk from -1 gives -1
@@ -158,14 +158,14 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
 }
 
 
-TEST_F(BOSS_Test, construction){
+TEST_F(BOSS_TEST, construction){
     for(BOSS_TestCase& tcase : testcases){
         test_construction(tcase, false); // No reverse complements
         test_construction(tcase, true); // Reverse complements
     }
 }
 
-TEST_F(BOSS_Test, node_label){
+TEST_F(BOSS_TEST, node_label){
     for(BOSS_TestCase& tcase : testcases){
         boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
         for(string x : tcase.kmers){
@@ -175,7 +175,7 @@ TEST_F(BOSS_Test, node_label){
 }
 
 
-TEST_F(BOSS_Test, empty){
+TEST_F(BOSS_TEST, empty){
     auto test = [](int k){
         boss_t boss(k);
         ASSERT_TRUE(boss.get_outlabels() == string(""));
