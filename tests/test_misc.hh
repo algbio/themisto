@@ -86,3 +86,13 @@ TEST(MISC_TEST, string_to_integer_safe){
     ASSERT_EQ(string_to_integer_safe("  \n\t  \r 1234567890\n  \r\n"), 1234567890);
 
 }
+
+// If no colorfile is given, should assign colors automatically
+TEST(MISC_TEST, cli_auto_colors){
+    FAIL();
+}
+
+// If --no-colors is given, should not build colors
+TEST(MISC_TEST, no_colors){
+    FAIL();
+}

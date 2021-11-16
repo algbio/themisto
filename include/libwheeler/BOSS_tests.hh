@@ -85,7 +85,7 @@ void check_data_is_equal(boss_t& boss1, boss_t& boss2){
     ASSERT_TRUE(boss1 == boss2);
 }
 
-TEST_F(BOSS_Test, serialization){
+TEST_F(BOSS_TEST, serialization){
     for(BOSS_TestCase& tcase : testcases){
         boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
         boss.save_to_disk("test_out/");
@@ -95,7 +95,7 @@ TEST_F(BOSS_Test, serialization){
     }
 }
 
-TEST_F(BOSS_Test, search){
+TEST_F(BOSS_TEST, search){
     for(BOSS_TestCase& tcase : testcases){
         // 1) If a k-mer is in set, it must be found
         // 2) If a k-mer is not in set, it must not be found
