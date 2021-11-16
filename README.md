@@ -16,7 +16,7 @@ We currently support only Linux and MacOS. For compilation, you will need a C++1
 
 ### Linux
 
-These instructions have been tested to work on Ubuntu 20.4. To build the software, enter the Themisto directory and run
+These instructions have been tested to work on Ubuntu 18.04. To build the software, enter the Themisto directory and run
 
 ```
 cd build
