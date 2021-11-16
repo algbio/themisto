@@ -16,7 +16,7 @@ We currently support only Linux and MacOS. For compilation, you will need a C++1
 
 ### Linux
 
-A c++-17-compliant compiler is required. Enter the Themisto directory and run
+Enter the Themisto directory and run
 
 ```
 cd build
