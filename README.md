@@ -1,11 +1,11 @@
 # About Themisto
-Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true).
+Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true). The pseudoalignment algorithm is modeled after the tool Kallisto.
 
-Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built without colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
+## Colored de Bruijn graph definition
 
-The de Bruijn graph is defined so that the nodes represent k-mers and edges (k+1)-mers. There is an edge from u to v if there is a (k+1)-mer in the data that is suffixed by u and prefixed by v. The set of nodes is the set of endpoints of all edges. Note that this implies that orphan k-mers (those that are not connected to any edge) are not in the graph.
+The de Bruijn graph is defined so that the nodes represent k-mers and edges (k+1)-mers. The graph is [edge centric](https://www.biostars.org/p/175058/#256741), meaning that there is an edge from u to v if there is a (k+1)-mer in the data that is suffixed by u and prefixed by v. The set of nodes is the set of endpoints of all edges. Note that this implies that orphan k-mers (those that are not connected to any edge) are not in the graph. Each edge is associated with a set of colors. The color set contains the colors of all input sequences that have the (k+1)-mer corresponding to the edge. Each node is also given a color set that is the union of the color sets of the edges connected to the node.
 
-We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. Since KMC3 only works with the DNA alphabet ACGT, we must preprocess the data so that it does not have any characters outside of the alphabet ACGT. The default behavior is the replace those characters with random nucleotides. If instead you would like to *delete* all k-mers that are not from the alphabet ACGT, pass in the option `--delete-non-ACGT`. This effectively removes all nodes and edges that would contain a character outside of the alphabet ACGT. If you would like to deal with non-ACGT characters differently, please preprocess the data yourself.
+We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. Since KMC3 only works with the DNA alphabet ACGT, we must preprocess the data so that it does not have any characters outside of the alphabet ACGT. By default, we delete all (k+1)-mers that contain a letter that is outside of the alphabet ACGT. We also offer an option `--randomize-non-ACGT` that replaces non-ACGT characters with random nucleotides. If you would like to deal with non-ACGT characters differently, please preprocess the data before running.
 
 # Installation
 ## Requirements
@@ -16,11 +16,11 @@ A c++-17-compliant compiler is required. Enter the Themisto directory and run
 
 ```
 cd build
-cmake .. -DMAX_KMER_LENGTH=60
+cmake .. -DMAX_KMER_LENGTH=31
 make
 ```
 
-Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes.
+Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best.
 
 This will produce the build\_index, pseudoalignment, and
 themisto\_tests executables in the build/bin/ directory.
@@ -65,14 +65,17 @@ ulimit -n 2048
 
 ## Quick start
 
+Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built without colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
+
 There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp` as temporary storage, using four threads and up to 1GB of memory, deleting non-ACGT-characters, run the following:
 
 ```
 ./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 --n-threads 4 --delete-non-ACGT
 ```
 
+We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
 
-We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input. To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
+To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
 
 ```
 ./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-dir example_index --temp-dir temp --out-file out.txt --n-threads 4
@@ -91,7 +94,7 @@ There is one line for each query sequence. The lines may appear in a different o
 
 ## Full instructions for index construction
 
-This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. The names are given as ASCII strings, but they should not contain whitespace characters. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.
+This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integeres) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence.
 
 ```
 Usage:
@@ -111,11 +114,12 @@ Usage:
                                 directory and the temporary file is deleted 
                                 after use.
   -c, --color-file arg          One color per sequence in the fasta file, 
-                                one color name per line. Required only if 
-                                you want to build the colors. (default: "")
-      --auto-colors             Instead of a color file let the program 
-                                automatically give colors integer names 
-                                (0,1,2...)
+                                one color per line. If not given, colors 
+                                are not built, unless --auto-colors is 
+                                given. (default: "")
+      --auto-colors             Instead of a color file, number the 
+                                sequences with integers 0,1,2,... in the 
+                                same order as in the sequence file.)
   -o, --index-dir arg           Directory where the index will be built. 
                                 Always required, directory must exist 
                                 before running.
@@ -136,10 +140,10 @@ Usage:
                                 1000)
   -t, --n-threads arg           Number of parallel exectuion threads. 
                                 Default: 1 (default: 1)
-      --delete-non-ACGT         Delete k-mers that have a letter outside of 
-                                the DNA alphabet ACGT. If this option is 
-                                not given, the non-ACGT letters are 
-                                replaced with random nucleotides.
+      --randomize-non-ACGT      Replace non-ACGT letters with random 
+                                nucleotides. If this option is not given, 
+                                (k+1)-mers containing a non-ACGT character 
+                                are deleted instead.
       --pp-buf-siz arg          Size of preprocessing buffer (in bytes) for 
                                 fixing alphabet (default: 4096)
   -h, --help                    Print usage

@@ -31,7 +31,7 @@ struct Build_Config{
 
         if(!load_boss){
             check_true(k != -1, "Parameter k not set");
-            check_true(k <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
+            check_true(k+1 <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH - 1) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
         }
 
         if(colorfile != ""){
@@ -89,7 +89,7 @@ int build_index_main(int argc, char** argv){
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
-        ("delete-non-ACGT", "Delete k-mers that have a letter outside of the DNA alphabet ACGT. If this option is not given, the non-ACGT letters are replaced with random nucleotides.", cxxopts::value<bool>()->default_value("false"))
+        ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
         ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet", cxxopts::value<LL>()->default_value("4096"))
         ("h,help", "Print usage")
     ;

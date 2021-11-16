@@ -4,7 +4,7 @@ include(ExternalProject)
 
 ## Set maximum k-mer length
 if(NOT MAX_KMER_LENGTH)
-  set(MAX_KMER_LENGTH 63) ## Default max k-mer length is 63
+  set(MAX_KMER_LENGTH 31) ## Default max k-mer length is 31, so that edges are 32-mers and fit into a single machine word
 endif()
 if(MAX_KMER_LENGTH GREATER 255)
   message(${MAX_KMER_LENGTH})
