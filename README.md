@@ -16,7 +16,7 @@ A c++-17-compliant compiler is required. Enter the Themisto directory and run
 
 ```
 cd build
-cmake .. -DMAX_KMER_LENGTH=31
+cmake .. -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
 make
 ```
 
@@ -48,13 +48,13 @@ Afterwards, Themisto can be compiled by entering the directory and running
 
 ```
 cd build
-cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=60 ..
+cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=31 ..
 make
 ```
 
-Where 60 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Note that macOS has a very small limit for the number of concurrently
-opened files. Themisto can use temporary files to conserve RAM, and
-may run into this limit. To increase the limit, run the command
+Where 31 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. If you run into problems involving zlib or bzip2, add `-DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1` into the cmake command.
+
+Note that macOS has a very small limit for the number of concurrently opened files. Themisto can use temporary files to conserve RAM, and may run into this limit. To increase the limit, run the command
 
 ```
 ulimit -n 2048
