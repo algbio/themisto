@@ -658,13 +658,15 @@ bool operator==(const WheelerIndex<bitvector_t>& wi1, const WheelerIndex<bitvect
     // Returns true if the data is the same and the rank and
     // select structures give identical answers to aint64_t queries
 
-    assert(wi1.indegs_size() == wi2.indegs_size());
-    for(int64_t i = 0; i < wi1.indegs_size(); i++)
-        assert(wi1.indegs_at(i) == wi2.indegs_at(i));
+    bool same = true;
 
-    assert(wi1.outdegs_size() == wi2.outdegs_size());
+    if(wi1.indegs_size() != wi2.indegs_size()) return false;
+    for(int64_t i = 0; i < wi1.indegs_size(); i++)
+        same &= wi1.indegs_at(i) == wi2.indegs_at(i);
+
+    if(wi1.outdegs_size() != wi2.outdegs_size()) return false;
     for(int64_t i = 0; i < wi1.outdegs_size(); i++)
-        assert(wi1.outdegs_at(i) == wi2.outdegs_at(i));
+        same &= wi1.outdegs_at(i) == wi2.outdegs_at(i);
 
     if(wi1.get_outlabels() != wi2.get_outlabels()) return false;
     if(wi1.C != wi2.C) return false;

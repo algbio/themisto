@@ -9,6 +9,22 @@
 #include "Argv.hh"
 #include "commands.hh"
 
+struct CLI_test_files{
+    string fastafile, indexdir, tempdir, colorfile;
+    CLI_test_files(vector<string> seqs, vector<LL> colors){
+        fastafile = get_temp_file_manager().create_filename("",".fna");
+        indexdir = get_temp_file_manager().create_filename();
+        tempdir = get_temp_file_manager().get_dir();
+        colorfile = get_temp_file_manager().create_filename();
+
+        write_as_fasta(seqs, fastafile);
+
+        throwing_ofstream colors_out(colorfile);
+        for(LL c : colors) colors_out << c << "\n";
+    }
+};
+
+
 class CLI_TEST : public ::testing::Test {
     public:
 
@@ -21,15 +37,11 @@ class CLI_TEST : public ::testing::Test {
         seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
         colors = {3,1,2};
         k = 3;
-        fastafile = get_temp_file_manager().create_filename("",".fna");
-        indexdir = get_temp_file_manager().create_filename();
-        tempdir = get_temp_file_manager().get_dir();
-        colorfile = get_temp_file_manager().create_filename();
-
-        write_as_fasta(seqs, fastafile);
-
-        throwing_ofstream colors_out(colorfile);
-        for(LL c : colors) colors_out << c << "\n";
+        CLI_test_files f(seqs,colors);
+        fastafile = f.fastafile;
+        indexdir = f.indexdir;
+        tempdir = f.tempdir;
+        colorfile = f.colorfile;
     }
 
 };
@@ -99,4 +111,32 @@ TEST_F(CLI_TEST, build_colors_separately){
             ASSERT_EQ(colorset[0], colors[seq_id]);
         }
     }
+}
+
+TEST(PREPROCESSING, upper_case){
+    LL k = 4;
+
+    vector<string> seqs = {"AGGTCGATTCGATCGATGC"};
+    vector<string> seqs2 = {"AGGtCGATTcGATCgaTGC"};
+
+    CLI_test_files f1(seqs, {0});
+    CLI_test_files f2(seqs2, {0});
+
+    vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexdir, "--temp-dir", f1.tempdir};
+    vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexdir, "--temp-dir", f2.tempdir};
+
+    Argv argv1(args1);
+    Argv argv2(args2);
+
+    build_index_main(argv1.size, argv1.array);
+    build_index_main(argv2.size, argv2.array);
+
+    Themisto themisto1;
+    Themisto themisto2;
+
+    themisto1.load_from_directory(f1.indexdir);
+    themisto2.load_from_directory(f2.indexdir);
+
+    ASSERT_TRUE(themisto1.boss == themisto2.boss);
+
 }
