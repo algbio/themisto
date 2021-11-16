@@ -123,6 +123,8 @@ public:
     Read_stream get_next_query_stream(){
         string header;
         file.getline(header);
+        if(header.size() < 1) throw runtime_error("Error: FASTA or FASTQ parsing: header does not start with '>' or '@'");
+        header = header.substr(1); // Drop the '>' in FASTA or '@' in FASTQ
         Read_stream rs(&file, header, mode, upper_case_enabled);
         return rs;
     }
