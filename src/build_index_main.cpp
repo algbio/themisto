@@ -35,6 +35,7 @@ struct Build_Config{
         }
 
         if(colorfile != ""){
+            check_true(!no_colors, "Must not give both --no-colors and --colorfile");
             check_readable(colorfile);
         }
         

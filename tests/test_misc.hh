@@ -114,7 +114,7 @@ TEST(MISC_TEST, cli_auto_colors){
     }
 }
 
-// If --no-colors is given, should not build colors
+// If --no-colors is given, should not build colors. Also check that giving both --auto-colors and --color-file throws.
 TEST(MISC_TEST, no_colors){
     vector<string> seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
     LL k = 3;
@@ -133,6 +133,19 @@ TEST(MISC_TEST, no_colors){
     } catch (const std::runtime_error &e){
         ASSERT_EQ(string(e.what()), "Error loading color data structure");
     }
-}
 
-// todo: check that --no-colors is not given if color file is given?
+    // Test --no-colors and --color-file at the same time
+
+    string colorfile = get_temp_file_manager().create_filename();
+    throwing_ofstream colors_out(colorfile);
+    colors_out << "1\n2\n3\n";
+    colors_out.close();
+    vector<string> args_bad = {"build", "--no-colors", "--color-file", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    Argv argv_bad(args_bad);
+    try{
+        build_index_main(argv_bad.size, argv_bad.array);
+        FAIL(); // Did not throw
+    } catch(const std::runtime_error &e){
+        ASSERT_EQ(string(e.what()), "Must not give both --no-colors and --colorfile");
+    }
+}
