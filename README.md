@@ -10,7 +10,7 @@ We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. 
 # Installation
 ## Requirements
 
-We currently support only Linux and MacOS. For compilation, you will need a C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
+We currently support only Linux and macOS. For compilation, you will need a C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ## Compiling
 
