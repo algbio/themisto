@@ -125,11 +125,8 @@ TEST(PREPROCESSING, upper_case){
     vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexdir, "--temp-dir", f1.tempdir};
     vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexdir, "--temp-dir", f2.tempdir};
 
-    Argv argv1(args1);
-    Argv argv2(args2);
-
-    build_index_main(argv1.size, argv1.array);
-    build_index_main(argv2.size, argv2.array);
+    build_index_main(Argv(args1).size, Argv(args1).array);
+    build_index_main(Argv(args2).size, Argv(args2).array);
 
     Themisto themisto1;
     Themisto themisto2;
@@ -150,11 +147,8 @@ TEST(PREPROCESSING, upper_case){
     vector<string> q_args1 = {"pseudoalign", "-q", queryfile, "-i", f1.indexdir, "-o", q_resultfile1, "--temp-dir", f1.tempdir, "--rc"};
     vector<string> q_args2 = {"pseudoalign", "-q", queryfile, "-i", f2.indexdir, "-o", q_resultfile2, "--temp-dir", f2.tempdir, "--rc"};
 
-    Argv q_argv1(q_args1);
-    Argv q_argv2(q_args2);
-
-    pseudoalign_main(q_argv1.size, q_argv1.array);
-    pseudoalign_main(q_argv2.size, q_argv2.array);
+    pseudoalign_main(Argv(q_args1).size, Argv(q_args1).array);
+    pseudoalign_main(Argv(q_args2).size, Argv(q_args2).array);
 
     ASSERT_TRUE(files_are_equal(q_resultfile1, q_resultfile2));
 
