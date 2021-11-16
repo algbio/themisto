@@ -13,6 +13,10 @@
 #include "../stdlib_printing.hh"
 #include "../globals.hh"
 #include "setup_tests.hh"
+#include "test_tools.hh"
+#include "Themisto.hh"
+#include "Argv.hh"
+#include "commands.hh"
 #include <cassert>
 
 TEST(MISC_TEST, delete_non_ACGT){
@@ -89,10 +93,28 @@ TEST(MISC_TEST, string_to_integer_safe){
 
 // If no colorfile is given, should assign colors automatically
 TEST(MISC_TEST, cli_auto_colors){
-    FAIL();
+    vector<string> seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
+    LL k = 3;
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
+    string indexdir = get_temp_file_manager().create_filename();
+    string tempdir = get_temp_file_manager().get_dir();
+    write_as_fasta(seqs, fastafile);
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    Themisto themisto;
+    themisto.load_from_directory(indexdir);
+    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+        for(string kmer : get_all_kmers(seqs[seq_id], k)){
+            LL node = themisto.boss.find_kmer(kmer);
+            vector<LL> colorset = themisto.coloring.get_colorvec(node, themisto.boss);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], seq_id);
+        }
+    }
 }
 
 // If --no-colors is given, should not build colors
-TEST(MISC_TEST, no_colors){
+/*TEST(MISC_TEST, no_colors){
     FAIL();
-}
+}*/
