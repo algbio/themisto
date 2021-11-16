@@ -100,10 +100,7 @@ This command builds an index consisting of compact de Bruijn graph using the BOS
 Usage:
   build [OPTION...]
 
-      --load-boss               If given, loads a precomputed BOSS from the 
-                                index directory
-  -k, --node-length arg         The k of the k-mers. Required only if 
-                                --load-boss is not given
+  -k, --node-length arg         The k of the k-mers.
   -i, --input-file arg          The input sequences in FASTA or FASTQ 
                                 format. The format is inferred from the 
                                 file extension. Recognized file extensions 
@@ -114,26 +111,11 @@ Usage:
                                 directory and the temporary file is deleted 
                                 after use.
   -c, --color-file arg          One color per sequence in the fasta file, 
-                                one color per line. If not given, colors 
-                                are not built, unless --auto-colors is 
-                                given. (default: "")
-      --auto-colors             Instead of a color file, number the 
-                                sequences with integers 0,1,2,... in the 
-                                same order as in the sequence file.)
-  -o, --index-dir arg           Directory where the index will be built. 
-                                Always required, directory must exist 
-                                before running.
-  -d, --colorset-pointer-tradeoff arg
-                                This option controls a time-space tradeoff 
-                                for storing and querying color sets. If 
-                                given a value d, we store color set 
-                                pointers only for every d nodes on every 
-                                unitig. The higher the value of d, the 
-                                smaller then index, but the slower the 
-                                queries. The savings might be significant 
-                                if the number of distinct color sets is 
-                                small and the graph is large and has long 
-                                unitigs. (default: 1)
+                                one color per line. If not given, the 
+                                sequences ar egiven colors 0,1,2... in the 
+                                order they appear in the input file. 
+                                (default: "")
+  -o, --index-dir arg           Directory where the index will be built.
       --temp-dir arg            Directory for temporary files.
   -m, --mem-megas arg           Number of megabytes allowed for external 
                                 memory algorithms. Default: 1000 (default: 
@@ -145,8 +127,28 @@ Usage:
                                 (k+1)-mers containing a non-ACGT character 
                                 are deleted instead.
       --pp-buf-siz arg          Size of preprocessing buffer (in bytes) for 
-                                fixing alphabet (default: 4096)
+                                fixing alphabet (you should not need to 
+                                touch this) (default: 4096)
+  -d, --colorset-pointer-tradeoff arg
+                                This option controls a time-space tradeoff 
+                                for storing and querying color sets. If 
+                                given a value d, we store color set 
+                                pointers only for every d nodes on every 
+                                unitig. The higher the value of d, the 
+                                smaller then index, but the slower the 
+                                queries. The savings might be significant 
+                                if the number of distinct color sets is 
+                                small and the graph is large and has long 
+                                unitigs. (default: 1)
+      --no-colors               Build only the de Bruijn graph without 
+                                colors.
+      --load-dbg                If given, loads a precomputed de Bruijn 
+                                graph from the index directory. If this is 
+                                given, the parameter -k must not be given 
+                                because the order k is defined by the 
+                                precomputed de Bruijn graph.
   -h, --help                    Print usage
+
 
 ```
 

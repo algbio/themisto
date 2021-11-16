@@ -16,9 +16,9 @@ struct Build_Config{
     string index_dir;
     string temp_dir;
     string input_format;
-    bool load_boss = false;
+    bool load_dbg = false;
     LL memory_megas = 1000;
-    bool auto_colors = false;
+    bool no_colors = false;
     bool del_non_ACGT = false;
     LL pp_buf_siz = 1024*4;
     LL colorset_sampling_distance = 1;
@@ -29,7 +29,7 @@ struct Build_Config{
         check_readable(inputfile);
         check_true(input_format != "", "Problem detecting input format");
 
-        if(!load_boss){
+        if(!load_dbg){
             check_true(k != -1, "Parameter k not set");
             check_true(k+1 <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH - 1) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
         }
@@ -60,9 +60,9 @@ struct Build_Config{
         ss << "k = " << k << "\n";
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
-        ss << "Automatic colors = " << (auto_colors ? "true" : "false") << "\n";
-        ss << "Load BOSS = " << (load_boss ? "true" : "false") << "\n";
-        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "Delete" : "Randomize") << "\n";
+        ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
+        ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
+        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
         ss << "Preprocessing buffer size = " << pp_buf_siz; // Last has no endline
         return ss.str();
     }
@@ -73,24 +73,28 @@ int build_index_main(int argc, char** argv){
     // Legacy support: transform old option format --k to -k
     string legacy_support_fix = "-k";
     for(LL i = 1; i < argc; i++){
+        if(string(argv[i]) == "--auto-colors"){
+            cerr << "Flag --auto-colors is now redundant as it is the default behavior starting from Themisto 2.0.0. There are also other changes to the CLI in Themisto 2.0.0. Please read the release notes and update your scripts accordingly." << endl;
+            return 1;
+        }
         if(string(argv[i]) == "--k") argv[i] = &(legacy_support_fix[0]);
     }
 
-    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the BOSS data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
+    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the Wheeler graph data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
 
     options.add_options()
-        ("load-boss", "If given, loads a precomputed BOSS from the index directory", cxxopts::value<bool>()->default_value("false"))
-        ("k,node-length", "The k of the k-mers. Required only if --load-boss is not given", cxxopts::value<LL>())
+        ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
-        ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, colors are not built, unless --auto-colors is given.", cxxopts::value<string>()->default_value(""))
-        ("auto-colors", "Instead of a color file, number the sequences with integers 0,1,2,... in the same order as in the sequence file.)", cxxopts::value<bool>()->default_value("false"))
-        ("o,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
-        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
+        ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences ar egiven colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
+        ("o,index-dir", "Directory where the index will be built.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
-        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
-        ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet", cxxopts::value<LL>()->default_value("4096"))
+        ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet (you should not need to touch this)", cxxopts::value<LL>()->default_value("4096"))
+        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
+        ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
+        ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index directory. If this is given, the parameter -k must not be given because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -100,12 +104,12 @@ int build_index_main(int argc, char** argv){
     if (old_argc == 1 || opts.count("help")){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
-        cerr << "Build BOSS and colors:" << endl;
+        cerr << "Build the de Bruijn graph and colors:" << endl;
         cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
-        cerr << "Build only the BOSS" << endl;
-        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp" << endl;
-        cerr << "Load a previously built BOSS from the index directory and compute the colors:" << endl;
-        cerr << "  " << argv[0] << " .-mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-boss" << endl;
+        cerr << "Build only the de Bruijn graph" << endl;
+        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp --no-colors" << endl;
+        cerr << "Load a previously built de Bruijn graph from the index directory and compute the colors:" << endl;
+        cerr << "  " << argv[0] << " --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-dbg" << endl;
         exit(1);
     }    
 
@@ -118,9 +122,9 @@ int build_index_main(int argc, char** argv){
     C.colorfile = opts["color-file"].as<string>();
     C.index_dir = opts["index-dir"].as<string>();
     C.temp_dir = opts["temp-dir"].as<string>();
-    C.load_boss = opts["load-boss"].as<bool>();
+    C.load_dbg = opts["load-dbg"].as<bool>();
     C.memory_megas = opts["mem-megas"].as<LL>();
-    C.auto_colors = opts["auto-colors"].as<bool>();
+    C.no_colors = opts["no-colors"].as<bool>();
     C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
@@ -142,7 +146,7 @@ int build_index_main(int argc, char** argv){
         C.inputfile = new_name;
     }
 
-    if(C.colorfile == ""){
+    if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
         write_log("Assigning colors");
         C.colorfile = generate_default_colorfile(C.inputfile, C.input_format);
@@ -159,17 +163,17 @@ int build_index_main(int argc, char** argv){
         C.input_format = "fasta"; // fix_alphabet returns a fasta file
     }
     
-    if(C.load_boss){
-        write_log("Loading BOSS");
+    if(C.load_dbg){
+        write_log("Loading de Bruijn Graph");
         themisto.load_boss_from_directory(C.index_dir);
     } else{
-        write_log("Building BOSS");
+        write_log("Building de Bruijn Graph");
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
         themisto.save_boss_to_directory(C.index_dir);
-        write_log("Building BOSS finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
+        write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
-    if(C.colorfile != "" || C.auto_colors){
+    if(!C.no_colors){
         write_log("Building colors");
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         themisto.save_colors_to_directory(C.index_dir);
