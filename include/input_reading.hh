@@ -85,8 +85,7 @@ public:
                 return true;
             }
         } else{
-            cerr << "Invalid sequence read mode: " << mode << endl;
-            assert(false);
+            throw(std::runtime_error("Invalid sequence read mode: " + mode));
         }
     }
 
