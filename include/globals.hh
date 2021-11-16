@@ -108,6 +108,8 @@ vector<T> parse_tokens(string S){
     return tokens;
 }
 
+// Returns filename 
+string string_to_temp_file(const string& S);
 
 template <typename T>
 void write_to_file(string path, T& thing){

@@ -444,6 +444,13 @@ bool lex_compare_cstrings(const char* x, const char* y){
     return strcmp(x,y) < 0;
 };
 
+string string_to_temp_file(const string& S){
+    string filename = get_temp_file_manager().create_filename();
+    throwing_ofstream out(filename);
+    out.write(S.data(), S.size());
+    return filename;
+}
+
 // Split by whitespace
 vector<string> split(string text){
     std::istringstream iss(text);
