@@ -86,7 +86,7 @@ int build_index_main(int argc, char** argv){
     options.add_options()
         ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
-        ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences ar egiven colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
+        ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
         ("o,index-dir", "Directory where the index will be built.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
