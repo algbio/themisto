@@ -139,4 +139,31 @@ TEST(PREPROCESSING, upper_case){
 
     ASSERT_TRUE(themisto1.boss == themisto2.boss);
 
+    vector<string> queries = {seqs[0], seqs2[0]};
+
+    string queryfile = get_temp_file_manager().create_filename("",".fna");
+    write_as_fasta(queries, queryfile);
+
+    string q_resultfile1 = get_temp_file_manager().create_filename();
+    string q_resultfile2 = get_temp_file_manager().create_filename();
+
+    vector<string> q_args1 = {"pseudoalign", "-q", queryfile, "-i", f1.indexdir, "-o", q_resultfile1, "--temp-dir", f1.tempdir, "--rc"};
+    vector<string> q_args2 = {"pseudoalign", "-q", queryfile, "-i", f2.indexdir, "-o", q_resultfile2, "--temp-dir", f2.tempdir, "--rc"};
+
+    Argv q_argv1(q_args1);
+    Argv q_argv2(q_args2);
+
+    pseudoalign_main(q_argv1.size, q_argv1.array);
+    pseudoalign_main(q_argv2.size, q_argv2.array);
+
+    ASSERT_TRUE(files_are_equal(q_resultfile1, q_resultfile2));
+
+    vector<set<LL> > res1 = Themisto::parse_output_format_from_disk(q_resultfile1);
+    vector<set<LL> > res2 = Themisto::parse_output_format_from_disk(q_resultfile2);
+
+    ASSERT_EQ(res1, res2);
+    vector<set<LL> > correct = {{0},{0}};
+    ASSERT_EQ(res1, correct);
+    
+
 }
