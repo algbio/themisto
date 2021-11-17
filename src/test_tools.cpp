@@ -107,3 +107,10 @@ void write_as_fasta(vector<string>& seqs, string fasta_filename){
     throwing_ofstream out(fasta_filename);
     for(string& S : seqs) out << ">\n" << S << "\n";
 }
+
+void write_as_fastq(vector<string>& seqs, string fastq_filename){
+    throwing_ofstream out(fastq_filename);
+    for(string& S : seqs){
+        out << "@\n" << S << "\n+\n" << string(S.size(), 'I') << "\n";
+    }
+}

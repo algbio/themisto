@@ -150,13 +150,23 @@ target_link_libraries(themisto kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
-
+  
   add_dependencies(themisto_tests kmc_wrapper)
-
+  
   add_dependencies(sdsl divsufsort64)
   find_library(GTEST NAMES gtest PATHS googletest/build/lib/)
   target_link_libraries(themisto_tests kmc_wrapper ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
+  
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
 #  set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
+endif()
+
+if(BUILD_IO_BENCHMARK)
+
+  message("Setting up IO benchmark.")
+  add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
+  add_dependencies(benchmark_io kmc_wrapper)
+  target_link_libraries(benchmark_io kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
+
 endif()

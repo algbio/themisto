@@ -3,7 +3,9 @@
 #include <gtest/gtest.h>
 #include "../globals.hh"
 #include "setup_tests.hh"
+#include "test_tools.hh"
 #include "new_input_reading.hh"
+#include "ReadBatch.hh"
 
 void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
     Sequence_Reader sr(fastafile, mode);
@@ -181,3 +183,8 @@ TEST(INPUT_PARSING, fastq_multiple_lines){
     // We don't support multi-line sequences in FASTQ
 }
 */
+
+TEST(INPUT_PARSING, benchmark){
+
+
+}
