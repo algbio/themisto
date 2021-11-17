@@ -154,8 +154,6 @@ int build_index_main(int argc, char** argv){
     }
 
     // Deal with non-ACGT characters
-
-    Sequence_Reader sr(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     if(C.del_non_ACGT){
         std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
         C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file

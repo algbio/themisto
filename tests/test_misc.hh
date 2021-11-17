@@ -55,8 +55,8 @@ TEST(MISC_TEST, delete_non_ACGT){
     while(getline(colors_stream, line))
         out_colors.push_back(stoll(line));
     vector<string> out_seqs;
-    Sequence_Reader sr(fasta2, FASTA_MODE);
-    while(!sr.done()) out_seqs.push_back(sr.get_next_query_stream().get_all());
+    Sequence_Reader_Buffered sr(fasta2, FASTA_MODE);
+    while(!sr.done()) out_seqs.push_back(sr.get_next_read());
 
     //log << correct_out_seqs << endl << out_seqs << endl << correct_out_colors << endl << out_colors << endl;
     logger << "test" << 2 << out_seqs << std::endl<char, std::char_traits<char>>;

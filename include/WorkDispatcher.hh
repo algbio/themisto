@@ -87,35 +87,31 @@ class ParallelBinaryOutputWriter{
     }
 };
 
-struct Read_Batch{
-    // This is better than vector<string> because this does not have memory fragmentation
 
-    int64_t read_id_of_first; // read id of first read in the batch
-    string data; // concatenation of reads
-    vector<bool> read_starts; // marks start of reads
+struct ReadBatch{
+    public:
+    uint64_t firstReadID; // read id of first read in the batch
+    vector<char> data; // concatenation of reads
+    vector<uint64_t> readStarts; // indicates starting positions of reads in data array, last item is a dummy
 };
 
-class Batch_reader{
+class ReadBatchIterator{
 // An iterator reading one read starting from the given start position
 
 public:
 
-    Read_Batch* batch;
-    int64_t pos; // Current position
+    ReadBatch* batch;
+    uint64_t pos; // Current position
 
-    Batch_reader(Read_Batch* batch, int64_t start) : batch(batch), pos(start) {}
+    ReadBatchIterator(ReadBatch* batch, int64_t start) : batch(batch), pos(start) {}
 
     // Returns (pointer to start, length). If done, return (NULL, 0)
-    pair<const char*, LL> get_next_string(){
-        if(pos >= batch->data.size()) return {NULL,0}; // End of batch
-        LL len = 1;
-        LL start = pos;
-        while(true){
-            pos++;
-            if(pos >= batch->data.size() || batch->read_starts[pos] == 1) break;
-            len++;
-        }
-        return {batch->data.c_str() + start, len};
+    pair<const char*, uint64_t> getNextRead(){
+        if(pos >= (batch->readStarts.size()-1)) return {NULL, 0}; // End of batch
+        uint64_t len = batch->readStarts[pos+1] - batch->readStarts[pos];
+        uint64_t start = batch->readStarts[pos];
+        pos++; // Move to next read ready for next call to this function
+        return {(batch->data.data()) + start, len};
     }
 };
 
@@ -126,10 +122,10 @@ public:
     virtual ~DispatcherConsumerCallback() {} 
 };
 
-void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumerCallback* cb, LL thread_id);
+void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id);
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
-void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, Sequence_Reader& sr, int64_t buffer_size);
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Buffered& sr, int64_t buffer_size);
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader& sr, LL buffer_size);
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader_Buffered& sr, LL buffer_size);

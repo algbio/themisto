@@ -397,7 +397,7 @@ public:
     }
 
 
-    void pseudoalign_parallel(LL n_threads, Sequence_Reader& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output, bool sort_after){
+    void pseudoalign_parallel(LL n_threads, Sequence_Reader_Buffered& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output, bool sort_after){
         ParallelBaseWriter* out = nullptr;
         if(gzipped_output) out = new ParallelGzipWriter(outfile);
         else out = new ParallelOutputWriter(outfile);

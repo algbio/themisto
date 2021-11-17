@@ -318,7 +318,7 @@ private:
             threads.push_back(T);
         }
 
-        Sequence_Reader sr(fastafile, FASTA_MODE);
+        Sequence_Reader_Buffered sr(fastafile, FASTA_MODE);
         run_dispatcher(threads, sr, 1024*1024);
 
         // Clean up
@@ -496,16 +496,17 @@ private:
         LL k = boss.get_k();
 
         // Handle cases (1) and (2)
-        Sequence_Reader sr(fastafile, FASTA_MODE);
-        while(!sr.done()){
-            string read = sr.get_next_query_stream().get_all();
-            if(read.size() >= k+1){ // Reads shorter than k+1 do not contribute to the graph
+        Sequence_Reader_Buffered sr(fastafile, FASTA_MODE);
+        while(true){
+            LL len = sr.get_next_read_to_buffer();
+            if(len == 0) break;
+            if(len >= k+1){ // Reads shorter than k+1 do not contribute to the graph
                 // condition (1)
-                LL first_node = boss.find_kmer(read.substr(0,k)); // Guaranteed to be found in the graph
+                LL first_node = boss.find_kmer(sr.read_buf); // Guaranteed to be found in the graph
                 redundancy_marks[first_node] = 0;
 
                 // condition (2)
-                LL last_node = boss.find_kmer(read.substr(read.size()-k,k));
+                LL last_node = boss.find_kmer(sr.read_buf + len - k);
                 pair<int64_t, int64_t> I = boss.outedge_range(last_node);
                 for(LL i = I.first; i <= I.second; i++){
                     LL next = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));

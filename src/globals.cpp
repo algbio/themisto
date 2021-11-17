@@ -1,4 +1,5 @@
 #include "globals.hh"
+#include <algorithm>
 
 Temp_File_Manager& get_temp_file_manager(){
     static Temp_File_Manager temp_file_manager; // Singleton
@@ -337,17 +338,17 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
 
     throwing_ofstream sequences_out(new_seqfile);
 
-    Sequence_Reader fr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    Sequence_Reader_Buffered sr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     LL seq_id = 0;
-    while(!fr.done()){
-
-        // Read a sequence and its color
-        string seq = fr.get_next_query_stream().get_all();
+    while(true){
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0) break;
 
         // Chop the sequence into pieces that have only ACGT characters
-        seq += '$'; // Trick to avoid having a special case for the last sequence
+        sr.read_buf[len] = '$'; // Trick to avoid having a special case for the last sequence. Replaces null-terminator
         string new_seq;
-        for(char c : seq){
+        for(LL i = 0; i < len; i++){
+            char c = sr.read_buf[i];
             assert((c >= 'A' && c <= 'Z') || c == '$');
             if(c == 'A' || c == 'C' || c == 'G' || c == 'T')
                 new_seq += c;
@@ -386,13 +387,14 @@ auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set th
 
 vector<string> get_first_and_last_kmers(string fastafile, LL k){
     // todo: this is pretty expensive because this has to read the whole reference data
-    Sequence_Reader fr(fastafile, FASTA_MODE);
+    Sequence_Reader_Buffered sr(fastafile, FASTA_MODE);
     vector<string> result;
-    while(!fr.done()){
-        string ref = fr.get_next_query_stream().get_all();
-        if(ref.size() >= k){
-            result.push_back(ref.substr(0,k));
-            result.push_back(ref.substr(ref.size()-k,k));
+    while(true){
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0) break;
+        if(len >= k){
+            result.push_back(string(sr.read_buf, k));
+            result.push_back(string(sr.read_buf + len - k, k));
         }
     }
     return result;
@@ -533,6 +535,7 @@ vector<char> read_binary_file(string infile){
     } else{
         cerr << "Error reading file: " << infile << endl;
         assert(false);
+        return buffer;
     }
 }
 
@@ -564,10 +567,11 @@ void check_true(bool condition, string error_message){
 string generate_default_colorfile(string inputfile, string file_format){
     string colorfile = get_temp_file_manager().create_filename();
     throwing_ofstream out(colorfile);
-    Sequence_Reader fr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     LL seq_id = 0;
-    while(!fr.done()){
-        fr.get_next_query_stream().get_all();
+    while(true){
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0) break;
         out << seq_id << "\n";
         seq_id++;
     }

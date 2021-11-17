@@ -1,7 +1,6 @@
 #include "../include/test_tools.hh"
 #include "../include/ReadBatch.hh"
 #include "../include/input_reading.hh"
-#include "../include/new_input_reading.hh"
 #include <vector>
 #include <string>
 #include <fstream>
@@ -40,6 +39,7 @@ int main(){
     double sr_seconds = (sr_t1 - sr_t0) / 1000.0;
     cout << total_len / 1e6 / sr_seconds << " Mbp/s" << endl;
 
+
     // Buffered
 
     Sequence_Reader_Buffered srb(fastq2, FASTQ_MODE);
@@ -49,27 +49,6 @@ int main(){
     }
     LL srb_t1 = cur_time_millis();
     double srb_seconds = (srb_t1 - srb_t0) / 1000.0;
-    cout << total_len / 1e6 / srb_seconds << " Mbp/s" << endl;    
-
-    // ReadBatch
-
-    ifstream stream;
-    stream.open(fastq3, ios_base::in);
-
-    BufferedFastqStreamReader *bfsReader = new BufferedFastqStreamReader(&stream,1<<20);
-    ReadBatch *rb;
-    LL rb_t0 = cur_time_millis();
-    while(rb = bfsReader->getNextReadBatch()){
-        ReadBatchIterator *rbit = new ReadBatchIterator(rb,0);
-        pair<const char*, uint64_t> r = rbit->getNextRead();
-        while(r.first){
-            r = rbit->getNextRead();
-        }
-    }
-    LL rb_t1 = cur_time_millis();
-    double rb_seconds = (rb_t1 - rb_t0) / 1000.0;
-    cout << total_len / 1e6 / rb_seconds << " Mbp/s" << endl;   
-
-    delete bfsReader;
+    cout << total_len / 1e6 / srb_seconds << " Mbp/s" << endl;
 
 }

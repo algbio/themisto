@@ -8,10 +8,10 @@
 #include "ReadBatch.hh"
 
 void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
-    Sequence_Reader sr(fastafile, mode);
+    Sequence_Reader_Buffered sr(fastafile, mode);
     for(string seq : seqs){
         ASSERT_FALSE(sr.done());        
-        ASSERT_EQ(sr.get_next_query_stream().get_all(), seq);
+        ASSERT_EQ(sr.get_next_read(), seq);
     }
     ASSERT_TRUE(sr.done());
 }
@@ -79,7 +79,9 @@ TEST(INPUT_PARSING, fasta_super_long_line){
     check_buffered_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
+
 TEST(INPUT_PARSING, fasta_headers){
+    // Using the legacy Sequence_Reader because Sequence_Reader_Buffered does not parse headers
     vector<string> seqs;
     seqs.push_back(string(3e6, 'A'));
     seqs.push_back(string(4e5, 'G'));
@@ -99,7 +101,6 @@ TEST(INPUT_PARSING, fasta_headers){
     ASSERT_EQ(rs.header, headers[1]);
     rs.get_all();
 }
-
 
 
 TEST(INPUT_PARSING, fastq_basic){
@@ -140,9 +141,10 @@ TEST(INPUT_PARSING, fastq_super_long_line){
     check_buffered_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
-/*
+
 // Headers are not stored anymore
 TEST(INPUT_PARSING, fastq_headers){
+    // Using the legacy Sequence_Reader because Sequence_Reader_Buffered does not parse headers
     vector<string> seqs;
     seqs.push_back(string(1e6, 'A'));
     seqs.push_back(string(1e5, 'G'));
@@ -165,7 +167,7 @@ TEST(INPUT_PARSING, fastq_headers){
     rs = sr.get_next_query_stream();
     ASSERT_EQ(rs.header, headers[1]);
     rs.get_all();
-}*/
+}
 
 TEST(INPUT_PARSING, fastq_things_after_plus){
     vector<string> seqs =  {"AAGTGCTGTANAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","ACGTURYKMSWBDHVN-"};

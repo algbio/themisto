@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -12,6 +13,13 @@
 #include <sys/stat.h>
 #include <string>
 #include <map>
+
+typedef int64_t LL;
+static const char read_separator = '$';
+#ifndef KMER_MAX_LENGTH
+#define KMER_MAX_LENGTH 64
+#endif
+
 #include "TempFileManager.hh"
 #include <signal.h>
 #include "input_reading.hh"
@@ -21,15 +29,8 @@
 #include <random>
 #include <filesystem>
 
-#ifndef KMER_MAX_LENGTH
-#define KMER_MAX_LENGTH 64
-#endif
-
 using namespace std;
 using namespace std::chrono;
-
-typedef int64_t LL;
-static const char read_separator = '$';
 
 // Returns a reference to the singleton temp file manager
 Temp_File_Manager& get_temp_file_manager();

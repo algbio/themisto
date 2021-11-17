@@ -4,73 +4,71 @@
 #include "input_reading.hh"
 #include "globals.hh"
 #include "zstr.hpp"
+#include "ReadBatch.hh"
 #include "WorkDispatcher.hh"
 
 using namespace std;
 
-void dispatcher_consumer(ParallelBoundedQueue<Read_Batch>& Q, DispatcherConsumerCallback* cb, LL thread_id){
+void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id){
     write_log("Starting thread " + to_string(thread_id));
     while(true){
-        Read_Batch batch  = Q.pop();
-        if(batch.data.size() == 0){
+        ReadBatch* batch  = Q.pop();
+        if(batch->data.size() == 0){
             Q.push(batch,0);
             break; // No more work available
         }
         
-        Batch_reader br(&batch, 0);
-        int64_t read_id = batch.read_id_of_first;
+        ReadBatchIterator rbi(batch, 0);
+        int64_t read_id = batch->firstReadID;
         const char* read;
         LL read_len;
         while(true){
-            std::tie(read, read_len) = br.get_next_string();
+            std::tie(read, read_len) = rbi.getNextRead();
             if(read_len == 0) break; // End of batch
             cb->callback(read, read_len, read_id);
             read_id++;
         }
+        delete batch; // Allocated by producer
     }
     write_log("Thread " + to_string(thread_id) + " done");
 }
 
-// Will run characters through fix_char, which at the moment of writing this comment
-// upper-cases the character and further the result is not A, C, G or T, changes it to A.
-void dispatcher_producer(ParallelBoundedQueue<Read_Batch>& Q, Sequence_Reader& sr, int64_t buffer_size){
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Buffered& sr, int64_t batch_size){
     // Push work in batches of approximately buffer_size base pairs
 
-    Read_Batch rb;
-    rb.read_id_of_first = 0;
-    int64_t read_id_of_next = 0;
+    LL read_id = 0;
+    ReadBatch* batch = new ReadBatch(); // Deleted by consumer
 
-    while(!sr.done()){
+    while(true){
+        // Create a new read batch and push it to the work queue
 
-        Read_stream input = sr.get_next_query_stream();
-        char c;
-        bool start = true;
-        LL len = 0;
-        while(input.getchar(c)){
-            rb.data += c;
-            rb.read_starts.push_back(start);
-            start = false;
-            len++;
-        }
-        if(len == 0) throw runtime_error("Error: encountered empty sequence: " + input.header);
-        read_id_of_next++;
-        
-        if(rb.data.size() > buffer_size || sr.done()){
-            Q.push(rb,rb.data.size());
-            
-            // Clear the batch
-            rb.data = "";
-            rb.read_starts.clear();
-            rb.read_id_of_first = read_id_of_next;
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0){
+            // All reads read. Push the current batch if it's non-empty and quit
+            if(batch->data.size() > 0) {
+                Q.push(batch, batch->data.size());
+                batch = new ReadBatch(); // Clear
+            }
+            break; // quit
+        } else{
+            // Add read to batch
+            if(batch->data.size() == 0) batch->firstReadID = read_id++;
+            batch->readStarts.push_back(batch->data.size());   
+            for(LL i = 0; i < len; i++)
+                batch->data.push_back(sr.read_buf[i]);
+            if(batch->data.size() >= batch_size){
+                Q.push(batch, batch->data.size());
+                batch = new ReadBatch(); // Clear
+            }
         }
     }
-
-    Q.push(rb,0); // Empty batch in the end signifies end of the queue
+    
+    Q.push(batch,0); // Empty batch in the end signifies end of the queue
 }
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader& sr, LL buffer_size){
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader_Buffered& sr, LL buffer_size){
     vector<std::thread> threads;
-    ParallelBoundedQueue<Read_Batch> Q(buffer_size);
+    ParallelBoundedQueue<ReadBatch*> Q(buffer_size);
 
     // Create consumers
     for(int64_t i = 0; i < callbacks.size(); i++){

@@ -58,16 +58,17 @@ int stats_main(int argc, char** argv){
     UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream);
     
     LL unitig_count = 0;
-    Sequence_Reader sr(unitigs_file, FASTA_MODE);
+    Sequence_Reader_Buffered sr(unitigs_file, FASTA_MODE);
     LL min_unitig_len = 1e18;
     LL max_unitig_len = 0;
     LL unitig_len_sum = 0;
-    while(!sr.done()){
-        string unitig = sr.get_next_query_stream().get_all();
+    while(true){
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0) break;
         unitig_count++;
-        min_unitig_len = min(min_unitig_len, (LL)unitig.size());
-        max_unitig_len = max(max_unitig_len, (LL)unitig.size());
-        unitig_len_sum += unitig.size();
+        min_unitig_len = min(min_unitig_len, len);
+        max_unitig_len = max(max_unitig_len, len);
+        unitig_len_sum += len;
     }
 
     cout << "Node length k: " << themisto.boss.get_k() << endl;
