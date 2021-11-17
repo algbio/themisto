@@ -6,6 +6,7 @@
 #include "zstr.hpp"
 #include "ReadBatch.hh"
 #include "WorkDispatcher.hh"
+#include "stdlib_printing.hh"
 
 using namespace std;
 
@@ -17,7 +18,6 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
             Q.push(batch,0);
             break; // No more work available
         }
-        
         ReadBatchIterator rbi(batch, 0);
         int64_t read_id = batch->firstReadID;
         const char* read;
@@ -46,6 +46,7 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Bu
         if(len == 0){
             // All reads read. Push the current batch if it's non-empty and quit
             if(batch->data.size() > 0) {
+                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
                 Q.push(batch, batch->data.size());
                 batch = new ReadBatch(); // Clear
             }
@@ -57,12 +58,14 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Bu
             for(LL i = 0; i < len; i++)
                 batch->data.push_back(sr.read_buf[i]);
             if(batch->data.size() >= batch_size){
+                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
                 Q.push(batch, batch->data.size());
                 batch = new ReadBatch(); // Clear
             }
         }
     }
     
+    batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
     Q.push(batch,0); // Empty batch in the end signifies end of the queue
 }
 

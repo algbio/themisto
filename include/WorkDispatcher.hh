@@ -101,7 +101,7 @@ class ReadBatchIterator{
 public:
 
     ReadBatch* batch;
-    uint64_t pos; // Current position
+    uint64_t pos; // Index in the readStarts array of the batch
 
     ReadBatchIterator(ReadBatch* batch, int64_t start) : batch(batch), pos(start) {}
 

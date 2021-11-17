@@ -4,16 +4,18 @@
 #include "../globals.hh"
 #include "setup_tests.hh"
 #include "test_tools.hh"
-#include "new_input_reading.hh"
+#include "input_reading.hh"
 #include "ReadBatch.hh"
 
 void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
     Sequence_Reader_Buffered sr(fastafile, mode);
+    LL n_seqs_read = 0;
     for(string seq : seqs){
-        ASSERT_FALSE(sr.done());        
         ASSERT_EQ(sr.get_next_read(), seq);
+        n_seqs_read++;
     }
-    ASSERT_TRUE(sr.done());
+    ASSERT_EQ(n_seqs_read, seqs.size());
+    ASSERT_EQ(sr.get_next_read().size(), 0);
 }
 
 void check_buffered_sequence_reader_output(const vector<string>& seqs, LL mode, string filename){

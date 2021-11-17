@@ -160,124 +160,26 @@ LL fix_alphabet_of_string(string& S){
 
 // Makes a copy of the file and replaces bad characters. Returns the new filename
 // The new file is in fasta format
-std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode){
+std::string fix_alphabet(const std::string& input_file, const int mode){
     write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
     
     const std::string output_file = get_temp_file_manager().create_filename("seqs-");
-    
-    std::FILE* ip = std::fopen(input_file.c_str(), "rb");
-    std::FILE* op = std::fopen(output_file.c_str(), "wb");
-    
-    char* ibuf = new char[bufsiz];
-    char* obuf = new char[bufsiz];
-    std::size_t sz;
-    std::uint64_t replaced = 0;
-    
-    std::size_t j = 0;
+    throwing_ofstream out(output_file);
 
-    // FASTA
-    if (mode == FASTA_MODE) {
-        bool in_header = false;
-        
-        while ((sz = std::fread(ibuf, 1, bufsiz, ip))) {
-            for (std::size_t i = 0; i < sz; ++i) {
-                
-                if (ibuf[i] == '>' || in_header) {
-                    in_header = true;
-
-                    if (ibuf[i] == '>') {
-                        obuf[j++] = '>';
-                    }
-                    else if (ibuf[i] == '\n') {
-                        in_header = false;
-                        obuf[j++] = '\n';
-                    }
-                }
-                
-                else {
-                    if (ibuf[i] == '\n') {
-                        obuf[j++] = '\n';
-                    }
-                    else {
-                        obuf[j] = fix_char(ibuf[i]);
-                        if (obuf[j] != ibuf[i]) {
-                            ++replaced;
-                        }
-                        ++j;
-                    }
-                }
-            }
-            std::fwrite(obuf, 1, j, op);
-            j = 0;
+    LL n_replaced = 0;
+    Sequence_Reader_Buffered sr(input_file, mode);
+    while(true){
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0) break;
+        for(LL i = 0; i < len; i++) {
+            char c = fix_char(sr.read_buf[i]);
+            if(c != sr.read_buf[i]) n_replaced++;
+            sr.read_buf[i] = c;
         }
+        out.stream << ">\n" << sr.read_buf << "\n";
     }
-    // FASTQ
-    else {
-        enum FASTQ_line { seqname, seq, plus, qual };
-        FASTQ_line fl = seqname;
-
-        while ((sz = std::fread(ibuf, 1, bufsiz, ip))) {
-            
-            for (std::size_t i = 0; i < sz; ++i) {
-
-                switch(fl) {
-                    
-                case FASTQ_line::seqname : {
-                    if (ibuf[i] == '@') {
-                        obuf[j++] = '>';
-                    }
-                    else if (ibuf[i] == '\n') {
-                        fl = FASTQ_line::seq;
-                        obuf[j++] = '\n';
-                    }
-                }
-                    break;
-
-                case FASTQ_line::seq : {
-                    if (ibuf[i] == '\n') {
-                        fl = FASTQ_line::plus;
-                        obuf[j++] = '\n';
-                    }
-                    else {
-                        obuf[j] = fix_char(ibuf[i]);
-                        if (obuf[j] != ibuf[i]) {
-                            ++replaced;
-                        }
-                        ++j;
-                    }
-                }
-                    break;
-
-                case FASTQ_line::plus : {
-                    if (ibuf[i] == '\n') {
-                        fl = FASTQ_line::qual;
-                    }
-                }
-                    break;
-
-                case FASTQ_line::qual : {
-                    if (ibuf[i] == '\n') {
-                        fl = FASTQ_line::seqname;
-                    }
-                }
-                    break;
-                    
-                default :
-                    break;
-                }
-            }
-            std::fwrite(obuf, 1, j, op);
-            j = 0;
-        }
-    }
-
-    delete[] ibuf;
-    delete[] obuf;
     
-    std::fclose(ip);
-    std::fclose(op);
-    
-    write_log("Replaced " + to_string(replaced) + " characters");
+    write_log("Replaced " + to_string(n_replaced) + " characters");
     
     return output_file;
 }
@@ -340,6 +242,7 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
 
     Sequence_Reader_Buffered sr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     LL seq_id = 0;
+    LL n_written = 0;
     while(true){
         LL len = sr.get_next_read_to_buffer();
         if(len == 0) break;
@@ -347,7 +250,7 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
         // Chop the sequence into pieces that have only ACGT characters
         sr.read_buf[len] = '$'; // Trick to avoid having a special case for the last sequence. Replaces null-terminator
         string new_seq;
-        for(LL i = 0; i < len; i++){
+        for(LL i = 0; i <= len; i++){
             char c = sr.read_buf[i];
             assert((c >= 'A' && c <= 'Z') || c == '$');
             if(c == 'A' || c == 'C' || c == 'G' || c == 'T')
@@ -357,11 +260,15 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
                     sequences_out << ">\n" << new_seq << "\n";
                     if(colorfile != "") colors_out << colors[seq_id] << "\n";
                     new_seq = "";
+                    n_written++;
                 }
             }
         }
         seq_id++;
     }
+
+    if(n_written == 0) throw std::runtime_error("Error: no (k+1)-mers left after deleting non-ACGT-characters");
+
     return {new_seqfile, new_colorfile};
 }
 

@@ -50,7 +50,7 @@ LL fix_alphabet_of_string(string& S);
 
 // Makes a copy of the file and replaces bad characters. Returns the new filename
 // The new file is in fasta format
-std::string fix_alphabet(const std::string& input_file, const std::size_t bufsiz, const int mode);
+std::string fix_alphabet(const std::string& input_file, const int mode);
 
 // We need this function because the standard library stoll function accepts all kinds of crap,
 // such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid

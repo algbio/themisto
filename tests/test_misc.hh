@@ -19,6 +19,33 @@
 #include "commands.hh"
 #include <cassert>
 
+TEST(MISC_TEST, randomize_non_ACGT){
+    vector<string> seqs = {"AATgCaTGCPPOjdjpqFbCL", "AACGTAAGCGALKJGF"};
+    string fastafile = get_temp_file_manager().create_filename();
+    write_as_fasta(seqs, fastafile);
+    string fixedfile = fix_alphabet(fastafile, FASTA_MODE);
+    Sequence_Reader_Buffered sr(fixedfile, FASTA_MODE);
+    LL seqs_read = 0;
+
+    auto is_dna = [](char c){
+        c = toupper(c);
+        return c == 'A' || c == 'C' || c == 'G' || c == 'T';
+    };
+
+    while(true){
+        string S_fixed = sr.get_next_read();
+        if(S_fixed.size() == 0) break;
+        string S = seqs[seqs_read++];
+        cout << S << endl << S_fixed << endl;
+        ASSERT_EQ(S.size(), S_fixed.size());
+        for(LL i = 0; i < S.size(); i++){
+            if(is_dna(S[i])) {ASSERT_EQ(toupper(S[i]), toupper(S_fixed[i]));}
+            if(!is_dna(S[i])) {ASSERT_TRUE(is_dna(S_fixed[i]));}
+        }
+    }
+    ASSERT_EQ(seqs_read, seqs.size());
+}
+
 TEST(MISC_TEST, delete_non_ACGT){
 
     get_temp_file_manager().set_dir("temp");
@@ -56,7 +83,11 @@ TEST(MISC_TEST, delete_non_ACGT){
         out_colors.push_back(stoll(line));
     vector<string> out_seqs;
     Sequence_Reader_Buffered sr(fasta2, FASTA_MODE);
-    while(!sr.done()) out_seqs.push_back(sr.get_next_read());
+    while(true){
+        string read = sr.get_next_read();
+        if(read.size() > 0) out_seqs.push_back(read);
+        else break;
+    }
 
     //log << correct_out_seqs << endl << out_seqs << endl << correct_out_colors << endl << out_colors << endl;
     logger << "test" << 2 << out_seqs << std::endl<char, std::char_traits<char>>;

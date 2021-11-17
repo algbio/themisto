@@ -20,7 +20,6 @@ struct Build_Config{
     LL memory_megas = 1000;
     bool no_colors = false;
     bool del_non_ACGT = false;
-    LL pp_buf_siz = 1024*4;
     LL colorset_sampling_distance = 1;
     
     void check_valid(){
@@ -47,7 +46,6 @@ struct Build_Config{
 
         check_true(memory_megas > 0, "Memory budget must be positive");
         check_true(colorset_sampling_distance >= 1, "Colorset sampling distance must be positive");
-        check_true(pp_buf_siz > 0, "Preprocessing buffer size must be positive");
 
     }
 
@@ -63,8 +61,7 @@ struct Build_Config{
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
-        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
-        ss << "Preprocessing buffer size = " << pp_buf_siz; // Last has no endline
+        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize"); // Last has no endline
         return ss.str();
     }
 };
@@ -92,7 +89,6 @@ int build_index_main(int argc, char** argv){
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
-        ("pp-buf-siz", "Size of preprocessing buffer (in bytes) for fixing alphabet (you should not need to touch this)", cxxopts::value<LL>()->default_value("4096"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index directory. If this is given, the parameter -k must not be given because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
@@ -126,7 +122,6 @@ int build_index_main(int argc, char** argv){
     C.load_dbg = opts["load-dbg"].as<bool>();
     C.memory_megas = opts["mem-megas"].as<LL>();
     C.no_colors = opts["no-colors"].as<bool>();
-    C.pp_buf_siz = opts["pp-buf-siz"].as<LL>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
 
@@ -158,7 +153,7 @@ int build_index_main(int argc, char** argv){
         std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
         C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file
     } else {
-        C.inputfile = fix_alphabet(C.inputfile, C.pp_buf_siz, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
+        C.inputfile = fix_alphabet(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
         C.input_format = "fasta"; // fix_alphabet returns a fasta file
     }
     
