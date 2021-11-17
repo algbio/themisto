@@ -14,8 +14,8 @@ void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fa
     ASSERT_TRUE(sr.done());
 }
 
-void check_new_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
-    Sequence_Reader_New sr(fastafile);
+void check_new_sequence_reader_output(const vector<string>& seqs, LL mode, string filename){
+    Sequence_Reader_New sr(filename, mode);
     for(string seq : seqs){
         string next = sr.get_next_read();
         ASSERT_EQ(next, seq);
@@ -107,7 +107,7 @@ TEST(INPUT_PARSING, fastq_basic){
                    "@\n" + seqs[1] + "\n+\n" + quals[1] + "\n";
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
-    check_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
 
 }
 
@@ -120,7 +120,7 @@ TEST(INPUT_PARSING, fastq_upper_case){
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
     for(string& seq : seqs) for(char& c : seq) c = toupper(c); // Upper case for validation
-    check_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
 
@@ -135,10 +135,11 @@ TEST(INPUT_PARSING, fastq_super_long_line){
     string fastq = "@\n" + seqs[0] + "\n+\n" + quals[0] + "\n" +
                    "@\n" + seqs[1] + "\n+\n" + quals[1] + "\n";
     string filename = string_to_temp_file(fastq);
-    check_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
-
+/*
+// Headers are not stored anymore
 TEST(INPUT_PARSING, fastq_headers){
     vector<string> seqs;
     seqs.push_back(string(1e6, 'A'));
@@ -162,7 +163,7 @@ TEST(INPUT_PARSING, fastq_headers){
     rs = sr.get_next_query_stream();
     ASSERT_EQ(rs.header, headers[1]);
     rs.get_all();
-}
+}*/
 
 TEST(INPUT_PARSING, fastq_things_after_plus){
     vector<string> seqs =  {"AAGTGCTGTANAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","ACGTURYKMSWBDHVN-"};
@@ -171,7 +172,7 @@ TEST(INPUT_PARSING, fastq_things_after_plus){
                    "@\n" + seqs[1] + "\n+SOMETHING2\n" + quals[1] + "\n";
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
-    check_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
 
