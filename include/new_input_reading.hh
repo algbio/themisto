@@ -11,6 +11,11 @@ using namespace std;
 
 class BufferedStream{
 
+private:
+
+    BufferedStream(const BufferedStream& temp_obj) = delete; // No copying
+    BufferedStream& operator=(const BufferedStream& temp_obj) = delete;  // No copying
+
     static const LL buf_cap = (1 << 20);
     vector<char> buf;
     LL buf_pos = 0;
@@ -18,7 +23,7 @@ class BufferedStream{
     bool is_eof = false;
     ifstream stream;
 
-    public:
+public:
 
     BufferedStream(string filename) : stream(filename){
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
@@ -64,6 +69,11 @@ class Sequence_Reader_Buffered {
 //   read = sr.get_next_read()
 //   if(read.size() == 0) break;
 //}
+
+private:
+
+Sequence_Reader_Buffered(const Sequence_Reader_Buffered& temp_obj) = delete; // No copying
+Sequence_Reader_Buffered& operator=(const Sequence_Reader_Buffered& temp_obj) = delete;  // No copying
 
 BufferedStream stream;
 LL mode;
