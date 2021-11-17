@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include "../globals.hh"
 #include "setup_tests.hh"
+#include "new_input_reading.hh"
 
 void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
     Sequence_Reader sr(fastafile, mode);
@@ -13,12 +14,22 @@ void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fa
     ASSERT_TRUE(sr.done());
 }
 
+void check_new_sequence_reader_output(const vector<string>& seqs, LL mode, string fastafile){
+    Sequence_Reader_New sr(fastafile);
+    for(string seq : seqs){
+        string next = sr.get_next_read();
+        ASSERT_EQ(next, seq);
+    }
+    ASSERT_TRUE(sr.get_next_read() == ""); // Done
+}
+
 TEST(INPUT_PARSING, fasta_basic){
     vector<string> seqs = {"AAGTGCTGTANAYA","ACGTURYKMSWBDHVN-"};
     string fasta = ">\n" + seqs[0] + "\n>\n" + seqs[1] + "\n";
     logger << fasta << endl << seqs << endl;
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
 
 }
 
@@ -36,6 +47,7 @@ TEST(INPUT_PARSING, fasta_multiple_lines){
     logger << fasta << endl << seqs << endl;
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_upper_case){
@@ -50,23 +62,25 @@ TEST(INPUT_PARSING, fasta_upper_case){
     for(string& seq : seqs) for(char& c : seq) c = toupper(c); // Upper case for validation
     
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_super_long_line){
     vector<string> seqs;
-    seqs.push_back(string(1e6, 'A'));
-    seqs.push_back(string(1e5, 'G'));
+    seqs.push_back(string(3e6, 'A'));
+    seqs.push_back(string(4e5, 'G'));
 
     string fasta;
     for(string seq : seqs) fasta += ">\n" + seq + "\n";
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_headers){
     vector<string> seqs;
-    seqs.push_back(string(1e6, 'A'));
-    seqs.push_back(string(1e5, 'G'));
+    seqs.push_back(string(3e6, 'A'));
+    seqs.push_back(string(4e5, 'G'));
 
     vector<string> headers;
     headers.push_back(string(1e5, 'h'));
