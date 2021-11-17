@@ -49,43 +49,53 @@ class BufferedStream{
 
 };
 
-class Sequence_Reader_New {
+class Sequence_Reader_Buffered {
 
 // The class is used like this:
-// char* buffer = malloc(...)
+// Sequence_Reader_Buffered sr;
 // while(true) { 
 //   len = get_next_read_to_buffer(buf)
 //   if(len == 0) break;
+//   do something with sr.read_buffer
 //}
-// free(buffer)
-// or
+//
+// or (slow):
 // while(true) { 
-//   read = get_next_read_to_buffer(buf)
+//   read = sr.get_next_read()
 //   if(read.size() == 0) break;
 //}
 
 BufferedStream stream;
 LL mode;
+LL read_buf_cap ;
 
 public:
 
+    char* read_buffer;
+
     // mode should be FASTA_MODE or FASTQ_MODE
     // Note: FASTQ mode does not support multi-line FASTQ
-    Sequence_Reader_New(string filename, LL mode) : stream(filename), mode(mode) {
+    Sequence_Reader_Buffered(string filename, LL mode) : stream(filename), mode(mode) {
         // todo: check that fasta files start with > and fastq files start with @
         if(mode != FASTA_MODE && mode != FASTQ_MODE)
             throw std::invalid_argument("Unkown sequence format");
+        
+        read_buf_cap = 256;
+        read_buffer = (char*)malloc(read_buf_cap);
+    }
+
+    ~Sequence_Reader_Buffered(){
+        free(read_buffer);
     }
 
     // Returns length of read, or zero if no more reads.
     // The read is null-terminated.
-    LL get_next_read_to_buffer(char** buffer, LL* buf_cap) {
-        // reallocs buffer if needed
-
-        assert(*buf_cap > 0);
-
+    // The read is stored in the member pointer `read_buffer`
+    // When called, the read that is currently in the buffer is overwritten
+    LL get_next_read_to_buffer() {
+        
         if(stream.eof()){
-            *buffer = nullptr;
+            read_buffer = nullptr;
             return 0;
         }
 
@@ -100,20 +110,20 @@ public:
                     if(c == '\n') continue;
                     else if(c == '>') break;
                     else {
-                        if(buf_pos + 1 >= *buf_cap) { // +1: space for null terminator
-                            *buf_cap = *buf_cap * 2;
-                            *buffer = (char*)realloc(*buffer, *buf_cap);
+                        if(buf_pos + 1 >= read_buf_cap) { // +1: space for null terminator
+                            read_buf_cap *= 2;
+                            read_buffer = (char*)realloc(read_buffer, read_buf_cap);
                         }
-                        (*buffer)[buf_pos++] = toupper(c);
+                        read_buffer[buf_pos++] = toupper(c);
                     }
                 }
             }
-            (*buffer)[buf_pos] = '\0';
+            read_buffer[buf_pos] = '\0';
             return buf_pos;
         } else if(mode == FASTQ_MODE){
             char c = stream.get(&c);
             if(stream.eof()){
-                *buffer = nullptr;
+                read_buffer = nullptr;
                 return 0;
             }
             while(c != '\n') stream.get(&c); // Skip header line
@@ -121,13 +131,13 @@ public:
             while(true){
                 stream.get(&c);
                 if(c == '\n') break; // End of read
-                if(buf_pos + 1 >= *buf_cap) { // +1: space for null terminator
-                    *buf_cap = *buf_cap * 2;
-                    *buffer = (char*)realloc(*buffer, *buf_cap);
+                if(buf_pos + 1 >= read_buf_cap) { // +1: space for null terminator
+                    read_buf_cap *= 2;
+                    read_buffer = (char*)realloc(read_buffer, read_buf_cap);
                 }
-                (*buffer)[buf_pos++] = toupper(c);
+                read_buffer[buf_pos++] = toupper(c);
             }
-            (*buffer)[buf_pos] = '\0';
+            read_buffer[buf_pos] = '\0';
 
             c = 0;
             while(c != '\n') stream.get(&c); // Skip '+'-line
@@ -143,11 +153,8 @@ public:
 
     // Slow
     string get_next_read(){
-        LL buf_cap = 256;
-        char* buffer = (char*)malloc(buf_cap);
-        LL len = get_next_read_to_buffer(&buffer, &buf_cap);
-        string read = (len > 0 ? string(buffer) : "");
-        free(buffer);
+        LL len = get_next_read_to_buffer();
+        string read = (len > 0 ? string(read_buffer) : "");
         return read;
     }
 

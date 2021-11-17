@@ -14,8 +14,8 @@ void check_sequence_reader_output(const vector<string>& seqs, LL mode, string fa
     ASSERT_TRUE(sr.done());
 }
 
-void check_new_sequence_reader_output(const vector<string>& seqs, LL mode, string filename){
-    Sequence_Reader_New sr(filename, mode);
+void check_buffered_sequence_reader_output(const vector<string>& seqs, LL mode, string filename){
+    Sequence_Reader_Buffered sr(filename, mode);
     for(string seq : seqs){
         string next = sr.get_next_read();
         ASSERT_EQ(next, seq);
@@ -29,7 +29,7 @@ TEST(INPUT_PARSING, fasta_basic){
     logger << fasta << endl << seqs << endl;
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
-    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTA_MODE, filename);
 
 }
 
@@ -47,7 +47,7 @@ TEST(INPUT_PARSING, fasta_multiple_lines){
     logger << fasta << endl << seqs << endl;
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
-    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_upper_case){
@@ -62,7 +62,7 @@ TEST(INPUT_PARSING, fasta_upper_case){
     for(string& seq : seqs) for(char& c : seq) c = toupper(c); // Upper case for validation
     
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
-    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_super_long_line){
@@ -74,7 +74,7 @@ TEST(INPUT_PARSING, fasta_super_long_line){
     for(string seq : seqs) fasta += ">\n" + seq + "\n";
     string filename = string_to_temp_file(fasta);
     check_sequence_reader_output(seqs, FASTA_MODE, filename);
-    check_new_sequence_reader_output(seqs, FASTA_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTA_MODE, filename);
 }
 
 TEST(INPUT_PARSING, fasta_headers){
@@ -107,7 +107,7 @@ TEST(INPUT_PARSING, fastq_basic){
                    "@\n" + seqs[1] + "\n+\n" + quals[1] + "\n";
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
-    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTQ_MODE, filename);
 
 }
 
@@ -120,7 +120,7 @@ TEST(INPUT_PARSING, fastq_upper_case){
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
     for(string& seq : seqs) for(char& c : seq) c = toupper(c); // Upper case for validation
-    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
 
@@ -135,7 +135,7 @@ TEST(INPUT_PARSING, fastq_super_long_line){
     string fastq = "@\n" + seqs[0] + "\n+\n" + quals[0] + "\n" +
                    "@\n" + seqs[1] + "\n+\n" + quals[1] + "\n";
     string filename = string_to_temp_file(fastq);
-    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
 /*
@@ -172,7 +172,7 @@ TEST(INPUT_PARSING, fastq_things_after_plus){
                    "@\n" + seqs[1] + "\n+SOMETHING2\n" + quals[1] + "\n";
     logger << fastq << endl << seqs << " " << quals << endl;
     string filename = string_to_temp_file(fastq);
-    check_new_sequence_reader_output(seqs, FASTQ_MODE, filename);
+    check_buffered_sequence_reader_output(seqs, FASTQ_MODE, filename);
 }
 
 
