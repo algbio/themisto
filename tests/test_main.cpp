@@ -49,7 +49,7 @@ public:
     virtual void callback(const char* S, LL S_size, int64_t string_id){
         received_strings.push_back(string(S,S_size));
         received_string_ids.push_back(string_id);
-        for(LL i = 0; i < 1000; i++) busywork++; // Do some "work"
+        for(LL i = 0; i < 100000; i++) busywork++; // Do some "work"
     }
 
     virtual void finish(){
