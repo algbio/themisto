@@ -53,15 +53,15 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Bu
             break; // quit
         } else{
             // Add read to batch
-            if(batch->data.size() == 0) batch->firstReadID = read_id++;
+            if(batch->data.size() == 0) batch->firstReadID = read_id;
             batch->readStarts.push_back(batch->data.size());   
-            for(LL i = 0; i < len; i++)
-                batch->data.push_back(sr.read_buf[i]);
+            for(LL i = 0; i < len; i++) batch->data.push_back(sr.read_buf[i]);
             if(batch->data.size() >= batch_size){
                 batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
                 Q.push(batch, batch->data.size());
                 batch = new ReadBatch(); // Clear
             }
+            read_id++;
         }
     }
     

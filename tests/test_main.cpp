@@ -88,7 +88,6 @@ TEST(WORK_DISPATCHER, basic_test){
     for(LL i = 0; i < 4; i++){
         DispatcherConsumerTestCallback* cb = callbacks_no_cast[i];
         ASSERT_EQ(cb->received_string_ids.size(), cb->received_strings.size());
-        cout << cb->received_strings.size() << " " << cb->received_string_ids.size() << endl;
         for(LL j = 0; j < cb->received_strings.size(); j++){
             pairs.push_back({cb->received_string_ids[j], cb->received_strings[j]});
         }
@@ -96,7 +95,6 @@ TEST(WORK_DISPATCHER, basic_test){
 
     ASSERT_EQ(pairs.size(), seqs.size());
     std::sort(pairs.begin(), pairs.end());
-    cout << pairs << endl;
     for(LL i = 0; i < pairs.size(); i++){
         ASSERT_EQ(pairs[i].first, i);
         ASSERT_EQ(pairs[i].second, seqs[i]);
