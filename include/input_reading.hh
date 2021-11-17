@@ -35,16 +35,17 @@ private:
     BufferedStream(const BufferedStream& temp_obj) = delete; // No copying
     BufferedStream& operator=(const BufferedStream& temp_obj) = delete;  // No copying
 
-    static const LL buf_cap = (1 << 20);
+    
     vector<char> buf;
     LL buf_pos = 0;
     LL buf_size = 0;
     bool is_eof = false;
     ifstream stream;
+    LL buf_cap = (1 << 20);
 
 public:
 
-    BufferedStream(string filename) : stream(filename){
+    BufferedStream(string filename, LL buf_cap) : stream(filename),  buf_cap(buf_cap){
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
     }
@@ -104,7 +105,7 @@ public:
 
     // mode should be FASTA_MODE or FASTQ_MODE
     // Note: FASTQ mode does not support multi-line FASTQ
-    Sequence_Reader_Buffered(string filename, LL mode) : stream(filename), mode(mode) {
+    Sequence_Reader_Buffered(string filename, LL mode, LL block_size = 1<<20) : stream(filename, block_size), mode(mode) {
         // todo: check that fasta files start with > and fastq files start with @
         if(mode != FASTA_MODE && mode != FASTQ_MODE)
             throw std::invalid_argument("Unkown sequence format");
