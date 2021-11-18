@@ -58,9 +58,9 @@ int stats_main(int argc, char** argv){
     cout << "Node length k: " << themisto.boss.get_k() << endl;
     cout << "Edge length k+1: " << themisto.boss.get_k() + 1 << endl;
     cout << "Node count: " << total_nodes - dummy_nodes << endl;
-    cout << "Node count (including technical BOSS dummy nodes): " << total_nodes << endl;
+    cout << "Node count (including technical dummy nodes): " << total_nodes << endl;
     cout << "Edge count: " << total_edges - dummy_edges << endl;
-    cout << "Edge count (including technical BOSS dummy edges): " << total_edges << endl;
+    cout << "Edge count (including technical dummy edges): " << total_edges << endl;
     cout << "Number of colors: " << themisto.coloring.n_colors << endl;
     cout << "Number of distinct color sets: " << themisto.coloring.get_number_of_distinct_colorsets() << endl;
     cout << "Sum of sizes of all distinct color sets: " << themisto.coloring.get_color_set_concatenation_length() << endl;
