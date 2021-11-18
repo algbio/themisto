@@ -15,6 +15,7 @@ int stats_main(int argc, char** argv){
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
+        ("unitigs", "Also compute statistics on unitigs. This takes a while and requires the temporary directory to be set.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("h,help", "Print usage")
     ;
@@ -27,11 +28,13 @@ int stats_main(int argc, char** argv){
         return 1;
     }
 
-    get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
     string index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
+    bool do_unitigs = opts["unitigs"].as<bool>();
     check_readable(index_dbg_file);
     check_readable(index_color_file);
+
+    if(do_unitigs) get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
 
     Themisto themisto;
 
@@ -52,36 +55,44 @@ int stats_main(int argc, char** argv){
         if(dummy_marks[v]) dummy_edges += themisto.boss.outdegree(v);
     }
 
-    UnitigExtractor UE;
-    string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
-    throwing_ofstream unitigs_out(unitigs_file);
-    NullStream null_stream;
-    write_log("Extracting unitigs");
-    UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream);
-    
-    LL unitig_count = 0;
-    Sequence_Reader_Buffered sr(unitigs_file, FASTA_MODE);
-    LL min_unitig_len = 1e18;
-    LL max_unitig_len = 0;
-    LL unitig_len_sum = 0;
-    while(true){
-        LL len = sr.get_next_read_to_buffer();
-        if(len == 0) break;
-        unitig_count++;
-        min_unitig_len = min(min_unitig_len, len);
-        max_unitig_len = max(max_unitig_len, len);
-        unitig_len_sum += len;
-    }
-
     cout << "Node length k: " << themisto.boss.get_k() << endl;
-    cout << "Node length k+1: " << themisto.boss.get_k() + 1 << endl;
+    cout << "Edge length k+1: " << themisto.boss.get_k() + 1 << endl;
     cout << "Node count: " << total_nodes - dummy_nodes << endl;
     cout << "Node count (including technical BOSS dummy nodes): " << total_nodes << endl;
     cout << "Edge count: " << total_edges - dummy_edges << endl;
     cout << "Edge count (including technical BOSS dummy edges): " << total_edges << endl;
-    cout << "Min unitig length: " << min_unitig_len << endl;    
-    cout << "Max unitig length: " << max_unitig_len << endl;
-    cout << "Avg unitig length: " << (double)unitig_len_sum / unitig_count << endl;
+
+    if(do_unitigs){
+        write_log("Extracting unitigs (this could take a while)");
+        disable_logging(); // Unitig extraction is chatty
+        UnitigExtractor UE;
+        string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
+        throwing_ofstream unitigs_out(unitigs_file);
+        NullStream null_stream;
+        write_log("Extracting unitigs");
+        UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream);
+        unitigs_out.close();
+        
+        LL unitig_count = 0;
+        Sequence_Reader_Buffered sr(unitigs_file, FASTA_MODE);
+        LL min_unitig_len = 1e18;
+        LL max_unitig_len = 0;
+        LL unitig_len_sum = 0;
+        while(true){
+            LL len = sr.get_next_read_to_buffer();
+            if(len == 0) break;
+            unitig_count++;
+            min_unitig_len = min(min_unitig_len, len);
+            max_unitig_len = max(max_unitig_len, len);
+            unitig_len_sum += len;
+        }
+
+        cout << "Min unitig length: " << min_unitig_len << endl;    
+        cout << "Max unitig length: " << max_unitig_len << endl;
+        cout << "Avg unitig length: " << (double)unitig_len_sum / unitig_count << endl;
+
+        enable_logging();
+    }
 
     return 0;
     
