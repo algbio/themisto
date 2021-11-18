@@ -70,7 +70,7 @@ TEST_F(CLI_TEST, no_colors){
     Argv argv(args);
     build_index_main(argv.size, argv.array);
     Themisto themisto;
-    themisto.load_boss(indexprefix + ".themisto.dbg"); // Should work
+    themisto.load_boss(indexprefix + ".tdbg"); // Should work
     try{
         themisto.load(indexprefix); // Should throw
         FAIL(); // Did not throw

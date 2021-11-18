@@ -28,8 +28,8 @@ int stats_main(int argc, char** argv){
         return 1;
     }
 
-    string index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
-    string index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
+    string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
+    string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     bool do_unitigs = opts["unitigs"].as<bool>();
     check_readable(index_dbg_file);
     check_readable(index_color_file);

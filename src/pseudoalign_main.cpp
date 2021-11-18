@@ -113,8 +113,8 @@ int pseudoalign_main(int argc, char** argv){
     if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "") 
         for(string line : read_lines(opts["out-file-list"].as<string>()))
             C.outfiles.push_back(line);
-    C.index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
-    C.index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
+    C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
+    C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.reverse_complements = opts["rc"].as<bool>();
     C.n_threads = opts["n-threads"].as<LL>();

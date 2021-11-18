@@ -86,7 +86,7 @@ int build_index_main(int argc, char** argv){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
-        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].themisto.dbg and the color structure to [prefix].themisto.colors.", cxxopts::value<string>())
+        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
@@ -119,8 +119,8 @@ int build_index_main(int argc, char** argv){
     C.input_format = figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<LL>();
     C.colorfile = opts["color-file"].as<string>();
-    C.index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
-    C.index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
+    C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
+    C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.load_dbg = opts["load-dbg"].as<bool>();
     C.memory_megas = opts["mem-megas"].as<LL>();

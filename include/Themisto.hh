@@ -283,13 +283,13 @@ public:
     }
 
     void save(string filename_prefix){
-        save_boss(filename_prefix + ".themisto.dbg");
-        save_colors(filename_prefix + ".themisto.colors");
+        save_boss(filename_prefix + ".tdbg");
+        save_colors(filename_prefix + ".tcolors");
     }
 
     void load(string filename_prefix){
-        load_boss(filename_prefix + ".themisto.dbg");
-        load_colors(filename_prefix + ".themisto.colors");
+        load_boss(filename_prefix + ".tdbg");
+        load_colors(filename_prefix + ".tcolors");
     }
 
     string to_string(){
