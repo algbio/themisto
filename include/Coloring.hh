@@ -32,10 +32,6 @@ class Coloring{
 // The output for querying is:
 // - For each read, a set of color names (not color ids)
 
-public:
-
-    //vector<set<color_t> > colors; // node id -> color set.
-
 private:
 
     // private copy construtor and assignment operator: no copying, 
@@ -45,6 +41,7 @@ private:
 
 public:
 
+    inline static const LL VERSION = 1; // Increment this after non-breaking changes
     sdsl::int_vector<> color_sets;
     sdsl::int_vector<> node_to_color_set_id;
     sdsl::bit_vector nonempty;
@@ -254,6 +251,11 @@ public:
     }
 
     void load(istream& is){
+        LL stored_version_number;
+        is.read((char*)&stored_version_number, sizeof(stored_version_number));
+        if(stored_version_number != VERSION)
+            throw std::runtime_error("The coloring data structure was built with an incompatible version of the software");
+
         color_sets.load(is);
         node_to_color_set_id.load(is);
         nonempty.load(is);
@@ -274,6 +276,10 @@ public:
 
     LL serialize(ostream& os){
         LL written = 0;
+
+        os.write((char*)&VERSION, sizeof(VERSION));
+        written += sizeof(VERSION);
+
         written += color_sets.serialize(os);
         written += node_to_color_set_id.serialize(os);
         written += nonempty.serialize(os);

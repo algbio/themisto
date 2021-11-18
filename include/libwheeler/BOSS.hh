@@ -22,8 +22,10 @@ private:
     typedef wgi::WheelerIndex<bitvector_t, rank_select_string_t> Base;
 
     int64_t k;
-
+    
 public:
+
+    inline static const LL VERSION = 1; // Increment this after non-breaking changes
 
     // The smallest k we allow is k = 1. In that case nodes are 1-mers and edges 2-mers.
     // Value k=0 would be weird because then edges are just self-loops from the empty string.
@@ -56,6 +58,9 @@ public:
 
     LL serialize(ostream& os) const{
         LL written = 0;
+        os.write((char*)&VERSION, sizeof(VERSION));
+        written += sizeof(VERSION);
+
         written += Base::serialize(os);
         os.write((char*)&k, sizeof(k));
         written += sizeof(k);
@@ -63,6 +68,11 @@ public:
     }
 
     void load(istream& is){
+        LL stored_version_number;
+        is.read((char*)&stored_version_number, sizeof(stored_version_number));
+        if(stored_version_number != VERSION)
+            throw std::runtime_error("The de Bruijn graph was built with an incompatible version of the software");
+
         Base::load(is);
         is.read((char*)&k, sizeof(k));
     }
