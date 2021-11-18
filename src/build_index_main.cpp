@@ -173,6 +173,8 @@ int build_index_main(int argc, char** argv){
         write_log("Building colors");
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         themisto.save_colors(C.index_color_file);
+    } else{
+        std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
 
     write_log("Finished");
