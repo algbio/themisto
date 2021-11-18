@@ -58,10 +58,10 @@ ulimit -n 2048
 
 Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built without colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
 
-There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to directory `example_index`, using the directory `temp` as temporary storage, using four threads and up to 1GB of memory.
+There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to `my_index.themisto.dbg` and `my_index.themisto.colors`, using the directory `temp` as temporary storage, using four threads and up to 1GB of memory.
 
 ```
-./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt -o example_index --temp-dir temp --mem-megas 1000 --n-threads 4
+./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt --index-prefix my_index --temp-dir temp --mem-megas 1000 --n-threads 4
 ```
 
 We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
@@ -69,7 +69,7 @@ We recommend to use a fast SSD drive for the temporary directory. With a reasona
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
 
 ```
-./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-dir example_index --temp-dir temp --out-file out.txt --n-threads 4
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4
 ```
 
 This should produce the following output file:
@@ -103,11 +103,17 @@ Usage:
                                 after use.
   -c, --color-file arg          One color per sequence in the fasta file, 
                                 one color per line. If not given, the 
-                                sequences ar egiven colors 0,1,2... in the 
+                                sequences are given colors 0,1,2... in the 
                                 order they appear in the input file. 
                                 (default: "")
-  -o, --index-dir arg           Directory where the index will be built.
-      --temp-dir arg            Directory for temporary files.
+  -o, --index-prefix arg        The de Bruijn graph will be written to 
+                                [prefix].themisto.dbg and the color 
+                                structure to [prefix].themisto.colors. If 
+                                not given, the filename of the sequence 
+                                file used as the prefix.
+      --temp-dir arg            Directory for temporary files. This 
+                                directory should have fast I/O operations 
+                                and should have as much space as possible.
   -m, --mem-megas arg           Number of megabytes allowed for external 
                                 memory algorithms. Default: 1000 (default: 
                                 1000)
@@ -117,9 +123,6 @@ Usage:
                                 nucleotides. If this option is not given, 
                                 (k+1)-mers containing a non-ACGT character 
                                 are deleted instead.
-      --pp-buf-siz arg          Size of preprocessing buffer (in bytes) for 
-                                fixing alphabet (you should not need to 
-                                touch this) (default: 4096)
   -d, --colorset-pointer-tradeoff arg
                                 This option controls a time-space tradeoff 
                                 for storing and querying color sets. If 
@@ -139,8 +142,6 @@ Usage:
                                 because the order k is defined by the 
                                 precomputed de Bruijn graph.
   -h, --help                    Print usage
-
-
 ```
 
 ## Full instructions for `pseudoalign`
@@ -153,25 +154,25 @@ The query file(s) should be in fasta of fastq format. The format is inferred fro
 
 ```
 Usage:
-  ./build/bin/pseudoalign [OPTION...]
+  pseudoalign [OPTION...]
 
-  -q, --query-file arg       Input file of the query sequences (default: )
-      --query-file-list arg  A list of query filenames, one line per filename
-                             (default: )
-  -o, --out-file arg         Output filename. (default: )
-      --out-file-list arg    A file containing a list of output filenames,
-                             one per line. (default: )
-  -i, --index-dir arg        Directory where the index will be built. Always
-                             required, directory must exist before running.
-      --temp-dir arg         Temporary directory. Always required, directory
-                             must exist before running.
-      --rc                   Whether to to consider the reverse complement
+  -q, --query-file arg       Input file of the query sequences (default: 
+                             "")
+      --query-file-list arg  A list of query filenames, one line per 
+                             filename (default: "")
+  -o, --out-file arg         Output filename. (default: "")
+      --out-file-list arg    A file containing a list of output filenames, 
+                             one per line. (default: "")
+  -i, --index-prefix arg     The index prefix that was given to the build 
+                             command.
+      --temp-dir arg         Directory for temporary files.
+      --rc                   Whether to to consider the reverse complement 
                              k-mers in the pseudoalignemt.
-  -t, --n-threads arg        Number of parallel exectuion threads. Default: 1
-                             (default: 1)
+  -t, --n-threads arg        Number of parallel exectuion threads. Default: 
+                             1 (default: 1)
       --gzip-output          Compress the output files with gzip.
-      --sort-output          Sort the lines of the out files by sequence rank
-                             in the input files.
+      --sort-output          Sort the lines of the out files by sequence 
+                             rank in the input files.
   -h, --help                 Print usage
 ```
 
@@ -179,46 +180,46 @@ Examples:
 
 Pseudoalign reads.fna against an index:
 ```
-./build/bin/themisto pseudoalign --query-file reads.fna --index-dir index --temp-dir temp --out-file out.txt
+./build/bin/themisto pseudoalign --query-file reads.fna --index-prefix my_index --temp-dir temp --out-file out.txt
 ```
 
 Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
 ```
-./build/bin/themisto pseudoalign --query-file-list input_list.txt --index-dir index --temp-dir temp --out-file-list output_list.txt
+./build/bin/themisto pseudoalign --query-file-list input_list.txt --index-prefix my_index --temp-dir temp --out-file-list output_list.txt
 ```
 
 Pseudoalign reads.fna against an index using also reverse complements:
 ```
-./build/bin/themisto pseudoalign --rc --query-file reads.fna --index-dir index --temp-dir temp --outfile out.txt
+./build/bin/themisto pseudoalign --rc --query-file reads.fna --index-prefix my_index --temp-dir temp --outfile out.txt
 ```
 
-## Extracting unitigs with `extract_unitigs`
+## Extracting unitigs with `extract-unitigs`
 
 This program dumps the unitigs and optionally their colors out of an existing Themisto index.
 
 ```
-  extract_unitigs [OPTION...]
+Usage:
+  extract-unitigs [OPTION...]
 
-  -i, --index-dir arg    Location of the Themisto index.
-      --unitigs-out arg  Output filename for the unitigs (outputted in 
-                         FASTA format). (default: "")
-      --colors-out arg   Output filename for the unitig colors. If this 
-                         option is not given, the colors are not computed. 
-                         Note that giving this option affects the unitigs 
-                         written to unitigs-out: if a unitig has nodes with 
-                         different color sets, the unitig is split into 
-                         maximal segments of nodes that have equal color 
-                         sets. The file format of the color file is as 
-                         follows: there is one line for each unitig. The 
-                         lines contain space-separated strings. The first 
-                         string on a line is the FASTA header of a unitig, 
-                         and the following strings on the line are the 
-                         integer color labels of the colors of that unitig. 
-                         The unitigs appear in the same order as in the 
-                         FASTA file. (default: "")
-  -h, --help             Print usage
-
-
+  -i, --index-prefix arg  The index prefix that was given to the build 
+                          command.
+      --unitigs-out arg   Output filename for the unitigs (outputted in 
+                          FASTA format). (default: "")
+      --colors-out arg    Output filename for the unitig colors. If this 
+                          option is not given, the colors are not computed. 
+                          Note that giving this option affects the unitigs 
+                          written to unitigs-out: if a unitig has nodes 
+                          with different color sets, the unitig is split 
+                          into maximal segments of nodes that have equal 
+                          color sets. The file format of the color file is 
+                          as follows: there is one line for each unitig. 
+                          The lines contain space-separated strings. The 
+                          first string on a line is the FASTA header of a 
+                          unitig, and the following strings on the line are 
+                          the integer color labels of the colors of that 
+                          unitig. The unitigs appear in the same order as 
+                          in the FASTA file. (default: "")
+  -h, --help              Print usage
 ```
 
 # For developers: building the tests

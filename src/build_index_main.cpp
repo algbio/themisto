@@ -104,11 +104,11 @@ int build_index_main(int argc, char** argv){
         std::cerr << options.help() << std::endl;
         cerr << "Usage examples:" << endl;
         cerr << "Build the de Bruijn graph and colors:" << endl;
-        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp" << endl;
+        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-prefix my_index --temp-dir temp" << endl;
         cerr << "Build only the de Bruijn graph" << endl;
-        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-dir index --temp-dir temp --no-colors" << endl;
+        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-prefix my_index --temp-dir temp --no-colors" << endl;
         cerr << "Load a previously built de Bruijn graph from the index directory and compute the colors:" << endl;
-        cerr << "  " << argv[0] << " --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-dir index --temp-dir temp --load-dbg" << endl;
+        cerr << "  " << argv[0] << " --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-prefix my_index --temp-dir temp --load-dbg" << endl;
         exit(1);
     }    
 
