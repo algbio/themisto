@@ -512,7 +512,7 @@ private:
 
                 // condition (2)
                 LL last_node = boss.find_kmer(sr.read_buf + len - k);
-                pair<int64_t, int64_t> I = boss.outedge_range(last_node);
+                pair<int64_t, int64_t> I = boss.outlabel_range(last_node);
                 for(LL i = I.first; i <= I.second; i++){
                     LL next = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
                     redundancy_marks[next] = 0;
@@ -539,7 +539,7 @@ private:
         sdsl::bit_vector redundancy_marks_temp = redundancy_marks; 
         for(LL v = 1; v < boss.number_of_nodes(); v++){
             if(redundancy_marks[v] == 0){
-                pair<int64_t, int64_t> I = boss.outedge_range(v);
+                pair<int64_t, int64_t> I = boss.outlabel_range(v);
                 for(LL i = I.first; i <= I.second; i++){
                     LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
                     LL counter = 0;
@@ -549,7 +549,7 @@ private:
                             redundancy_marks_temp[u] = 0; // new mark
                             counter = 0;
                         }
-                        pair<int64_t, int64_t> I_u = boss.outedge_range(u);
+                        pair<int64_t, int64_t> I_u = boss.outlabel_range(u);
                         if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
                         u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
                         // This loop is guaranteed to terminate. Proof:

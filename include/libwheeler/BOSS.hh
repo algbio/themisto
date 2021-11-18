@@ -178,7 +178,7 @@ public:
         if(node == -1) return -1;
 
         int64_t start, end;
-        std::tie(start,end) = Base::outedge_range(node);
+        std::tie(start,end) = Base::outlabel_range(node);
         if(end < start) return -1;
 
         // The labels of outgoing nodes are in outlabels[start..end]
@@ -273,7 +273,7 @@ public:
                 marks[v] = 1;
             }
             if(d < k-1){ // Push children
-                LL out_l, out_r; tie(out_l, out_r) = Base::outedge_range(v);
+                LL out_l, out_r; tie(out_l, out_r) = Base::outlabel_range(v);
                 for(LL i = out_l; i <= out_r; i++){
                     LL edge_wr = Base::outedge_index_to_wheeler_rank(i);
                     dfs_stack.push_back({Base::edge_destination(edge_wr), d+1});

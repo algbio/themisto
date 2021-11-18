@@ -430,7 +430,7 @@ public:
      * \param node
      * \return A range [l,r] of indices in outlabels of the outgoing edges from node. If the node has no outgoing labels, returns (1,0).
      */
-    pair<int64_t, int64_t> outedge_range(int64_t node) const{
+    pair<int64_t, int64_t> outlabel_range(int64_t node) const{
         if(node == -1) return {1,0};
 
         // Check if the node has an outedge with c. If no, return fail. If yes, we need to find the Wheeler rank 
@@ -472,7 +472,7 @@ public:
         if(node == -1) return 0;
 
         int64_t start, end;
-        std::tie(start,end) = outedge_range(node);
+        std::tie(start,end) = outlabel_range(node);
         if(end < start) return 0;
 
         int64_t count = 0;

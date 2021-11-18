@@ -43,7 +43,7 @@ private:
         u = v;
         while(true){
             if(boss.outdegree(u) >= 2) break;
-            LL succ = boss.walk(u, boss.outlabels_at(boss.outedge_range(u).first));
+            LL succ = boss.walk(u, boss.outlabels_at(boss.outlabel_range(u).first));
             if(succ == -1) break;
             if(visited[succ]) break;
             if(boss.indegree(succ) >= 2) break;

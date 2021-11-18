@@ -194,7 +194,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality){
             }
             // The outdegree of the last node must be 0 or >= 2, or otherwise the successor must be backward-branching
             if(boss.outdegree(last) == 1){ // If outdegree != 1, we are good
-                LL succ = boss.walk(last, boss.outlabels_at(boss.outedge_range(last).first));
+                LL succ = boss.walk(last, boss.outlabels_at(boss.outlabel_range(last).first));
                 ASSERT_TRUE(boss.indegree(succ) >= 2);
             }
         }
