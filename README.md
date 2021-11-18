@@ -195,7 +195,7 @@ Pseudoalign reads.fna against an index using also reverse complements:
 
 ## Extracting unitigs with `extract-unitigs`
 
-This program dumps the unitigs and optionally their colors out of an existing Themisto index.
+This command dumps the unitigs and optionally their colors out of an existing Themisto index.
 
 ```
 Usage:
@@ -219,6 +219,23 @@ Usage:
                           the integer color labels of the colors of that 
                           unitig. The unitigs appear in the same order as 
                           in the FASTA file. (default: "")
+  -h, --help              Print usage
+```
+
+## Extracting index statistics with `stats`
+
+This command prints various statistics about the k-mers and colors in an existing index.
+
+```
+Usage:
+  stats [OPTION...]
+
+  -i, --index-prefix arg  The index prefix that was given to the build 
+                          command.
+      --unitigs           Also compute statistics on unitigs. This takes a 
+                          while and requires the temporary directory to be 
+                          set.
+      --temp-dir arg      Directory for temporary files.
   -h, --help              Print usage
 ```
 
