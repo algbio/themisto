@@ -10,10 +10,10 @@
 #include "commands.hh"
 
 struct CLI_test_files{
-    string fastafile, indexdir, tempdir, colorfile;
+    string fastafile, indexprefix, tempdir, colorfile;
     CLI_test_files(vector<string> seqs, vector<LL> colors){
         fastafile = get_temp_file_manager().create_filename("",".fna");
-        indexdir = get_temp_file_manager().create_filename();
+        indexprefix = get_temp_file_manager().create_filename();
         tempdir = get_temp_file_manager().get_dir();
         colorfile = get_temp_file_manager().create_filename();
 
@@ -31,7 +31,7 @@ class CLI_TEST : public ::testing::Test {
     vector<string> seqs;
     vector<LL> colors;
     LL k;
-    string fastafile, indexdir, tempdir, colorfile;
+    string fastafile, indexprefix, tempdir, colorfile;
 
     void SetUp() override {
         seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
@@ -39,7 +39,7 @@ class CLI_TEST : public ::testing::Test {
         k = 3;
         CLI_test_files f(seqs,colors);
         fastafile = f.fastafile;
-        indexdir = f.indexdir;
+        indexprefix = f.indexprefix;
         tempdir = f.tempdir;
         colorfile = f.colorfile;
     }
@@ -48,11 +48,12 @@ class CLI_TEST : public ::testing::Test {
 
 // If no colorfile is given, should assign colors automatically for each sequence
 TEST_F(CLI_TEST, auto_colors){
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    cout << args << endl;
     Argv argv(args);
     build_index_main(argv.size, argv.array);
     Themisto themisto;
-    themisto.load_from_directory(indexdir);
+    themisto.load(indexprefix);
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
             LL node = themisto.boss.find_kmer(kmer);
@@ -65,25 +66,25 @@ TEST_F(CLI_TEST, auto_colors){
 
 // If --no-colors is given, should not build colors. Also check that giving both --auto-colors and --color-file throws.
 TEST_F(CLI_TEST, no_colors){
-    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     Argv argv(args);
     build_index_main(argv.size, argv.array);
     Themisto themisto;
-    themisto.load_boss_from_directory(indexdir); // Should work
+    themisto.load_boss(indexprefix + ".themisto.dbg"); // Should work
     try{
-        themisto.load_colors_from_directory(indexdir); // Should throw
+        themisto.load(indexprefix); // Should throw
         FAIL(); // Did not throw
-    } catch (const std::runtime_error &e){
+    } catch (const std::exception &e){
         // Should come here
     }
 
     // Test --no-colors and --color-file at the same time
-    vector<string> args_bad = {"build", "--no-colors", "--color-file", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    vector<string> args_bad = {"build", "--no-colors", "--color-file", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     Argv argv_bad(args_bad);
     try{
         build_index_main(argv_bad.size, argv_bad.array);
         FAIL(); // Did not throw
-    } catch(const std::runtime_error &e){
+    } catch(const std::exception &e){
         ASSERT_EQ(string(e.what()), "Must not give both --no-colors and --colorfile");
     }
 }
@@ -91,18 +92,18 @@ TEST_F(CLI_TEST, no_colors){
 TEST_F(CLI_TEST, build_colors_separately){
 
     // Build DBG
-    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     Argv argv(args);
     build_index_main(argv.size, argv.array);
 
     // Build Colors
-    vector<string> args2 = {"build", "--load-dbg", "-c", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexdir, "--temp-dir", tempdir};
+    vector<string> args2 = {"build", "--load-dbg", "-c", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     Argv argv2(args2);
     build_index_main(argv2.size, argv2.array);
 
     // Check colors
     Themisto themisto;
-    themisto.load_from_directory(indexdir);
+    themisto.load(indexprefix);
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
             LL node = themisto.boss.find_kmer(kmer);
@@ -122,8 +123,8 @@ TEST(PREPROCESSING, upper_case){
     CLI_test_files f1(seqs, {0});
     CLI_test_files f2(seqs2, {0});
 
-    vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexdir, "--temp-dir", f1.tempdir};
-    vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexdir, "--temp-dir", f2.tempdir};
+    vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexprefix, "--temp-dir", f1.tempdir};
+    vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexprefix, "--temp-dir", f2.tempdir};
 
     build_index_main(Argv(args1).size, Argv(args1).array);
     build_index_main(Argv(args2).size, Argv(args2).array);
@@ -131,8 +132,8 @@ TEST(PREPROCESSING, upper_case){
     Themisto themisto1;
     Themisto themisto2;
 
-    themisto1.load_from_directory(f1.indexdir);
-    themisto2.load_from_directory(f2.indexdir);
+    themisto1.load(f1.indexprefix);
+    themisto2.load(f2.indexprefix);
 
     ASSERT_TRUE(themisto1.boss == themisto2.boss);
 
@@ -144,8 +145,8 @@ TEST(PREPROCESSING, upper_case){
     string q_resultfile1 = get_temp_file_manager().create_filename();
     string q_resultfile2 = get_temp_file_manager().create_filename();
 
-    vector<string> q_args1 = {"pseudoalign", "-q", queryfile, "-i", f1.indexdir, "-o", q_resultfile1, "--temp-dir", f1.tempdir, "--rc"};
-    vector<string> q_args2 = {"pseudoalign", "-q", queryfile, "-i", f2.indexdir, "-o", q_resultfile2, "--temp-dir", f2.tempdir, "--rc"};
+    vector<string> q_args1 = {"pseudoalign", "-q", queryfile, "-i", f1.indexprefix, "-o", q_resultfile1, "--temp-dir", f1.tempdir, "--rc"};
+    vector<string> q_args2 = {"pseudoalign", "-q", queryfile, "-i", f2.indexprefix, "-o", q_resultfile2, "--temp-dir", f2.tempdir, "--rc"};
 
     pseudoalign_main(Argv(q_args1).size, Argv(q_args1).array);
     pseudoalign_main(Argv(q_args2).size, Argv(q_args2).array);

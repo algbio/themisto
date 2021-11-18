@@ -37,14 +37,14 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
             // Build Themisto
 
-            string index_dir = get_temp_file_manager().create_filename();
+            string indexprefix = get_temp_file_manager().create_filename();
 
             stringstream argstring;
-            argstring << "build -k"  << k << " --n-threads " << 4 << " --mem-megas " << 1024 << " -i " << seqfile << " -c " << colorfile << " -o " << index_dir << " --temp-dir " << get_temp_file_manager().get_dir();
+            argstring << "build -k"  << k << " --n-threads " << 4 << " --mem-megas " << 1024 << " -i " << seqfile << " -c " << colorfile << " -o " << indexprefix << " --temp-dir " << get_temp_file_manager().get_dir();
             Argv argv(split(argstring.str()));
             build_index_main(argv.size, argv.array);
             
-            themisto->load_from_directory(index_dir);
+            themisto->load(indexprefix);
 
             logger << "Getting dummy marks" << endl;
             is_dummy = themisto->boss.get_dummy_node_marks();

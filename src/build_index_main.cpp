@@ -13,7 +13,7 @@ struct Build_Config{
     LL n_threads = 1;
     string inputfile;
     string colorfile;
-    string index_dir;
+    string index_prefix;
     string temp_dir;
     string input_format;
     bool load_dbg = false;
@@ -37,9 +37,6 @@ struct Build_Config{
             check_true(!no_colors, "Must not give both --no-colors and --colorfile");
             check_readable(colorfile);
         }
-        
-        check_true(index_dir != "", "Index directory not set");
-        check_dir_exists(index_dir);
 
         check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
@@ -54,7 +51,7 @@ struct Build_Config{
         ss << "Input file = " << inputfile << "\n";
         ss << "Input format = " << input_format << "\n";
         if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
-        ss << "Index directory = " << index_dir << "\n";
+        ss << "Index prefix = " << index_prefix << "\n";
         ss << "Temporary directory = " << temp_dir << "\n";
         ss << "k = " << k << "\n";
         ss << "Number of threads = " << n_threads << "\n";
@@ -84,8 +81,8 @@ int build_index_main(int argc, char** argv){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>())
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
-        ("o,index-dir", "Directory where the index will be built.", cxxopts::value<string>())
-        ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
+        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].themisto.dbg and the color structure to [prefix].themisto.colors. If not given, the filename of the sequence file used as the prefix.", cxxopts::value<string>())
+        ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms. Default: 1000", cxxopts::value<LL>()->default_value("1000"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
@@ -117,7 +114,7 @@ int build_index_main(int argc, char** argv){
     C.input_format = figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<LL>();
     C.colorfile = opts["color-file"].as<string>();
-    C.index_dir = opts["index-dir"].as<string>();
+    C.index_prefix = opts["index-prefix"].as<string>();
     C.temp_dir = opts["temp-dir"].as<string>();
     C.load_dbg = opts["load-dbg"].as<bool>();
     C.memory_megas = opts["mem-megas"].as<LL>();
@@ -125,7 +122,6 @@ int build_index_main(int argc, char** argv){
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
 
-    create_directory_if_does_not_exist(C.index_dir);
     create_directory_if_does_not_exist(C.temp_dir);
 
     C.check_valid();
@@ -159,18 +155,18 @@ int build_index_main(int argc, char** argv){
     
     if(C.load_dbg){
         write_log("Loading de Bruijn Graph");
-        themisto.load_boss_from_directory(C.index_dir);
+        themisto.load_boss(C.index_prefix + ".themisto.dbg");
     } else{
         write_log("Building de Bruijn Graph");
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
-        themisto.save_boss_to_directory(C.index_dir);
+        themisto.save_boss(C.index_prefix + ".themisto.dbg");
         write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
     if(!C.no_colors){
         write_log("Building colors");
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
-        themisto.save_colors_to_directory(C.index_dir);
+        themisto.save_colors(C.index_prefix + ".themisto.colors");
     }
 
     write_log("Finished");

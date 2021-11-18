@@ -14,7 +14,7 @@ int extract_unitigs_main(int argc, char** argv){
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
 
     options.add_options()
-        ("i,index-dir", "Location of the Themisto index.", cxxopts::value<string>())
+        ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("unitigs-out", "Output filename for the unitigs (outputted in FASTA format).", cxxopts::value<string>()->default_value(""))
         ("colors-out", "Output filename for the unitig colors. If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig, and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
         ("h,help", "Print usage")
@@ -28,9 +28,7 @@ int extract_unitigs_main(int argc, char** argv){
         return 1;
     }
 
-    string index_dir = opts["index-dir"].as<string>();
-    check_true(index_dir != "", "Index directory not set");
-    check_dir_exists(index_dir);
+    string index_prefix = opts["index-prefix"].as<string>();
 
     string unitigs_outfile = opts["unitigs-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
@@ -64,7 +62,8 @@ int extract_unitigs_main(int argc, char** argv){
     write_log("Starting");
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_from_directory(index_dir);
+    themisto.load_boss(index_prefix + ".themisto.dbg");
+    themisto.load_colors(index_prefix + ".themisto.colors");
 
     write_log("Extracting unitigs");
     

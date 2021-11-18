@@ -11,7 +11,7 @@ using namespace std;
 struct Pseudoalign_Config{
     vector<string> query_files;
     vector<string> outfiles;
-    string index_dir;
+    string index_prefix;
     string temp_dir;
     
     bool gzipped_output = false;
@@ -33,9 +33,6 @@ struct Pseudoalign_Config{
 
         check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
         
-        check_true(index_dir != "", "Index directory not set");
-        check_dir_exists(index_dir);
-
         check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
     }
@@ -79,7 +76,7 @@ int pseudoalign_main(int argc, char** argv){
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
         ("o,out-file", "Output filename.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
-        ("i,index-dir", "Directory where the index will be built. Always required, directory must exist before running.", cxxopts::value<string>())
+        ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignemt.", cxxopts::value<bool>()->default_value("false")) 
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
@@ -112,7 +109,7 @@ int pseudoalign_main(int argc, char** argv){
     if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "") 
         for(string line : read_lines(opts["out-file-list"].as<string>()))
             C.outfiles.push_back(line);
-    C.index_dir = opts["index-dir"].as<string>();
+    C.index_prefix = opts["index-prefix"].as<string>();
     C.temp_dir = opts["temp-dir"].as<string>();
     C.reverse_complements = opts["rc"].as<bool>();
     C.n_threads = opts["n-threads"].as<LL>();
@@ -133,7 +130,8 @@ int pseudoalign_main(int argc, char** argv){
 
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_from_directory(C.index_dir);
+    themisto.load_boss(C.index_prefix + ".themisto.dbg");
+    themisto.load_colors(C.index_prefix + ".themisto.colors");
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");

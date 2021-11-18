@@ -14,7 +14,7 @@ int stats_main(int argc, char** argv){
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
 
     options.add_options()
-        ("i,index-dir", "Location of the Themisto index.", cxxopts::value<string>())
+        ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("h,help", "Print usage")
     ;
@@ -28,14 +28,13 @@ int stats_main(int argc, char** argv){
     }
 
     get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
-    string index_dir = opts["index-dir"].as<string>();
-    check_true(index_dir != "", "Index directory not set");
-    check_dir_exists(index_dir);
+    string index_prefix = opts["index-prefix"].as<string>();
 
     Themisto themisto;
 
     write_log("Loading the index");    
-    themisto.load_from_directory(index_dir);
+    themisto.load_boss(index_prefix + ".themisto.dbg");
+    themisto.load_colors(index_prefix + ".themisto.colors");
 
     write_log("Computing index statistics");
     vector<bool> dummy_marks = themisto.boss.get_dummy_node_marks();

@@ -262,34 +262,34 @@ public:
         coloring.add_colors(boss, fastafile, seq_to_color, ram_bytes, n_threads, colorset_sampling_distance);
     }
 
-    void save_boss_to_directory(string dir){
-        throwing_ofstream out(dir + "/dbg.bin", ios::binary);
+    void save_boss(string filename){
+        throwing_ofstream out(filename, ios::binary);
         boss.serialize(out.stream);
     }
 
-    void save_colors_to_directory(string dir){
-        throwing_ofstream out(dir + "/coloring.bin", ios::binary);
+    void save_colors(string filename){
+        throwing_ofstream out(filename, ios::binary);
         coloring.serialize(out.stream);
     }
 
-    void save_to_directory(string dir){
-        save_boss_to_directory(dir);
-        save_colors_to_directory(dir);
-    }
-
-    void load_boss_from_directory(string dir){
-        throwing_ifstream in(dir + "/dbg.bin", ios::binary);
+    void load_boss(string filename){
+        throwing_ifstream in(filename, ios::binary);
         boss.load(in.stream);
     }
 
-    void load_colors_from_directory(string dir){
-        throwing_ifstream in(dir + "/coloring.bin", ios::binary);
+    void load_colors(string filename){
+        throwing_ifstream in(filename, ios::binary);
         coloring.load(in.stream);
     }
 
-    void load_from_directory(string dir){
-        load_boss_from_directory(dir);
-        load_colors_from_directory(dir);
+    void save(string filename_prefix){
+        save_boss(filename_prefix + ".themisto.dbg");
+        save_colors(filename_prefix + ".themisto.colors");
+    }
+
+    void load(string filename_prefix){
+        load_boss(filename_prefix + ".themisto.dbg");
+        load_colors(filename_prefix + ".themisto.colors");
     }
 
     string to_string(){
