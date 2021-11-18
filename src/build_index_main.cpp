@@ -13,7 +13,8 @@ struct Build_Config{
     LL n_threads = 1;
     string inputfile;
     string colorfile;
-    string index_prefix;
+    string index_dbg_file;
+    string index_color_file;
     string temp_dir;
     string input_format;
     bool load_dbg = false;
@@ -33,6 +34,9 @@ struct Build_Config{
             check_true(k+1 <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH - 1) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
         }
 
+        check_writable(index_dbg_file);
+        check_writable(index_color_file);
+
         if(colorfile != ""){
             check_true(!no_colors, "Must not give both --no-colors and --colorfile");
             check_readable(colorfile);
@@ -51,7 +55,8 @@ struct Build_Config{
         ss << "Input file = " << inputfile << "\n";
         ss << "Input format = " << input_format << "\n";
         if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
-        ss << "Index prefix = " << index_prefix << "\n";
+        ss << "Index de Bruijn graph output file = " << index_dbg_file << "\n";
+        ss << "Index coloring output file = " << index_color_file << "\n";
         ss << "Temporary directory = " << temp_dir << "\n";
         ss << "k = " << k << "\n";
         ss << "Number of threads = " << n_threads << "\n";
@@ -114,7 +119,8 @@ int build_index_main(int argc, char** argv){
     C.input_format = figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<LL>();
     C.colorfile = opts["color-file"].as<string>();
-    C.index_prefix = opts["index-prefix"].as<string>();
+    C.index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
+    C.index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.load_dbg = opts["load-dbg"].as<bool>();
     C.memory_megas = opts["mem-megas"].as<LL>();
@@ -155,18 +161,18 @@ int build_index_main(int argc, char** argv){
     
     if(C.load_dbg){
         write_log("Loading de Bruijn Graph");
-        themisto.load_boss(C.index_prefix + ".themisto.dbg");
+        themisto.load_boss(C.index_dbg_file);
     } else{
         write_log("Building de Bruijn Graph");
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
-        themisto.save_boss(C.index_prefix + ".themisto.dbg");
+        themisto.save_boss(C.index_dbg_file);
         write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
     }
 
     if(!C.no_colors){
         write_log("Building colors");
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
-        themisto.save_colors(C.index_prefix + ".themisto.colors");
+        themisto.save_colors(C.index_color_file);
     }
 
     write_log("Finished");

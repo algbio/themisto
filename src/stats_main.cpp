@@ -28,13 +28,16 @@ int stats_main(int argc, char** argv){
     }
 
     get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
-    string index_prefix = opts["index-prefix"].as<string>();
+    string index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
+    string index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
+    check_readable(index_dbg_file);
+    check_readable(index_color_file);
 
     Themisto themisto;
 
     write_log("Loading the index");    
-    themisto.load_boss(index_prefix + ".themisto.dbg");
-    themisto.load_colors(index_prefix + ".themisto.colors");
+    themisto.load_boss(index_dbg_file);
+    themisto.load_colors(index_color_file);
 
     write_log("Computing index statistics");
     vector<bool> dummy_marks = themisto.boss.get_dummy_node_marks();

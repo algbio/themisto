@@ -11,7 +11,8 @@ using namespace std;
 struct Pseudoalign_Config{
     vector<string> query_files;
     vector<string> outfiles;
-    string index_prefix;
+    string index_dbg_file;
+    string index_color_file;
     string temp_dir;
     
     bool gzipped_output = false;
@@ -25,6 +26,9 @@ struct Pseudoalign_Config{
                 check_readable(query_file);
             }
         }
+
+        check_readable(index_dbg_file);
+        check_readable(index_color_file);
 
         for(string outfile : outfiles){
             check_true(outfile != "", "Outfile not set");
@@ -109,7 +113,8 @@ int pseudoalign_main(int argc, char** argv){
     if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "") 
         for(string line : read_lines(opts["out-file-list"].as<string>()))
             C.outfiles.push_back(line);
-    C.index_prefix = opts["index-prefix"].as<string>();
+    C.index_dbg_file = opts["index-prefix"].as<string>() + ".themisto.dbg";
+    C.index_color_file = opts["index-prefix"].as<string>() + ".themisto.colors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.reverse_complements = opts["rc"].as<bool>();
     C.n_threads = opts["n-threads"].as<LL>();
@@ -130,8 +135,8 @@ int pseudoalign_main(int argc, char** argv){
 
     write_log("Loading the index");    
     Themisto themisto;
-    themisto.load_boss(C.index_prefix + ".themisto.dbg");
-    themisto.load_colors(C.index_prefix + ".themisto.colors");
+    themisto.load_boss(C.index_dbg_file);
+    themisto.load_colors(C.index_color_file);
 
     for(LL i = 0; i < C.query_files.size(); i++){
         write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
