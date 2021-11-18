@@ -103,6 +103,4 @@ TEST(WORK_DISPATCHER, basic_test){
     for(LL i = 0; i < 4; i++)
         delete callbacks[i];
 
-    
-
 }

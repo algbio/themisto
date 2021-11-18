@@ -267,7 +267,8 @@ public:
     }
 
     void save_colors_to_directory(string dir){
-        coloring.save_to_disk(dir + "/coloring-");
+        throwing_ofstream out(dir + "/coloring.bin", ios::binary);
+        coloring.serialize(out.stream);
     }
 
     void save_to_directory(string dir){
@@ -280,7 +281,8 @@ public:
     }
 
     void load_colors_from_directory(string dir){
-        coloring.load_from_disk(dir + "/coloring-");
+        throwing_ifstream in(dir + "/coloring.bin");
+        coloring.load(in.stream);
     }
 
     void load_from_directory(string dir){

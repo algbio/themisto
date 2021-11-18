@@ -251,53 +251,41 @@ public:
         LL count = get_colorset_to_buffer(node, boss, buffer);
         buffer.resize(count);
         return buffer;
-    }    
+    }
 
-    void load_from_disk(string path_prefix){
-
-        bool success = true;
-        success &= sdsl::load_from_file(color_sets, path_prefix + "colorsets");
-        success &= sdsl::load_from_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
-        success &= sdsl::load_from_file(nonempty, path_prefix + "colors-nonempty");
-        success &= sdsl::load_from_file(color_set_starts, path_prefix + "colors-starts");
-        success &= sdsl::load_from_file(redundancy_marks, path_prefix + "redundancy-marks");
-        success &= sdsl::load_from_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
-
-        success &= sdsl::load_from_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
-
-        nonempty_rs.set_vector(&nonempty);
-
-        success &= sdsl::load_from_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
+    void load(istream& is){
+        color_sets.load(is);
+        node_to_color_set_id.load(is);
+        nonempty.load(is);
+        nonempty_rs.load(is);
+        color_set_starts.load(is);
+        color_set_starts_ss.load(is);
+        redundancy_marks.load(is);
+        nonempty_and_nonredundant.load(is);
+        nonempty_and_nonredundant_rs.load(is);
 
         color_set_starts_ss.set_vector(&color_set_starts);
-
-        success &= sdsl::load_from_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
-        
+        nonempty_rs.set_vector(&nonempty);
         nonempty_and_nonredundant_rs.set_vector(&nonempty_and_nonredundant);
 
         n_colors = 0;
         for(LL i = 0; i < color_sets.size(); i++) n_colors = max(n_colors, (LL)(color_sets[i]+1));
-
-        if(!success) throw std::runtime_error("Error loading color data structure");
-
     }
 
-    void save_to_disk(string path_prefix){
-
-        bool success = true;
-        success &= sdsl::store_to_file(color_sets, path_prefix + "colorsets");
-        success &= sdsl::store_to_file(node_to_color_set_id, path_prefix + "node-to-color-set-id");
-        success &= sdsl::store_to_file(nonempty, path_prefix + "colors-nonempty");
-        success &= sdsl::store_to_file(nonempty_rs, path_prefix + "colors-nonempty-rs");
-        success &= sdsl::store_to_file(color_set_starts, path_prefix + "colors-starts");
-        success &= sdsl::store_to_file(color_set_starts_ss, path_prefix + "colors-starts-ss");
-        success &= sdsl::store_to_file(redundancy_marks, path_prefix + "redundancy-marks");
-        success &= sdsl::store_to_file(nonempty_and_nonredundant, path_prefix + "nonempty-and-nonredundant");
-        success &= sdsl::store_to_file(nonempty_and_nonredundant_rs, path_prefix + "nonempty-and-nonredundant-rs");
-
-        if(!success) throw std::runtime_error("Error saving color data structure");
-
+    LL serialize(ostream& os){
+        LL written = 0;
+        written += color_sets.serialize(os);
+        written += node_to_color_set_id.serialize(os);
+        written += nonempty.serialize(os);
+        written += nonempty_rs.serialize(os);
+        written += color_set_starts.serialize(os);
+        written += color_set_starts_ss.serialize(os);
+        written += redundancy_marks.serialize(os);
+        written += nonempty_and_nonredundant.serialize(os);
+        written += nonempty_and_nonredundant_rs.serialize(os);
+        return written;
     }
+
 
 private:
 
