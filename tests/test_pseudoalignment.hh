@@ -128,7 +128,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         string genomes_outfilename = get_temp_file_manager().create_filename("genomes-",".fna");
         string queries_outfilename = get_temp_file_manager().create_filename("queries-",".fna");
         string colorfile_outfilename = get_temp_file_manager().create_filename("colorfile-",".txt");
-        string index_dir = get_temp_file_manager().get_dir() + "/test_index";
+        string index_prefix = get_temp_file_manager().get_dir() + "/test_index";
 
         throwing_ofstream genomes_out(genomes_outfilename);
         for(string genome : tcase.genomes){
@@ -149,7 +149,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         queries_out.close();
 
         stringstream build_argstring;
-        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 1 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_dir << " --temp-dir " << get_temp_file_manager().get_dir();
+        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 1 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << get_temp_file_manager().get_dir();
         Argv build_argv(split(build_argstring.str()));
 
         ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
@@ -157,7 +157,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         // Run without rc
         string final_file = get_temp_file_manager().create_filename("finalfile-");
         stringstream pseudoalign_argstring;
-        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_dir << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
         Argv pseudoalign_argv(split(pseudoalign_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
 
@@ -166,7 +166,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
         stringstream pseudoalign_rc_argstring;
-        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_dir << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 

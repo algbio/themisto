@@ -37,7 +37,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
             // Build Themisto
 
-            string indexprefix = get_temp_file_manager().create_filename();
+            indexprefix = get_temp_file_manager().create_filename();
 
             stringstream argstring;
             argstring << "build -k"  << k << " --n-threads " << 4 << " --mem-megas " << 1024 << " -i " << seqfile << " -c " << colorfile << " -o " << indexprefix << " --temp-dir " << get_temp_file_manager().get_dir();
@@ -49,17 +49,17 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
             logger << "Getting dummy marks" << endl;
             is_dummy = themisto->boss.get_dummy_node_marks();
             
-            // Extract unitigs and their colors
+            // Call extract unitigs
+            string unitigs_outfile = get_temp_file_manager().create_filename();
+            stringstream argstring2;
+            argstring2 << "extract-unitigs -i " << indexprefix << " --unitigs-out " << unitigs_outfile;
+            Argv argv2(split(argstring2.str()));
+            extract_unitigs_main(argv2.size, argv2.array);
 
-            stringstream unitigs_out;
-            stringstream colors_out; // unused
-
-            UnitigExtractor UE;
-            UE.extract_unitigs(*themisto, unitigs_out, false, colors_out); // No color splits
-
+            throwing_ifstream unitigs_in(unitigs_outfile);
             // Parse unitigs
             string line;
-            while(getline(unitigs_out, line)){
+            while(getline(unitigs_in.stream, line)){
                 if(line[0] == '>') continue;
                 unitigs.push_back(line);
             }
@@ -76,11 +76,13 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     }
 
     // Some expensive resources shared by all tests.
+    static string indexprefix;
     static Themisto* themisto;
     static vector<string> unitigs;
     static vector<bool> is_dummy;
 };
 
+string EXTRACT_UNITIGS_TEST::indexprefix;
 Themisto* EXTRACT_UNITIGS_TEST::themisto = nullptr;
 vector<string> EXTRACT_UNITIGS_TEST::unitigs;
 vector<bool> EXTRACT_UNITIGS_TEST::is_dummy;
@@ -114,29 +116,31 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
 }
 
 TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
+    // We're re-using the same Themisto index, so we use the same test fixture as
+    // the other tests. However we don't case about the precomputed untigs.
 
-    // First, compute the unitigs with color splits enabled
-
-    BOSS<sdsl::bit_vector>& boss = themisto->boss;
-    Coloring& coloring = themisto->coloring;
-    UnitigExtractor UE;
-
-    stringstream unitigs_out;
-    stringstream colors_out;
-    UE.extract_unitigs(*themisto, unitigs_out, true, colors_out);
+    // Call extract with colorsets enabled
+    string unitigs_outfile = get_temp_file_manager().create_filename();
+    string colors_outfile = get_temp_file_manager().create_filename();
+    stringstream argstring;
+    argstring << "extract-unitigs -i " << indexprefix << " --unitigs-out " << unitigs_outfile << " --colors-out " << colors_outfile;
+    Argv argv(split(argstring.str()));
+    extract_unitigs_main(argv.size, argv.array);
 
     vector<string> split_unitigs;
     vector<vector<LL> > split_unitig_colorsets;
 
     // Parse unitigs
+    throwing_ifstream unitigs_in(unitigs_outfile);
     string line;
-    while(getline(unitigs_out, line)){
+    while(getline(unitigs_in.stream, line)){
         if(line[0] == '>') continue;
         split_unitigs.push_back(line);
     }
 
     // Parse unitig colors
-    while(getline(colors_out, line)){
+    throwing_ifstream colors_in(colors_outfile);
+    while(getline(colors_in.stream, line)){
         vector<string> tokens = split(line, ' ');
         vector<LL> colors;
         for(LL i = 1; i < (LL)tokens.size(); i++){ // First token is unitig id -> skip
@@ -146,14 +150,14 @@ TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
     }
 
     // Verify that the colorsets of all nodes in the unitig match the colorset of the unitig
-    LL k = boss.get_k();
+    LL k = themisto->boss.get_k();
     ASSERT_EQ(split_unitigs.size(), split_unitig_colorsets.size());
     for(LL unitig_id = 0; unitig_id < (LL)split_unitigs.size(); unitig_id++){
         ASSERT_GT(split_unitigs.size(), 0);
         string unitig = split_unitigs[unitig_id];
         for(LL i = 0; i < unitig.size()-k+1; i++){
-            LL node = boss.find_kmer(unitig.substr(i,k));
-            vector<LL> node_colors = coloring.get_colorvec(node, boss);
+            LL node = themisto->boss.find_kmer(unitig.substr(i,k));
+            vector<LL> node_colors = themisto->coloring.get_colorvec(node, themisto->boss);
             ASSERT_EQ(node_colors, split_unitig_colorsets[unitig_id]);
         }
     }
