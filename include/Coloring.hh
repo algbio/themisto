@@ -292,6 +292,17 @@ public:
         return written;
     }
 
+    LL get_number_of_distinct_colorsets(){
+        LL ans = 0;
+        for(LL i = 0; i < color_set_starts.size(); i++)
+            ans += color_set_starts[i];
+        return ans;
+    }
+
+    LL get_color_set_concatenation_length(){
+        return color_set_starts.size();
+    }
+
 
 private:
 
@@ -554,5 +565,4 @@ private:
         }
         redundancy_marks = redundancy_marks_temp;
     }
-
 };
