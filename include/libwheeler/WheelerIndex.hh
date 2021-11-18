@@ -235,17 +235,8 @@ public:
         written += outdegs_ss1.serialize(os);
         written += outdegs_ss0.serialize(os);
 
-        // Write C-array
-        LL C_array_n_bytes = sizeof(int64_t) * C.size();
-        os.write((char*)&C_array_n_bytes, sizeof(C_array_n_bytes));
-        os.write((char*)C.data(), C_array_n_bytes);
-        written += sizeof(C_array_n_bytes) + C_array_n_bytes;
-
-        // Write alphabet
-        LL alphabet_n_bytes = sizeof(char) * alphabet.size();
-        os.write((char*)&alphabet_n_bytes, sizeof(alphabet_n_bytes));
-        os.write((char*)alphabet.data(), alphabet_n_bytes);
-        written += sizeof(alphabet_n_bytes) + alphabet_n_bytes;
+        written += serialize_std_vector(C, os);
+        written += serialize_std_vector(alphabet, os);
 
         // Write number of nodes
         os.write((char*)&n_nodes, sizeof(n_nodes));
@@ -272,15 +263,8 @@ public:
         outdegs_ss1.load(is);
         outdegs_ss0.load(is);
 
-        LL C_array_n_bytes;
-        is.read((char*)&C_array_n_bytes, sizeof(LL));
-        C.resize(C_array_n_bytes / sizeof(int64_t));
-        is.read((char*)C.data(), C_array_n_bytes);
-
-        LL alphabet_n_bytes;
-        is.read((char*)&alphabet_n_bytes, sizeof(LL));
-        alphabet.resize(alphabet_n_bytes / sizeof(char));
-        is.read((char*)alphabet.data(), alphabet_n_bytes);
+        load_std_vector(C, is);
+        load_std_vector(alphabet, is);
 
         is.read((char*)&n_nodes, sizeof(n_nodes));
 

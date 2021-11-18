@@ -140,4 +140,25 @@ throwing_ifstream& operator>>(throwing_ifstream& is, T& t){
     return is;
 }
 
+// Serialization for a std::vector
+// Returns number of bytes written
+template<typename T>
+LL serialize_std_vector(const vector<T>& v, ostream& os){
+    // Write C-array
+    LL n_bytes = sizeof(T) * v.size();
+    os.write((char*)&n_bytes, sizeof(n_bytes));
+    os.write((char*)v.data(), n_bytes);
+    return sizeof(n_bytes) + n_bytes;
+}
+
+// Load a serialized std::vector into v
+template<typename T>
+void load_std_vector(vector<T>& v, istream& is){
+    LL n_bytes;
+    is.read((char*)&n_bytes, sizeof(n_bytes));
+    assert(n_bytes % sizeof(T) == 0);
+    v.resize(n_bytes / sizeof(T));
+    is.read((char*)v.data(), n_bytes);
+}
+
 } // End of namespace
