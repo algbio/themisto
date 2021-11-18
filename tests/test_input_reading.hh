@@ -187,8 +187,3 @@ TEST(INPUT_PARSING, fastq_multiple_lines){
     // We don't support multi-line sequences in FASTQ
 }
 */
-
-TEST(INPUT_PARSING, benchmark){
-
-
-}
