@@ -263,7 +263,8 @@ public:
     }
 
     void save_boss_to_directory(string dir){
-        boss.save_to_disk(dir + "/boss-");
+        throwing_ofstream out(dir + "/dbg.bin", ios::binary);
+        boss.serialize(out.stream);
     }
 
     void save_colors_to_directory(string dir){
@@ -277,11 +278,12 @@ public:
     }
 
     void load_boss_from_directory(string dir){
-        boss.load_from_disk(dir + "/boss-");
+        throwing_ifstream in(dir + "/dbg.bin", ios::binary);
+        boss.load(in.stream);
     }
 
     void load_colors_from_directory(string dir){
-        throwing_ifstream in(dir + "/coloring.bin");
+        throwing_ifstream in(dir + "/coloring.bin", ios::binary);
         coloring.load(in.stream);
     }
 

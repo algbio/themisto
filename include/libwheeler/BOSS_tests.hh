@@ -86,11 +86,18 @@ void check_data_is_equal(boss_t& boss1, boss_t& boss2){
 }
 
 TEST_F(BOSS_TEST, serialization){
+    
     for(BOSS_TestCase& tcase : testcases){
         boss_t boss = build_BOSS_with_maps(tcase.reads, tcase.k, false);
-        boss.save_to_disk("test_out/");
+
+        string filename = get_temp_file_manager().create_filename();
+        throwing_ofstream out(filename, ios::binary);
+        boss.serialize(out.stream);
+        out.stream.close();
+
         boss_t boss2;
-        boss2.load_from_disk("test_out/");
+        throwing_ifstream in(filename, ios::binary);
+        boss2.load(in.stream);
         check_data_is_equal(boss, boss2);
     }
 }

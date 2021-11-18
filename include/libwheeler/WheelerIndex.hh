@@ -26,7 +26,7 @@ private:
     rank_select_string_t outlabels;
     bitvector_t indegs;
     bitvector_t outdegs;
-    vector<int64_t > C; // Array of length 256. C[c] is the number of edges with label strictly less than c in the graph
+    vector<int64_t> C; // Array of length 256. C[c] is the number of edges with label strictly less than c in the graph
     
     typename bitvector_t::rank_1_type indegs_rs; // rank support
     typename bitvector_t::select_1_type indegs_ss1; // select support
@@ -215,134 +215,79 @@ public:
     char alphabet_at(int64_t i) const {return alphabet[i];}
 
     /**
-     * Serializes the index to disk. Will create multiple files, one for each part of the index.
-     * The filenames are all prefixed by the provided path prefix, which may contain a directory
-     * path followed by a filename prefix. The index can be then later loaded with load_from_disk().
+     * Serializes the index to the given output stream. The output stream
+     * must be in binary mode!
      * 
-     *  \param path_prefix
+     * \return The number of bytes written,
+     * \param os The output stream
      */
-    void save_to_disk(string path_prefix) const{
-        sdsl::store_to_file(outlabels, path_prefix + "outlabels");
-        sdsl::store_to_file(indegs, path_prefix + "indegs");
-        sdsl::store_to_file(outdegs, path_prefix + "outdegs");
+    LL serialize(ostream& os) const{
+        LL written = 0;
+        written += outlabels.serialize(os);
+        written += indegs.serialize(os);
+        written += outdegs.serialize(os);
 
-        sdsl::store_to_file(indegs_rs, path_prefix + "indegs_rs");
-        sdsl::store_to_file(indegs_ss1, path_prefix + "indegs_ss1");
-        sdsl::store_to_file(indegs_ss0, path_prefix + "indegs_ss0");
+        written += indegs_rs.serialize(os);
+        written += indegs_ss1.serialize(os);
+        written += indegs_ss0.serialize(os);
 
-        sdsl::store_to_file(outdegs_rs, path_prefix + "outdegs_rs");
-        sdsl::store_to_file(outdegs_ss1, path_prefix + "outdegs_ss1");
-        sdsl::store_to_file(outdegs_ss0, path_prefix + "outdegs_ss0");
+        written += outdegs_rs.serialize(os);
+        written += outdegs_ss1.serialize(os);
+        written += outdegs_ss0.serialize(os);
 
-        check_writable(path_prefix + "C");
-        check_writable(path_prefix + "constants");
-        check_writable(path_prefix + "alphabet");
+        // Write C-array
+        LL C_array_n_bytes = sizeof(int64_t) * C.size();
+        os.write((char*)&C_array_n_bytes, sizeof(C_array_n_bytes));
+        os.write((char*)C.data(), C_array_n_bytes);
+        written += sizeof(C_array_n_bytes) + C_array_n_bytes;
 
-        throwing_ofstream C_out(path_prefix + "C");
-        for(auto x : C) C_out << x << " ";
-        C_out << "\n";
-        C_out.close();
+        // Write alphabet
+        LL alphabet_n_bytes = sizeof(char) * alphabet.size();
+        os.write((char*)&alphabet_n_bytes, sizeof(alphabet_n_bytes));
+        os.write((char*)alphabet.data(), alphabet_n_bytes);
+        written += sizeof(alphabet_n_bytes) + alphabet_n_bytes;
 
-        throwing_ofstream alphabet_out(path_prefix + "alphabet", ios::binary);
-        for(char c : alphabet) alphabet_out.write(&c,1);
-        alphabet_out.close();
+        // Write number of nodes
+        os.write((char*)&n_nodes, sizeof(n_nodes));
+        written += sizeof(n_nodes);
 
-        throwing_ofstream constants_out(path_prefix + "constants");
-        constants_out << n_nodes << "\n";
-        constants_out.close();
-
+        return written;
     }
 
     /**
-     * Loads an index that was stored with save_to_disk() with the same path prefix.
+     * Loads the index from the given input stream. The stream must be in binary mode!
      * 
-     * \param path_prefix
+     * \param is The input stream
      */
-    void load_from_disk(string path_prefix){
-        // Todo: check that the bitvector type and wavelet tree on disk is the
-        // same as the template parameter using some kind of run-time
-        // type information. 
+    void load(istream& is){
+        outlabels.load(is);
+        indegs.load(is);
+        outdegs.load(is);
 
-        check_readable(path_prefix + "outlabels");
-        check_readable(path_prefix + "indegs");
-        check_readable(path_prefix + "outdegs");
-        check_readable(path_prefix + "indegs_rs");
-        check_readable(path_prefix + "indegs_ss1");
-        check_readable(path_prefix + "indegs_ss0");
-        check_readable(path_prefix + "outdegs_rs");
-        check_readable(path_prefix + "outdegs_ss1");
-        check_readable(path_prefix + "outdegs_ss0");
-        check_readable(path_prefix + "C");
-        check_readable(path_prefix + "alphabet");
-        check_readable(path_prefix + "constants");
+        indegs_rs.load(is);
+        indegs_ss1.load(is);
+        indegs_ss0.load(is);
 
-        {
-            throwing_ifstream input(path_prefix + "outlabels");
-            outlabels.load(input.stream);
-        }
+        outdegs_rs.load(is);
+        outdegs_ss1.load(is);
+        outdegs_ss0.load(is);
 
+        LL C_array_n_bytes;
+        is.read((char*)&C_array_n_bytes, sizeof(LL));
+        C.resize(C_array_n_bytes / sizeof(int64_t));
+        is.read((char*)C.data(), C_array_n_bytes);
 
-        {
-            throwing_ifstream input(path_prefix + "indegs");
-            indegs.load(input.stream);
-        }
+        LL alphabet_n_bytes;
+        is.read((char*)&alphabet_n_bytes, sizeof(LL));
+        alphabet.resize(alphabet_n_bytes / sizeof(char));
+        is.read((char*)alphabet.data(), alphabet_n_bytes);
 
-        {
-            throwing_ifstream input(path_prefix + "outdegs");
-            outdegs.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "indegs_rs");
-            indegs_rs.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "indegs_ss1");
-            indegs_ss1.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "indegs_ss0");
-            indegs_ss0.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "outdegs_rs");
-            outdegs_rs.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "outdegs_ss1");
-            outdegs_ss1.load(input.stream);
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "outdegs_ss0");
-            outdegs_ss0.load(input.stream);
-        }
-
-        {
-            C.resize(256);
-            throwing_ifstream input(path_prefix + "C");
-            for(int64_t i = 0; i < 256; i++){
-                int64_t x; input >> x; 
-                C[i] = x;
-            }
-        }
-
-        {
-            alphabet = read_binary_file(path_prefix + "alphabet");
-        }
-
-        {
-            throwing_ifstream input(path_prefix + "constants");
-            input >> n_nodes;
-        }
+        is.read((char*)&n_nodes, sizeof(n_nodes));
 
         set_supports();
-
     }
+
+
 
     WheelerIndex(const WheelerIndex& other){
         assert(&other != this); // What on earth are you trying to do?

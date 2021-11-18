@@ -54,17 +54,17 @@ public:
 
     int64_t get_k() const {return k;}
 
-    void load_from_disk(string path_prefix){
-        Base::load_from_disk(path_prefix);
-        throwing_ifstream input(path_prefix + "boss_k");
-        input >> k;
+    LL serialize(ostream& os) const{
+        LL written = 0;
+        written += Base::serialize(os);
+        os.write((char*)&k, sizeof(k));
+        written += sizeof(k);
+        return written;
     }
 
-    void save_to_disk(string path_prefix) const{
-        Base::save_to_disk(path_prefix);
-        throwing_ofstream constants_out(path_prefix + "boss_k");
-        constants_out << k << "\n";
-        constants_out.close();
+    void load(istream& is){
+        Base::load(is);
+        is.read((char*)&k, sizeof(k));
     }
 
     // Returns the node id of the given k-mer, or -1 if it does not exist in the BOSS.

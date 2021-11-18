@@ -74,7 +74,7 @@ TEST_F(CLI_TEST, no_colors){
         themisto.load_colors_from_directory(indexdir); // Should throw
         FAIL(); // Did not throw
     } catch (const std::runtime_error &e){
-        ASSERT_EQ(string(e.what()), "Error loading color data structure");
+        // Should come here
     }
 
     // Test --no-colors and --color-file at the same time
