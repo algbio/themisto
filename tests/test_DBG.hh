@@ -106,10 +106,6 @@ TEST_F(TEST_DBG, indegree){
 TEST_F(TEST_DBG, inedges){
     for(DBG::Node v : dbg.all_nodes()){
         LL in_idx = 0;
-        if(dbg.get_node_label(v) == "GAC"){
-            // Breakpoint
-            cout << "Break" << endl;
-        }
         for(DBG::Edge e : dbg.inedges(v)){
             ASSERT_EQ(e.dest, v.id);
             string kmer_from = boss.get_node_label(e.source);
