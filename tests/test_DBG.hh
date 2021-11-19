@@ -95,6 +95,14 @@ TEST_F(TEST_DBG, iterate_all_nodes){
     ASSERT_EQ(kmer_idx, ref.colex_kmers.size());
 }
 
+TEST_F(TEST_DBG, indegree){
+    for(string kmer : ref.colex_kmers){
+        DBG::Node v = dbg.locate(kmer);
+        ASSERT_GE(v.id, 0); // Must be found
+        ASSERT_EQ(dbg.indegree(v), ref.inedges[kmer].size());
+    }
+}
+
 TEST_F(TEST_DBG, inedges){
     for(DBG::Node v : dbg.all_nodes()){
         LL in_idx = 0;
@@ -107,6 +115,15 @@ TEST_F(TEST_DBG, inedges){
         }
     }
 }
+
+TEST_F(TEST_DBG, outdegree){
+    for(string kmer : ref.colex_kmers){
+        DBG::Node v = dbg.locate(kmer);
+        ASSERT_GE(v.id, 0); // Must be found
+        ASSERT_EQ(dbg.outdegree(v), ref.outedges[kmer].size());
+    }
+}
+
 
 TEST_F(TEST_DBG, outedges){
     for(DBG::Node v : dbg.all_nodes()){

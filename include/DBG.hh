@@ -2,12 +2,18 @@
 
 #include "libwheeler/BOSS.hh"
 
+// A class that offers an interface to the de Bruijn graph.
+// Implemented internally using the BOSS class. The BOSS is a bit tricky
+// because it has the dummy nodes. This class deals with the dummies so 
+// that the caller does not have to care about them.
 class DBG{
 
-public:
+private:
 
-BOSS<sdsl::bit_vector>* boss;
-vector<bool> is_dummy;
+    BOSS<sdsl::bit_vector>* boss;
+    vector<bool> is_dummy;
+
+public:
 
     struct Node{
         LL id;
@@ -26,11 +32,33 @@ vector<bool> is_dummy;
     DBG(){}
     DBG(BOSS<sdsl::bit_vector>* boss) : boss(boss), is_dummy(boss->get_dummy_node_marks()){}
 
-    all_nodes_generator all_nodes();
-    outedge_generator outedges(Node v);
-    inedge_generator inedges(Node v);
-    Node locate(const string& kmer); // Returns -1 if does not exist
-    string get_node_label(const Node& v);
+    all_nodes_generator all_nodes(); // Return a generator for a range-for loop
+    outedge_generator outedges(Node v); // Return a generator for a range-for loop
+    inedge_generator inedges(Node v); // Return a generator for a range-for loop
+
+    Node locate(const string& kmer){ // Returns -1 if does not exist
+        return {boss->find_kmer(kmer)};
+    }
+
+    string get_node_label(const Node& v){
+        assert(v.id != -1);
+        return boss->get_node_label(v.id);
+    }
+
+    LL indegree(const Node& v){
+        assert(v.id != -1);
+        pair<LL,LL> R = boss->inedge_range(v.id);
+        if(R.first == R.second){ // One predecessor. Check whether it's a dummy
+            LL source = boss->edge_source(R.first);
+            if(is_dummy.at(source)) return 0;
+        } 
+        return R.second - R.first + 1;
+    }
+
+    LL outdegree(const Node& v){
+        assert(v.id != -1);
+        return boss->outdegree(v.id);
+    }
 
 };
 
@@ -179,15 +207,6 @@ DBG::outedge_generator DBG::outedges(Node v){
 
 DBG::inedge_generator DBG::inedges(Node v){
     return inedge_generator(v, boss, &is_dummy);
-}
-
-DBG::Node DBG::locate(const string& kmer){ // Returns -1 if does not exist
-    LL id = boss->find_kmer(kmer);
-    return {id};
-}
-
-string DBG::get_node_label(const DBG::Node& v){
-    return boss->get_node_label(v.id);
 }
 
 /*
