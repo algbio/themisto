@@ -107,10 +107,8 @@ Usage:
                                 order they appear in the input file. 
                                 (default: "")
   -o, --index-prefix arg        The de Bruijn graph will be written to 
-                                [prefix].themisto.dbg and the color 
-                                structure to [prefix].themisto.colors. If 
-                                not given, the filename of the sequence 
-                                file used as the prefix.
+                                [prefix].tdbg and the color structure to 
+                                [prefix].tcolors.
       --temp-dir arg            Directory for temporary files. This 
                                 directory should have fast I/O operations 
                                 and should have as much space as possible.
