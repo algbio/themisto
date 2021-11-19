@@ -11,6 +11,7 @@ public:
 
     vector<string> colex_kmers;
     unordered_map<string, vector<string>> outedges; // Outedges from a node are colex-sorted by destination
+    unordered_map<string, vector<string>> inedges; // Inedges to a node are colex-sorted by source
 
     DBG_Reference_Implementation(vector<string> reads, LL k){
         // Get sorted k-mers
@@ -22,12 +23,13 @@ public:
         colex_kmers.erase(unique(colex_kmers.begin(), colex_kmers.end()), colex_kmers.end()); // Erase duplicaes
         cout << colex_kmers << endl;
 
-        // Get outedges
+        // Get edges
         for(string S : reads){
             for(string x : get_all_distinct_kmers(S, k+1)){
                 string source = x.substr(0,k);
                 string dest = x.substr(1,k);
                 outedges[source].push_back(dest);
+                inedges[dest].push_back(source);
             }
         }
 
@@ -37,6 +39,14 @@ public:
             std::sort(out.begin(), out.end(), colex_compare);
             out.erase(unique(out.begin(), out.end()), out.end()); // Erase duplicaes
         }
+
+        // Sort in-edges and delete duplicates
+        for(auto& keyval : inedges){
+            vector<string>& in = keyval.second;
+            std::sort(in.begin(), in.end(), colex_compare);
+            in.erase(unique(in.begin(), in.end()), in.end()); // Erase duplicaes
+        }
+
 
     }
 
@@ -59,15 +69,27 @@ TEST(TEST_DBG, basic){
         string correct = DBG_ref.colex_kmers[kmer_idx++];
         cout << v.id << " " << fetched << " " << correct << endl;
         ASSERT_EQ(fetched, correct);
-        LL edge_idx = 0;
+        LL out_idx = 0;
         for(DBG::Edge e : dbg.outedges(v)){
             cout << e.source << " -> " << e.dest << " " << e.label << endl;
+            cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
             ASSERT_EQ(e.source, v.id);
             string kmer_from = boss.get_node_label(e.source);
             string kmer_to = boss.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
-            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][edge_idx]);
-            edge_idx++;
+            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][out_idx]);
+            out_idx++;
+        }
+        LL in_idx = 0;
+        for(DBG::Edge e : dbg.inedges(v)){
+            cout << DBG_ref.inedges[DBG_ref.colex_kmers[kmer_idx]] << endl;
+            cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
+            ASSERT_EQ(e.dest, v.id);
+            string kmer_from = boss.get_node_label(e.source);
+            string kmer_to = boss.get_node_label(e.dest);
+            ASSERT_EQ(kmer_to.back(), e.label);
+            ASSERT_EQ(kmer_from, DBG_ref.inedges[kmer_to][in_idx]);
+            in_idx++;
         }
         
     }
