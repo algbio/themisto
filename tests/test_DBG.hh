@@ -73,13 +73,23 @@ class TEST_DBG : public ::testing::Test {
 
 };
 
+TEST_F(TEST_DBG, locate){
+    // Check existing k-mers
+    for(string kmer : ref.colex_kmers){
+        DBG::Node v = dbg.locate(kmer);
+        ASSERT_GE(v.id, 0); // Must be found
+        ASSERT_EQ(dbg.get_node_label(v), kmer);
+    }
+
+    // check non-existent k-mer
+    ASSERT_EQ(dbg.locate("CCG").id, -1);
+}
 
 TEST_F(TEST_DBG, iterate_all_nodes){
     LL kmer_idx = 0;
     for(DBG::Node v : dbg.all_nodes()){
         string fetched = boss.get_node_label(v.id);
         string correct = ref.colex_kmers[kmer_idx++];
-        cout << v.id << " " << fetched << endl;
         ASSERT_EQ(fetched, correct);
     }
     ASSERT_EQ(kmer_idx, ref.colex_kmers.size());
@@ -95,7 +105,6 @@ TEST_F(TEST_DBG, inedges){
             ASSERT_EQ(kmer_to.back(), e.label);
             ASSERT_EQ(kmer_from, ref.inedges[kmer_to][in_idx++]);
         }
-
     }
 }
 

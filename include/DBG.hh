@@ -30,6 +30,7 @@ vector<bool> is_dummy;
     outedge_generator outedges(Node v);
     inedge_generator inedges(Node v);
     Node locate(const string& kmer); // Returns -1 if does not exist
+    string get_node_label(const Node& v);
 
 };
 
@@ -185,7 +186,9 @@ DBG::Node DBG::locate(const string& kmer){ // Returns -1 if does not exist
     return {id};
 }
 
-
+string DBG::get_node_label(const DBG::Node& v){
+    return boss->get_node_label(v.id);
+}
 
 /*
 
