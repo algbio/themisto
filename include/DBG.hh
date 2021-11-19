@@ -154,6 +154,8 @@ public:
 
 class DBG::inedge_generator{
 
+// This does a lot of redundant work and could be optimized
+
 public:
 
     struct end_iterator{}; // Dummy end iterator
@@ -163,12 +165,14 @@ public:
         LL inlabels_start; // Wheeler rank in boss
         LL inlabels_offset;
         LL indegree;
+        char incoming_char;
         BOSS<sdsl::bit_vector>* boss;
         vector<bool>* is_dummy;
 
         iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
             inlabels_start = boss->indegs_rank0(boss->indegs_select1(node_idx+1));
             indegree = boss->indegree(node_idx);
+            incoming_char = boss->incoming_character(node_idx);
             if(indegree == 1){
                 // Check if we are preceeded by a dummy. If yes, there are no DBG in-edges
                 LL source = boss->edge_source(inlabels_start);
@@ -183,9 +187,8 @@ public:
 
         Edge operator*(){
             LL dest = node_idx;
-            char label = boss->incoming_character(dest);
             LL source = boss->edge_source(inlabels_start + inlabels_offset);
-            return {.source = source, .dest = dest, .label = label};
+            return {.source = source, .dest = dest, .label = incoming_char};
         }
 
         bool operator!=(const end_iterator& other){
@@ -225,7 +228,7 @@ Usage:
 
 for(DBG::Node node : DBG){
     for(DBG::Edge edge : DBG.outedges(node)){
-        DBG::Node destination = edge.destination();
+        DBG::Node destination = edge.dest
     }
 }
 
