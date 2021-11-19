@@ -82,9 +82,8 @@ public:
         LL outlabels_start; // In outlabels of boss
         LL outlabels_offset; // In outlabels of boss
         BOSS<sdsl::bit_vector>* boss;
-        vector<bool>* is_dummy;
 
-        iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
+        iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss){
             outlabels_start = boss->outdegs_rank0(boss->outdegs_select1(node_idx+1));
         }
 
@@ -107,12 +106,11 @@ public:
 
     Node v;
     BOSS<sdsl::bit_vector>* boss;
-    vector<bool>* is_dummy;
 
-    outedge_generator(Node v, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : v(v), boss(boss), is_dummy(is_dummy){}
+    outedge_generator(Node v, BOSS<sdsl::bit_vector>* boss) : v(v), boss(boss){}
 
-    iterator begin(){return iterator(v.id, 0, boss, is_dummy);}
-    iterator end(){return iterator(v.id, boss->outdegree(v.id), boss, is_dummy);}
+    iterator begin(){return iterator(v.id, 0, boss);}
+    iterator end(){return iterator(v.id, boss->outdegree(v.id), boss);}
 
 };
 
@@ -130,7 +128,12 @@ public:
         vector<bool>* is_dummy;
 
         iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
-            inlabels_start = boss->outdegs_rank0(boss->indegs_select1(node_idx+1));
+            inlabels_start = boss->indegs_rank0(boss->indegs_select1(node_idx+1));
+            if(boss->indegree(node_idx) == 1){
+                // Check if we are preceeded by a dummy. If yes, there are no DBG in-edges
+                LL source = boss->edge_source(inlabels_start);
+                if(is_dummy->at(source)) inlabels_offset++; // Should match the end iterator now
+            }
         }
 
         iterator operator++(){
@@ -168,7 +171,7 @@ DBG::all_nodes_generator DBG::all_nodes(){
 }
 
 DBG::outedge_generator DBG::outedges(Node v){
-    return outedge_generator(v, boss, &is_dummy);
+    return outedge_generator(v, boss);
 }
 
 DBG::inedge_generator DBG::inedges(Node v){
@@ -178,6 +181,8 @@ DBG::inedge_generator DBG::inedges(Node v){
 
 
 /*
+
+Usage:
 
 for(DBG::Node node : DBG){
     for(DBG::Edge edge : DBG.outedges(node)){

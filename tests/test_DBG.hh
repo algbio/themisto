@@ -67,31 +67,31 @@ TEST(TEST_DBG, basic){
     for(DBG::Node v : dbg.all_nodes()){
         string fetched = boss.get_node_label(v.id);
         string correct = DBG_ref.colex_kmers[kmer_idx++];
-        cout << v.id << " " << fetched << " " << correct << endl;
+        cout << v.id << " " << fetched << endl;
         ASSERT_EQ(fetched, correct);
+
         LL out_idx = 0;
+        // Verify out-edges
         for(DBG::Edge e : dbg.outedges(v)){
-            cout << e.source << " -> " << e.dest << " " << e.label << endl;
-            cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
+            //cout << e.source << " -> " << e.dest << " " << e.label << endl;
+            //cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
             ASSERT_EQ(e.source, v.id);
             string kmer_from = boss.get_node_label(e.source);
             string kmer_to = boss.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
-            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][out_idx]);
-            out_idx++;
+            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][out_idx++]);
         }
+
+        // Verify in-edges
         LL in_idx = 0;
         for(DBG::Edge e : dbg.inedges(v)){
-            cout << DBG_ref.inedges[DBG_ref.colex_kmers[kmer_idx]] << endl;
-            cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
             ASSERT_EQ(e.dest, v.id);
             string kmer_from = boss.get_node_label(e.source);
             string kmer_to = boss.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
-            ASSERT_EQ(kmer_from, DBG_ref.inedges[kmer_to][in_idx]);
-            in_idx++;
+            ASSERT_EQ(kmer_from, DBG_ref.inedges[kmer_to][in_idx++]);
         }
-        
+
     }
     ASSERT_EQ(kmer_idx, DBG_ref.colex_kmers.size());
 }
