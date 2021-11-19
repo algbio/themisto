@@ -150,17 +150,20 @@ class DBG::inedge_generator{
 
 public:
 
+    struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
         LL node_idx;
         LL inlabels_start; // Wheeler rank in boss
-        LL inlabels_offset; 
+        LL inlabels_offset;
+        LL indegree;
         BOSS<sdsl::bit_vector>* boss;
         vector<bool>* is_dummy;
 
         iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
             inlabels_start = boss->indegs_rank0(boss->indegs_select1(node_idx+1));
-            if(boss->indegree(node_idx) == 1){
+            indegree = boss->indegree(node_idx);
+            if(indegree == 1){
                 // Check if we are preceeded by a dummy. If yes, there are no DBG in-edges
                 LL source = boss->edge_source(inlabels_start);
                 if(is_dummy->at(source)) inlabels_offset++; // Should match the end iterator now
@@ -179,8 +182,9 @@ public:
             return {.source = source, .dest = dest, .label = label};
         }
 
-        bool operator!=(iterator& other){
-            return this->inlabels_offset != other.inlabels_offset;
+        bool operator!=(const end_iterator& other){
+            (void)other; // This is just a dummy
+            return inlabels_offset < indegree;
         }
     };
 
@@ -191,7 +195,7 @@ public:
     inedge_generator(Node v, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : v(v), boss(boss), is_dummy(is_dummy){}
 
     iterator begin(){return iterator(v.id, 0, boss, is_dummy);}
-    iterator end(){return iterator(v.id, boss->indegree(v.id), boss, is_dummy);}
+    end_iterator end(){return end_iterator();}
 
 };
 
