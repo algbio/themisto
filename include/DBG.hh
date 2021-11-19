@@ -67,6 +67,7 @@ class DBG::all_nodes_generator{
 
 public:
 
+    struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
         LL idx;
@@ -88,8 +89,9 @@ public:
             return {.id = idx};
         }
 
-        bool operator!=(iterator& other){
-            return this->idx != other.idx;
+        bool operator!=(const end_iterator& other){
+            (void)other; // This is just a dummy
+            return this->idx < boss->number_of_nodes();
         }
     };
 
@@ -98,7 +100,7 @@ public:
     all_nodes_generator(BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : boss(boss), is_dummy(is_dummy){}
 
     iterator begin(){return iterator(0, boss, is_dummy);}
-    iterator end(){return iterator(boss->number_of_nodes(), boss, is_dummy);}
+    end_iterator end(){return end_iterator();}
 
 };
 
@@ -107,15 +109,18 @@ class DBG::outedge_generator{
 
 public:
 
+    struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
         LL node_idx;
         LL outlabels_start; // In outlabels of boss
         LL outlabels_offset; // In outlabels of boss
+        LL outdegree;
         BOSS<sdsl::bit_vector>* boss;
 
         iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss){
             outlabels_start = boss->outdegs_rank0(boss->outdegs_select1(node_idx+1));
+            outdegree = boss->outdegree(node_idx);
         }
 
         iterator operator++(){
@@ -130,8 +135,9 @@ public:
             return {.source = source, .dest = dest, .label = label};
         }
 
-        bool operator!=(iterator& other){
-            return this->outlabels_offset != other.outlabels_offset;
+        bool operator!=(const end_iterator& other){
+            (void)other; // This is just a dummy
+            return outlabels_offset < outdegree;
         }
     };
 
@@ -141,7 +147,7 @@ public:
     outedge_generator(Node v, BOSS<sdsl::bit_vector>* boss) : v(v), boss(boss){}
 
     iterator begin(){return iterator(v.id, 0, boss);}
-    iterator end(){return iterator(v.id, boss->outdegree(v.id), boss);}
+    end_iterator end(){return end_iterator();}
 
 };
 
