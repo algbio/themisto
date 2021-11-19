@@ -256,7 +256,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug -DMAX_KMER_LENGTH=255
 make
 ```
 
-This builds the tests to build/bin/themisto_tests
+This builds the tests to `build/bin/themisto_tests`. The test executable must be ran at the root of the repository, or otherwise it wont find the test input files at `example_input`.
 
 # License
 
