@@ -36,7 +36,6 @@ public:
             vector<string>& out = keyval.second;
             std::sort(out.begin(), out.end(), colex_compare);
             out.erase(unique(out.begin(), out.end()), out.end()); // Erase duplicaes
-            cout << keyval.first << " " << keyval.second << endl;
         }
 
     }
@@ -59,9 +58,18 @@ TEST(TEST_DBG, basic){
         string fetched = boss.get_node_label(v.id);
         string correct = DBG_ref.colex_kmers[kmer_idx++];
         cout << v.id << " " << fetched << " " << correct << endl;
+        ASSERT_EQ(fetched, correct);
+        LL edge_idx = 0;
         for(DBG::Edge e : dbg.outedges(v)){
             cout << e.source << " -> " << e.dest << " " << e.label << endl;
+            ASSERT_EQ(e.source, v.id);
+            string kmer_from = boss.get_node_label(e.source);
+            string kmer_to = boss.get_node_label(e.dest);
+            ASSERT_EQ(kmer_to.back(), e.label);
+            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][edge_idx]);
+            edge_idx++;
         }
-        ASSERT_EQ(fetched, correct);
+        
     }
+    ASSERT_EQ(kmer_idx, DBG_ref.colex_kmers.size());
 }
