@@ -13,6 +13,7 @@ public:
     unordered_map<string, vector<string>> outedges; // Outedges from a node are colex-sorted by destination
     unordered_map<string, vector<string>> inedges; // Inedges to a node are colex-sorted by source
 
+    DBG_Reference_Implementation(){}
     DBG_Reference_Implementation(vector<string> reads, LL k){
         // Get sorted k-mers
         for(string S : reads) 
@@ -53,45 +54,60 @@ public:
 
 };
 
-TEST(TEST_DBG, basic){
-    vector<string> reads = {"ATTCGTAGTCGTACGATAAATTTCGATGTAGGCTCGTTCGGTCGC", "ATTCTTTTCTTAGGCTAAAAAAAAA"};
-    LL k = 3;
+class TEST_DBG : public ::testing::Test {
+    protected:
 
-    DBG_Reference_Implementation DBG_ref(reads, k);
-    
-    BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(reads, k, false);
-    DBG dbg(&boss);
-    cout << dbg.is_dummy << endl;
-    
+    vector<string> reads;
+    LL k;
+    DBG_Reference_Implementation ref;
+    BOSS<sdsl::bit_vector> boss;
+    DBG dbg;
+
+    void SetUp() override {
+        reads = {"ATTCGTAGTCGTACGATAAATTTCGATGTAGGCTCGTTCGGTCGC", "ATTCTTTTCTTAGGCTAAAAAAAAA"};
+        k = 3;
+        ref = DBG_Reference_Implementation(reads,k);
+        boss = build_BOSS_with_maps(reads, k, false);
+        dbg = DBG(&boss);
+    }
+
+};
+
+
+TEST_F(TEST_DBG, iterate_all_nodes){
     LL kmer_idx = 0;
     for(DBG::Node v : dbg.all_nodes()){
         string fetched = boss.get_node_label(v.id);
-        string correct = DBG_ref.colex_kmers[kmer_idx++];
+        string correct = ref.colex_kmers[kmer_idx++];
         cout << v.id << " " << fetched << endl;
         ASSERT_EQ(fetched, correct);
+    }
+    ASSERT_EQ(kmer_idx, ref.colex_kmers.size());
+}
 
-        LL out_idx = 0;
-        // Verify out-edges
-        for(DBG::Edge e : dbg.outedges(v)){
-            //cout << e.source << " -> " << e.dest << " " << e.label << endl;
-            //cout << boss.get_node_label(e.source) << " -> " << boss.get_node_label(e.dest) << " " << e.label << endl;
-            ASSERT_EQ(e.source, v.id);
-            string kmer_from = boss.get_node_label(e.source);
-            string kmer_to = boss.get_node_label(e.dest);
-            ASSERT_EQ(kmer_to.back(), e.label);
-            ASSERT_EQ(kmer_to, DBG_ref.outedges[kmer_from][out_idx++]);
-        }
-
-        // Verify in-edges
+TEST_F(TEST_DBG, inedges){
+    for(DBG::Node v : dbg.all_nodes()){
         LL in_idx = 0;
         for(DBG::Edge e : dbg.inedges(v)){
             ASSERT_EQ(e.dest, v.id);
             string kmer_from = boss.get_node_label(e.source);
             string kmer_to = boss.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
-            ASSERT_EQ(kmer_from, DBG_ref.inedges[kmer_to][in_idx++]);
+            ASSERT_EQ(kmer_from, ref.inedges[kmer_to][in_idx++]);
         }
 
     }
-    ASSERT_EQ(kmer_idx, DBG_ref.colex_kmers.size());
+}
+
+TEST_F(TEST_DBG, outedges){
+    for(DBG::Node v : dbg.all_nodes()){
+        LL out_idx = 0;
+        for(DBG::Edge e : dbg.outedges(v)){
+            ASSERT_EQ(e.source, v.id);
+            string kmer_from = boss.get_node_label(e.source);
+            string kmer_to = boss.get_node_label(e.dest);
+            ASSERT_EQ(kmer_to.back(), e.label);
+            ASSERT_EQ(kmer_to, ref.outedges[kmer_from][out_idx++]);
+        }
+    }
 }

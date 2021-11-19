@@ -23,11 +23,13 @@ vector<bool> is_dummy;
     class outedge_generator;
     class inedge_generator;
 
+    DBG(){}
     DBG(BOSS<sdsl::bit_vector>* boss) : boss(boss), is_dummy(boss->get_dummy_node_marks()){}
 
     all_nodes_generator all_nodes();
     outedge_generator outedges(Node v);
     inedge_generator inedges(Node v);
+    Node locate(const string& kmer); // Returns -1 if does not exist
 
 };
 
@@ -176,6 +178,11 @@ DBG::outedge_generator DBG::outedges(Node v){
 
 DBG::inedge_generator DBG::inedges(Node v){
     return inedge_generator(v, boss, &is_dummy);
+}
+
+DBG::Node DBG::locate(const string& kmer){ // Returns -1 if does not exist
+    LL id = boss->find_kmer(kmer);
+    return {id};
 }
 
 
