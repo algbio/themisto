@@ -19,6 +19,8 @@ We currently support only Linux and macOS. For compilation, you will need a C++1
 These instructions have been tested to work on Ubuntu 18.04. To build the software, enter the Themisto directory and run
 
 ```
+git submodule init
+git submodule update
 cd build
 cmake .. -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
 make
@@ -39,6 +41,8 @@ brew install gcc@8
 Afterwards, Themisto can be compiled by entering the directory and running
 
 ```
+git submodule init
+git submodule update
 cd build
 cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=31 ..
 make
