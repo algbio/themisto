@@ -215,8 +215,11 @@ void EM_sort(string infile, string outfile, const std::function<bool(const char*
     Generic_Block_Producer* producer; 
     if(mode == EM_LINES)
         producer = new Line_Block_Producer(infile);
-    if(mode == EM_VARIABLE_BINARY)
+    else if(mode == EM_VARIABLE_BINARY)
         producer = new Variable_Block_Producer(infile);
+    else{
+        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
+    }
 
     vector<Generic_Block_Consumer*> consumers;
 
@@ -226,14 +229,20 @@ void EM_sort(string infile, string outfile, const std::function<bool(const char*
     Generic_Record_Reader* reader;
     if(mode == EM_LINES)
         reader = new Line_Record_Reader();
-    if(mode == EM_VARIABLE_BINARY)
+    else if(mode == EM_VARIABLE_BINARY)
         reader = new Variable_Record_Reader();
+    else {
+        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
+    }        
 
     Generic_Record_Writer* writer;
     if(mode == EM_LINES)
         writer = new Line_Record_Writer();
-    if(mode == EM_VARIABLE_BINARY)
+    else if(mode == EM_VARIABLE_BINARY)
         writer = new Variable_Record_Writer();
+    else{
+        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
+    }
 
     EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
 
