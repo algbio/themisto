@@ -152,9 +152,11 @@ int build_index_main(int argc, char** argv){
 
     // Deal with non-ACGT characters
     if(C.del_non_ACGT){
+        write_log("Splitting sequences at non-ACGT characters");
         std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
         C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file
     } else {
+        write_log("Replacing non-ACGT characters with random nucleotides");
         C.inputfile = fix_alphabet(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
         C.input_format = "fasta"; // fix_alphabet returns a fasta file
     }

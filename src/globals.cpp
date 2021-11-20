@@ -161,8 +161,6 @@ LL fix_alphabet_of_string(string& S){
 // Makes a copy of the file and replaces bad characters. Returns the new filename
 // The new file is in fasta format
 std::string fix_alphabet(const std::string& input_file, const int mode){
-    write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
-    
     const std::string output_file = get_temp_file_manager().create_filename("seqs-");
     Buffered_ofstream out(output_file);
 
