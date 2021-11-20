@@ -26,48 +26,11 @@ string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_thr
     return outfile;
 }
 
-string EM_delete_duplicate_lines_from_sorted_file(string infile){
-    string outfile = get_temp_file_manager().create_filename();
-
-    throwing_ifstream in(infile);
-    throwing_ofstream out(outfile);
-
-    LL line_count = 0;
-    string line;
-    string prev_line;
-    while(in.getline(line)){
-        if(line_count == 0 || line != prev_line)
-            out << line << "\n";
-        prev_line = line;
-        line_count++;
-    }
-
-    return outfile;
-}
-
-string debug_binary_to_string_form(string infile){
-    string outfile = get_temp_file_manager().create_filename();
-
-    throwing_ifstream in(infile,ios::binary);
-    throwing_ofstream out(outfile);
-
-    char cur[8+8+8]; // size parameter and two long longs
-    
-    while(in.read(cur, 8+8+8)){
-        //LL size = parse_big_endian_LL(cur);
-        LL x = parse_big_endian_LL(cur+8);
-        LL y = parse_big_endian_LL(cur+16);
-        out << x << ";" << y << "\n";
-    }
-
-    return outfile;
-}
-
 string EM_delete_duplicate_LL_pair_records(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    throwing_ifstream in(infile, ios::binary);
-    throwing_ofstream out(outfile, ios::binary);
+    Buffered_ifstream in(infile, ios::binary);
+    Buffered_ofstream out(outfile, ios::binary);
 
     char prev[8+8]; // two long longs
     char cur[8+8]; // two long longs
@@ -91,8 +54,8 @@ string EM_delete_duplicate_LL_pair_records(string infile){
 string EM_collect_colorsets_binary(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    throwing_ifstream in(infile, ios::binary);
-    throwing_ofstream out(outfile, ios::binary);
+    Buffered_ifstream in(infile, ios::binary);
+    Buffered_ofstream out(outfile, ios::binary);
 
     LL active_key = -1;
     vector<LL> cur_value_list;
@@ -101,7 +64,7 @@ string EM_collect_colorsets_binary(string infile){
 
     while(true){
         in.read(buffer,8+8);
-        if(in.stream.eof()) break;
+        if(in.eof()) break;
 
         LL key = parse_big_endian_LL(buffer + 0);
         LL value = parse_big_endian_LL(buffer + 8);
@@ -160,8 +123,8 @@ string EM_sort_by_colorsets_binary(string infile, LL ram_bytes, LL n_threads){
 string EM_collect_nodes_by_colorset_binary(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    throwing_ifstream in(infile, ios::binary);
-    throwing_ofstream out(outfile, ios::binary);
+    Buffered_ifstream in(infile, ios::binary);
+    Buffered_ofstream out(outfile, ios::binary);
 
     vector<LL> active_key;
     vector<LL> cur_value_list;
@@ -171,7 +134,7 @@ string EM_collect_nodes_by_colorset_binary(string infile){
     while(true){
         key.clear();
         in.read(buffer.data(),8);
-        if(in.stream.eof()) break;
+        if(in.eof()) break;
         LL record_len = parse_big_endian_LL(buffer.data());
         assert(record_len >= 8+8+8);
         while(buffer.size() < record_len)
@@ -224,62 +187,3 @@ string EM_collect_nodes_by_colorset_binary(string infile){
 }
 
 
-// Input: a file with ';'-separated distinct string pairs (x,y),
-//        sorted by x if key = 0, and by y if key = 1
-// Output: 
-// if key_pos == 0:
-//   then pairs (x,Y), where Y is a space-separated list of y which appear with x
-// if key_pos == 1:
-//   then pairs (X,y), where X is a space-separated list of x which appear with y
-string EM_collect(string infile, LL key_pos){
-    assert(key_pos == 0 || key_pos == 1);
-
-    string outfile = get_temp_file_manager().create_filename();
-
-    throwing_ifstream in(infile);
-    throwing_ofstream out(outfile);
-
-    string line;
-    string cur_key = "";
-    vector<string> cur_value_list;
-
-    while(in.getline(line)){
-        vector<string> tokens = split(line,';');
-        assert(tokens.size() == 2);
-        string key, value;
-        if(key_pos == 0){
-            key = tokens[0]; value = tokens[1];
-        } else{
-            key = tokens[1]; value = tokens[0];
-        }
-        assert(key != ""); assert(value != "");
-        if(key == cur_key) cur_value_list.push_back(value);
-        else{
-            if(cur_key != ""){
-                if(key_pos == 0) out << cur_key << ";";
-                for(LL i = 0; i < cur_value_list.size(); i++){
-                    out << cur_value_list[i];
-                    if(i != cur_value_list.size() - 1) out << " ";
-                }
-                if(key_pos == 1) out << ";" << cur_key;
-                out << "\n";
-            }
-            cur_key = key;
-            cur_value_list.clear();
-            cur_value_list.push_back(value);
-        }
-    }
-
-    // Last one
-    if(cur_key != ""){
-        if(key_pos == 0) out << cur_key << ";";
-        for(LL i = 0; i < cur_value_list.size(); i++){
-            out << cur_value_list[i];
-            if(i != cur_value_list.size() - 1) out << " ";
-        }
-        if(key_pos == 1) out << ";" << cur_key;
-        out << "\n";
-    }
-
-    return outfile;
-}

@@ -431,8 +431,7 @@ public:
                 throwing_ofstream outstream(tempfile);
                 sort_parallel_output_file(instream, outstream);
             }
-            copy_file(tempfile, outfile, 1024*1024);
-            get_temp_file_manager().delete_file(tempfile);
+            std::filesystem::rename(tempfile, outfile);
         }
     }
 

@@ -22,7 +22,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     public:
 
     string outfile;
-    throwing_ofstream outstream;
+    Buffered_ofstream outstream;
     std::mutex mutex;
 
     ParallelOutputWriter(string outfile) : outfile(outfile){
@@ -31,7 +31,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
 
     virtual void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
-        outstream << result;
+        outstream.write(result.data(), result.size());
     }
 
     virtual void flush(){
@@ -70,7 +70,7 @@ class ParallelBinaryOutputWriter{
     public:
 
     string outfile;
-    throwing_ofstream outstream;
+    Buffered_ofstream outstream;
     std::mutex mutex;
 
     ParallelBinaryOutputWriter(string outfile) : outfile(outfile, ios::binary){
@@ -79,7 +79,7 @@ class ParallelBinaryOutputWriter{
 
     void write(const char* data, LL n_bytes){
         std::lock_guard<std::mutex> lg(mutex);
-        outstream.write(data,n_bytes);
+        outstream.write(data, n_bytes);
     }
 
     void flush(){

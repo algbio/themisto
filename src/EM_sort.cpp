@@ -44,20 +44,6 @@ bool memcmp_variable_binary_records(const char* x, const char* y){
     }
 }
 
-void copy_file(string infile, string outfile, LL buf_size){
-    throwing_ifstream in(infile, ios::binary);
-    throwing_ofstream out(outfile, ios::binary);
-
-    vector<char> buf(buf_size);
-    while(true){
-        in.read(buf.data(), buf_size);
-        LL bytes_read = in.gcount();
-        if(bytes_read > 0){
-            out.write(buf.data(), bytes_read);
-        } else break;
-    }
-}
-
 template <typename record_reader_t, typename record_writer_t>
 void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, record_reader_t& reader, record_writer_t& writer){
 

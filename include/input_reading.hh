@@ -145,29 +145,6 @@ public:
 
 };
 
-
-
-class Raw_file_stream{
-private:
-    
-    throwing_ifstream file;
-    
-public:
-    
-    Raw_file_stream(string filename) : file(filename, ios::in | ios::binary) {}
-    
-    bool getchar(char& c){
-        if(file.stream.eof()) return false; // End of stream
-        file.read(&c,1); // Read 1 byte
-        if(file.stream.eof()) return false;
-        if(c == '\n' || c == '\r')
-            std::cerr << "Warning: file contains a newline character" << std::endl;
-        return true;
-    }
-    
-};
-
-
 /*
 
 LEGACY UNBUFFERED INPUT READING BELOW.

@@ -51,18 +51,6 @@ inline void write_big_endian_LL(Buffered_ofstream& out, LL x){
     c = get_byte(x,7); out.write(&c,1);
 }
 
-inline void write_big_endian_LL(throwing_ofstream& out, LL x){
-    char c;
-
-    c = get_byte(x,0); out.write(&c,1);
-    c = get_byte(x,1); out.write(&c,1);
-    c = get_byte(x,2); out.write(&c,1);
-    c = get_byte(x,3); out.write(&c,1);
-    c = get_byte(x,4); out.write(&c,1);
-    c = get_byte(x,5); out.write(&c,1);
-    c = get_byte(x,6); out.write(&c,1);
-    c = get_byte(x,7); out.write(&c,1);
-}
 
 inline void write_big_endian_LL(char* buf, LL x){
     buf[0] = get_byte(x,0);

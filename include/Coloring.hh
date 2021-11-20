@@ -360,13 +360,13 @@ private:
 
     // Returns pair (number of colorsets, total number of elements in all colorsets)
     pair<LL,LL> count_colorsets(string infile){
-        throwing_ifstream in(infile, ios::binary);
+        Buffered_ifstream in(infile, ios::binary);
         LL n_sets = 0;
         LL total_size = 0;
         vector<char> buffer(16);
         while(true){
             in.read(buffer.data(), 16);
-            if(in.stream.eof()) break;
+            if(in.eof()) break;
 
             LL record_length = parse_big_endian_LL(buffer.data() + 0);
             LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
@@ -409,9 +409,9 @@ private:
 
         // Iterate all distinct color sets
         //string line;
-        throwing_ifstream in(infile, ios::binary);
+        Buffered_ifstream in(infile, ios::binary);
         string node_to_color_id_pairs_filename = get_temp_file_manager().create_filename();
-        throwing_ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
+        Buffered_ofstream node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
         LL n_marks = 0;
         vector<char> buffer(16);
 
@@ -423,7 +423,7 @@ private:
             color_set.clear();
 
             in.read(buffer.data(), 16);
-            if(in.stream.eof()) break;
+            if(in.eof()) break;
 
             LL record_length = parse_big_endian_LL(buffer.data() + 0);
             LL number_of_nodes = parse_big_endian_LL(buffer.data() + 8);
@@ -471,12 +471,12 @@ private:
         node_to_color_set_id = sdsl::int_vector<>(n_marks, 0, ceil(log2(n_classes)));
         string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
         get_temp_file_manager().delete_file(node_to_color_id_pairs_filename);
-        throwing_ifstream sorted_in(sorted_out);
+        Buffered_ifstream sorted_in(sorted_out);
         vector<char> buffer2(8+8);
         LL idx = 0;
         while(true){
             sorted_in.read(buffer.data(), 8+8);
-            if(sorted_in.stream.eof()) break;
+            if(sorted_in.eof()) break;
             LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
             node_to_color_set_id[idx] = color_set_id;
             idx++;
