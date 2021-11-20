@@ -63,7 +63,7 @@ struct Build_Config{
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
-        ss << "Handing of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize"); // Last has no endline
+        ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize"); // Last has no endline
         return ss.str();
     }
 };
