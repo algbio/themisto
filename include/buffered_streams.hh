@@ -67,7 +67,7 @@ public:
         return is_eof;
     }
 
-    void open(string filename, ios_base::openmode mode = ios_base::out){
+    void open(string filename, ios_base::openmode mode = ios_base::in){
         buf.resize(buf_cap);
         stream.open(filename, mode);
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
@@ -112,7 +112,7 @@ public:
     Buffered_ofstream& operator = (Buffered_ofstream&&) = default;  // Movable
 
     Buffered_ofstream(){}
-    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::in) : stream(filename, mode){
+    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out) : stream(filename, mode){
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
     }
