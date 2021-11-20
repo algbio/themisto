@@ -164,10 +164,12 @@ std::string fix_alphabet(const std::string& input_file, const int mode){
     write_log("Making all characters upper case and replacing non-{A,C,G,T} characters with random characters from {A,C,G,T}");
     
     const std::string output_file = get_temp_file_manager().create_filename("seqs-");
-    throwing_ofstream out(output_file);
+    Buffered_ofstream out(output_file);
 
     LL n_replaced = 0;
     Sequence_Reader_Buffered sr(input_file, mode);
+    string header = ">\n";
+    string newline = "\n";
     while(true){
         LL len = sr.get_next_read_to_buffer();
         if(len == 0) break;
@@ -176,7 +178,9 @@ std::string fix_alphabet(const std::string& input_file, const int mode){
             if(c != sr.read_buf[i]) n_replaced++;
             sr.read_buf[i] = c;
         }
-        out.stream << ">\n" << sr.read_buf << "\n";
+        out.write(header.data(), 2);
+        out.write(sr.read_buf, len);
+        out.write(newline.data(), 1);
     }
     
     write_log("Replaced " + to_string(n_replaced) + " characters");
