@@ -485,7 +485,7 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 	throwing_ifstream fasta_input(fastafile);
 	string line;
 	cerr << "Validating input alphabet" << endl;
-	while(fasta_input.getline(line)){
+	while(getline(fasta_input.stream, line)){
 		if(line.size() > 0 && line[0] != '>'){
 			for(char c : line){
 				if(c != 'a' && c != 'c' && c != 'g' && c != 't' &&

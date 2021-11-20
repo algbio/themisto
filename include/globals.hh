@@ -90,8 +90,6 @@ void check_readable(string filename);
 // Also clears the file
 void check_writable(string filename);
 
-vector<string> get_all_lines(string infile);
-vector<char> read_binary_file(string infile);
 bool files_are_equal(const std::string& p1, const std::string& p2);
 void check_true(bool condition, string error_message);
 

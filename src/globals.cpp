@@ -430,31 +430,6 @@ void check_writable(string filename){
     throwing_ofstream F(filename, std::ofstream::out | std::ofstream::app); // Throws on failure
 }
 
-vector<string> get_all_lines(string infile){
-    vector<string> lines;
-    string line;
-    throwing_ifstream in(infile);
-    while(in.getline(line)){
-        lines.push_back(line);
-    }
-    return lines;
-}
-
-vector<char> read_binary_file(string infile){
-    throwing_ifstream file(infile, std::ios::binary | std::ios::ate);
-    std::streamsize size = file.stream.tellg();
-    file.stream.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size)){
-        return buffer;
-    } else{
-        cerr << "Error reading file: " << infile << endl;
-        assert(false);
-        return buffer;
-    }
-}
-
 bool files_are_equal(const std::string& p1, const std::string& p2) {
   //https://stackoverflow.com/questions/6163611/compare-two-files/6163627
     throwing_ifstream f1(p1, std::ifstream::binary|std::ifstream::ate);
@@ -482,13 +457,15 @@ void check_true(bool condition, string error_message){
 // Input format is either "fasta" or "fastq"
 string generate_default_colorfile(string inputfile, string file_format){
     string colorfile = get_temp_file_manager().create_filename();
-    throwing_ofstream out(colorfile);
+    Buffered_ofstream out(colorfile);
     Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    stringstream ss;
     LL seq_id = 0;
     while(true){
         LL len = sr.get_next_read_to_buffer();
         if(len == 0) break;
-        out << seq_id << "\n";
+        ss.str(""); ss << seq_id << "\n";
+        out.write(ss.str().data(), ss.str().size());
         seq_id++;
     }
     return colorfile;
