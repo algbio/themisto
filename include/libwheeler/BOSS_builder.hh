@@ -211,7 +211,7 @@ public:
             B.load(y); // y is the concatenation of the serialization of a Kmer and an edgeset
             return A < B; // Colexicographic compare
         };
-        EM_sort_constant_binary(unsorted_filename, sorted_filename, cmp, mem_budget_bytes, 32, Kmer<KMER_MAX_LENGTH>::size_in_bytes() + payload_t::size_in_bytes(), n_threads);
+        EM_sort_constant_binary(unsorted_filename, sorted_filename, cmp, mem_budget_bytes, Kmer<KMER_MAX_LENGTH>::size_in_bytes() + payload_t::size_in_bytes(), n_threads);
         is_sorted = true;
         sorted.open(sorted_filename, ios_base::binary);
         update_top();

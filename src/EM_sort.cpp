@@ -81,7 +81,6 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
     // to another according to the comparison function.
 
     // Initialize priority queue
-    string line;
     for(int64_t i = 0; i < reader.get_num_files(); i++){
         reader.read_record(i, &input_buffers[i], &input_buffer_sizes[i]);
         Q.insert({input_buffers[i], i});
@@ -113,8 +112,9 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
 }
 
 template <typename record_reader_t, typename record_writer_t>
-void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, record_reader_t& reader, record_writer_t& writer){
-    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
+void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, record_reader_t& reader, record_writer_t& writer){
+
+    LL max_files = 512;
 
     // Number of blocks in the memory at once:
     // - 1 per consumer thread in processing
@@ -156,9 +156,9 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     vector<string> cur_round = block_files;
     while(cur_round.size() > 1){
         vector<string> next_round;
-        for(LL i = 0; i < cur_round.size(); i += k){
+        for(LL i = 0; i < cur_round.size(); i += max_files){
             // Merge
-            vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + k, (LL)cur_round.size()));
+            vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + max_files, (LL)cur_round.size()));
             string round_file = get_temp_file_manager().create_filename();
             writer.open_file(round_file);
             reader.open_files(to_merge);
@@ -168,27 +168,27 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
             reader.close_files();
 
             // Clear files
-            for(LL j = i; j < min(i+k, (LL)cur_round.size()); j++){
+            for(LL j = i; j < min(i+max_files, (LL)cur_round.size()); j++){
                 get_temp_file_manager().delete_file(cur_round[j].c_str());
             }
         }
         cur_round = next_round;
     }
 
-    // Copy final merge file to outfile
+    // Move final merge file to outfile
+    
     if(cur_round.size() == 0) // Function was called with empty input file
-        copy_file(infile, outfile, 1024*1024);
+        std::filesystem::rename(infile, outfile);
     else{
         assert(cur_round.size() == 1);
-        copy_file(cur_round[0], outfile, 1024*1024);
+        std::filesystem::rename(cur_round[0], outfile);
         get_temp_file_manager().delete_file(cur_round[0].c_str());
     }
 
 }
 
 // Constant size records of record_size bytes each
-void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL record_size, LL n_threads){
-    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
+void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL record_size, LL n_threads){
 
     Generic_Block_Producer* producer = new Constant_Block_Producer(infile, record_size);
     vector<Generic_Block_Consumer*> consumers;
@@ -197,15 +197,14 @@ void EM_sort_constant_binary(string infile, string outfile, const std::function<
     Constant_Record_Reader reader(record_size);
     Constant_Record_Writer writer(record_size);
 
-    EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
+    EM_sort_generic(infile, outfile, cmp, RAM_bytes, producer, consumers, reader, writer);
 
     delete producer;
     for(Generic_Block_Consumer* C : consumers) delete C;
 
 }
 
-void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL n_threads){
-    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
+void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL n_threads){
 
     Generic_Block_Producer* producer = new Variable_Block_Producer(infile);
 
@@ -217,7 +216,7 @@ void EM_sort_variable_length_records(string infile, string outfile, const std::f
     Variable_Record_Reader reader;
     Variable_Record_Writer writer;
 
-    EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
+    EM_sort_generic(infile, outfile, cmp, RAM_bytes, producer, consumers, reader, writer);
 
     delete producer;
     for(Generic_Block_Consumer* C : consumers) delete C;;

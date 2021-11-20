@@ -48,8 +48,8 @@ bool memcmp_variable_binary_records(const char* x, const char* y);
 void copy_file(string infile, string outfile, LL buf_size);
 
 // Constant size records of record_size bytes each
-void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL record_size, LL n_threads);
+void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL record_size, LL n_threads);
 
 // Binary format of record: first 8 bytes give the length of the record, then comes the record
 // k = k-way merge parameter
-void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL n_threads);
+void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL n_threads);

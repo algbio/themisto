@@ -111,9 +111,8 @@ void test_variable_binary_sort(string infile, const std::function<bool(const cha
     string fileA = binary_sort_stdlib(infile, cmp);
     string fileB = get_temp_file_manager().create_filename();
     LL ram = rand() % 10000 + 1;
-    LL merge_k = rand() % 6 + 2;
-    logger << "Sorting variable binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
-    EM_sort_variable_length_records(infile, fileB, cmp, ram, merge_k, 3);
+    logger << "Sorting variable binary records with " << ram << " RAM" << endl;
+    EM_sort_variable_length_records(infile, fileB, cmp, ram, 3);
     ASSERT_TRUE(files_are_equal(fileA, fileB));
 
     get_temp_file_manager().delete_file(fileA);
@@ -126,9 +125,8 @@ void test_constant_binary_sort(string infile, LL record_len, const std::function
     string fileA = constant_binary_sort_stdlib(infile, record_len, cmp);
     string fileB = get_temp_file_manager().create_filename();
     LL ram = rand() % 10000 + 1;
-    LL merge_k = rand() % 6 + 2;
-    logger << "Sorting constant-binary records with " << ram << " RAM and " << merge_k << "-way merge" << endl;
-    EM_sort_constant_binary(infile, fileB, cmp, ram, merge_k, record_len, 3);
+    logger << "Sorting constant-binary records with " << ram << " RAM" << endl;
+    EM_sort_constant_binary(infile, fileB, cmp, ram, record_len, 3);
     ASSERT_TRUE(files_are_equal(fileA, fileB));
 
     get_temp_file_manager().delete_file(fileA);

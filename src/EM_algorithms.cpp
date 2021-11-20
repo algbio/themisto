@@ -22,7 +22,7 @@ string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_thr
     };
 
     string outfile = get_temp_file_manager().create_filename();
-    EM_sort_constant_binary(infile, outfile, cmp, ram_bytes, 4, 8+8, n_threads);
+    EM_sort_constant_binary(infile, outfile, cmp, ram_bytes, 8+8, n_threads);
     return outfile;
 }
 
@@ -153,7 +153,7 @@ string EM_sort_by_colorsets_binary(string infile, LL ram_bytes, LL n_threads){
     };
     
     string outfile = get_temp_file_manager().create_filename();
-    EM_sort_variable_length_records(infile, outfile, cmp, ram_bytes, 4, n_threads);
+    EM_sort_variable_length_records(infile, outfile, cmp, ram_bytes, n_threads);
     return outfile;
 }
 
