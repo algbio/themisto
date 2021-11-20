@@ -62,6 +62,16 @@ public:
         return ptr - dest;
     }
 
+    bool getline(string& line){
+        line.clear();
+        while(true){
+            char c; get(&c);
+            if(eof()) return line.size() > 0;
+            if(c == '\n') return true;
+            line.push_back(c);
+        }
+    }
+
     // Return true if get(c) has returned false
     bool eof(){
         return is_eof;
