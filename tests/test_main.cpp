@@ -14,6 +14,7 @@
 #include <cassert>
 
 #include "test_DBG.hh"
+#include "test_IO.hh"
 #include "test_input_reading.hh"
 #include "test_CLI.hh"
 #include "test_misc.hh"

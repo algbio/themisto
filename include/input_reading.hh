@@ -12,6 +12,7 @@
 #include <cassert>
 #include "globals.hh"
 #include "throwing_streams.hh"
+#include "buffered_streams.hh"
 
 using namespace std;
 
@@ -27,52 +28,6 @@ template <class T>
 const NullStream &operator<<(NullStream &&os, const T &value) { 
   return os;
 }
-
-class BufferedStream{
-
-private:
-
-    BufferedStream(const BufferedStream& temp_obj) = delete; // No copying
-    BufferedStream& operator=(const BufferedStream& temp_obj) = delete;  // No copying
-
-    
-    vector<char> buf;
-    LL buf_pos = 0;
-    LL buf_size = 0;
-    bool is_eof = false;
-    ifstream stream;
-    LL buf_cap = (1 << 20);
-
-public:
-
-    BufferedStream(string filename, LL buf_cap) : stream(filename),  buf_cap(buf_cap){
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
-        buf.resize(buf_cap);
-    }
-
-    // returns true if read was succesful
-    // Stores the read character into the given pointer location
-    bool get(char* c){
-        if(is_eof) return false;
-        if(buf_pos == buf_size){
-            stream.read(buf.data(), buf_cap);
-            buf_size = stream.gcount();
-            buf_pos = 0;
-            if(buf_size == 0){
-                is_eof = true;
-                return false;
-            }
-        }
-        *c = buf[buf_pos++];
-        return true;
-    }
-
-    // Return true if get(c) has returned false
-    bool eof(){
-        return is_eof;
-    }
-
-};
 
 class Sequence_Reader_Buffered {
 
@@ -95,7 +50,7 @@ private:
 Sequence_Reader_Buffered(const Sequence_Reader_Buffered& temp_obj) = delete; // No copying
 Sequence_Reader_Buffered& operator=(const Sequence_Reader_Buffered& temp_obj) = delete;  // No copying
 
-BufferedStream stream;
+Buffered_ifstream stream;
 LL mode;
 LL read_buf_cap;
 
@@ -105,7 +60,7 @@ public:
 
     // mode should be FASTA_MODE or FASTQ_MODE
     // Note: FASTQ mode does not support multi-line FASTQ
-    Sequence_Reader_Buffered(string filename, LL mode, LL block_size = 1<<20) : stream(filename, block_size), mode(mode) {
+    Sequence_Reader_Buffered(string filename, LL mode) : stream(filename), mode(mode) {
         // todo: check that fasta files start with > and fastq files start with @
         if(mode != FASTA_MODE && mode != FASTQ_MODE)
             throw std::invalid_argument("Unkown sequence format");
