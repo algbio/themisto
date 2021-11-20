@@ -58,14 +58,15 @@ void copy_file(string infile, string outfile, LL buf_size){
     }
 }
 
-void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, Generic_Record_Reader* reader, Generic_Record_Writer* writer){
+template <typename record_reader_t, typename record_writer_t>
+void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, record_reader_t& reader, record_writer_t& writer){
 
     write_log("Doing merge number " + to_string(merge_count));
 
     vector<char*> input_buffers;
     vector<LL> input_buffer_sizes;
 
-    for(int64_t i = 0; i < reader->get_num_files(); i++){
+    for(int64_t i = 0; i < reader.get_num_files(); i++){
         LL buf_size = 1024;
         input_buffers.push_back((char*)malloc(buf_size)); // Freed at the end of this function
         input_buffer_sizes.push_back(buf_size);
@@ -81,8 +82,8 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
 
     // Initialize priority queue
     string line;
-    for(int64_t i = 0; i < reader->get_num_files(); i++){
-        reader->read_record(i, &input_buffers[i], &input_buffer_sizes[i]);
+    for(int64_t i = 0; i < reader.get_num_files(); i++){
+        reader.read_record(i, &input_buffers[i], &input_buffer_sizes[i]);
         Q.insert({input_buffers[i], i});
     }
 
@@ -94,16 +95,16 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
         Q.erase(Q.begin()); // pop
 
         // Write the current data
-        writer->write(record);
+        writer.write(record);
 
         // Read next value from the file
-        if(reader->read_record(stream_idx, &input_buffers[stream_idx], &input_buffer_sizes[stream_idx]))
+        if(reader.read_record(stream_idx, &input_buffers[stream_idx], &input_buffer_sizes[stream_idx]))
             Q.insert({input_buffers[stream_idx], stream_idx});
     }
 
-    writer->close_file();
+    writer.close_file();
 
-    for(int64_t i = 0; i < reader->get_num_files(); i++){
+    for(int64_t i = 0; i < reader.get_num_files(); i++){
         free(input_buffers[i]);
     }
 
@@ -111,7 +112,8 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
 
 }
 
-void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, Generic_Record_Reader* reader, Generic_Record_Writer* writer){
+template <typename record_reader_t, typename record_writer_t>
+void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, record_reader_t& reader, record_writer_t& writer){
     if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
 
     // Number of blocks in the memory at once:
@@ -158,12 +160,12 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
             // Merge
             vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + k, (LL)cur_round.size()));
             string round_file = get_temp_file_manager().create_filename();
-            writer->open_file(round_file);
-            reader->open_files(to_merge);
+            writer.open_file(round_file);
+            reader.open_files(to_merge);
             merge_files_generic(cmp, merge_count, reader, writer);
             next_round.push_back(round_file);
-            writer->close_file();
-            reader->close_files();
+            writer.close_file();
+            reader.close_files();
 
             // Clear files
             for(LL j = i; j < min(i+k, (LL)cur_round.size()); j++){
@@ -192,15 +194,13 @@ void EM_sort_constant_binary(string infile, string outfile, const std::function<
     vector<Generic_Block_Consumer*> consumers;
     for(LL i = 0; i < n_threads; i++)
         consumers.push_back(new Block_Consumer(i));
-    Generic_Record_Reader* reader = new Constant_Record_Reader(record_size);
-    Generic_Record_Writer* writer = new Constant_Record_Writer(record_size);
+    Constant_Record_Reader reader(record_size);
+    Constant_Record_Writer writer(record_size);
 
     EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
 
     delete producer;
     for(Generic_Block_Consumer* C : consumers) delete C;
-    delete reader;
-    delete writer;
 
 }
 
@@ -214,14 +214,12 @@ void EM_sort_variable_length_records(string infile, string outfile, const std::f
     for(LL i = 0; i < n_threads; i++)
         consumers.push_back(new Block_Consumer(i));
     
-    Variable_Record_Reader* reader = new Variable_Record_Reader();
-    Variable_Record_Writer* writer = new Variable_Record_Writer();
+    Variable_Record_Reader reader;
+    Variable_Record_Writer writer;
 
     EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
 
     delete producer;
-    for(Generic_Block_Consumer* C : consumers) delete C;
-    delete reader;
-    delete writer;
+    for(Generic_Block_Consumer* C : consumers) delete C;;
 
 }

@@ -39,9 +39,6 @@ are assumed to be a given constant size instead.
 
 using namespace std;
 
-static const int EM_VARIABLE_BINARY = 1;
-static const int EM_CONSTANT_BINARY = 2;
-
 // Interprets the strings as integers (no leading zeros allowed) and returns:
 //     -1 if x < y
 //      0 if x = y
@@ -49,10 +46,6 @@ static const int EM_CONSTANT_BINARY = 2;
 int compare_as_numbers(const char* x, const char* y);
 bool memcmp_variable_binary_records(const char* x, const char* y);
 void copy_file(string infile, string outfile, LL buf_size);
-
-void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, Generic_Record_Reader* reader, Generic_Record_Writer* writer);
-
-void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, Generic_Record_Reader* reader, Generic_Record_Writer* writer);
 
 // Constant size records of record_size bytes each
 void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL record_size, LL n_threads);

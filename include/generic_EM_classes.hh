@@ -31,27 +31,6 @@ public:
     virtual ~Generic_Block_Consumer(){}
 };
 
-class Generic_Record_Reader{
-public:
-
-    virtual void open_files(vector<string> filenames) = 0;
-    virtual void close_files() = 0;
-    virtual LL get_num_files() = 0;
-    virtual bool read_record(LL input_index, char** buffer, LL* buffer_size) = 0; // reallocs. Returns true iff read succeeded
-    virtual ~Generic_Record_Reader(){}
-
-};
-
-class Generic_Record_Writer{
-public:
-
-    virtual void write(char* record) = 0;
-    virtual void open_file(string filename) = 0;
-    virtual void close_file() = 0;
-    virtual ~Generic_Record_Writer(){}
-
-};
-
 class Block_Consumer : public Generic_Block_Consumer{ // Works for any type of block
 public:
 
@@ -105,7 +84,7 @@ class Constant_Block_Producer : public Generic_Block_Producer{
     }
 };
 
-class Constant_Record_Reader : public Generic_Record_Reader{
+class Constant_Record_Reader{
 public:
 
     vector<Buffered_ifstream> inputs;
@@ -113,7 +92,7 @@ public:
 
     Constant_Record_Reader(LL record_size) : record_size(record_size){}
 
-    virtual void open_files(vector<string> filenames){
+    void open_files(vector<string> filenames){
         inputs.clear();
         inputs.resize(filenames.size());
         for(LL i = 0; i < filenames.size(); i++){
@@ -121,15 +100,15 @@ public:
         }
     }
 
-    virtual void close_files(){
+    void close_files(){
         for(Buffered_ifstream& in : inputs) in.close();
     }
 
-    virtual LL get_num_files(){
+    LL get_num_files(){
         return inputs.size();
     }
 
-    virtual bool read_record(LL input_index, char** buffer, LL* buffer_size){
+    bool read_record(LL input_index, char** buffer, LL* buffer_size){
         if(*buffer_size < record_size){
             *buffer = (char*)realloc(*buffer, record_size);
             *buffer_size = record_size;
@@ -139,22 +118,22 @@ public:
 
 };
 
-class Constant_Record_Writer : public Generic_Record_Writer{
+class Constant_Record_Writer{
 public:
     Buffered_ofstream out;
     LL record_size;
 
     Constant_Record_Writer(LL record_size) : record_size(record_size){}
 
-    virtual void open_file(string filename){
+    void open_file(string filename){
         out.open(filename, ios::binary);
     }
 
-    virtual void close_file(){
+    void close_file(){
         out.close();
     }
 
-    virtual void write(char* record){
+    void write(char* record){
         out.write(record, record_size);
     }
 
@@ -183,14 +162,14 @@ class Variable_Block_Producer : public Generic_Block_Producer{
     }
 };
 
-class Variable_Record_Reader : public Generic_Record_Reader{
+class Variable_Record_Reader{
 public:
 
     vector<Buffered_ifstream> inputs;
 
     Variable_Record_Reader() {}
 
-    virtual void open_files(vector<string> filenames){
+    void open_files(vector<string> filenames){
         inputs.clear();
         inputs.resize(filenames.size());
         for(LL i = 0; i < filenames.size(); i++){
@@ -198,35 +177,35 @@ public:
         }
     }
 
-    virtual void close_files(){
+    void close_files(){
         for(Buffered_ifstream& in : inputs) in.close();
     }
 
-    virtual LL get_num_files(){
+    LL get_num_files(){
         return inputs.size();
     }
 
-    virtual bool read_record(LL input_index, char** buffer, LL* buffer_size){
+    bool read_record(LL input_index, char** buffer, LL* buffer_size){
         return read_variable_binary_record(inputs[input_index], buffer, buffer_size);
     }
 
 };
 
-class Variable_Record_Writer : public Generic_Record_Writer{
+class Variable_Record_Writer{
 public:
     Buffered_ofstream out;
 
     Variable_Record_Writer() {}
 
-    virtual void open_file(string filename){
+    void open_file(string filename){
         out.open(filename, ios::binary);
     }
 
-    virtual void close_file(){
+    void close_file(){
         out.close();
     }
 
-    virtual void write(char* record){
+    void write(char* record){
         LL rec_len = parse_big_endian_LL(record);
         out.write(record, rec_len);
     }
