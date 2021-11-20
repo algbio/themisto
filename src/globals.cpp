@@ -216,7 +216,7 @@ LL string_to_integer_safe(const string& S){
 
 vector<LL> read_colorfile(string filename){
     vector<LL> seq_to_color;
-    throwing_ifstream colors_in(filename);
+    Buffered_ifstream colors_in(filename);
     string line;
     while(colors_in.getline(line)){
         seq_to_color.push_back(string_to_integer_safe(line));
@@ -235,18 +235,19 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
     string new_seqfile = get_temp_file_manager().create_filename();
 
     vector<LL> colors;
-    throwing_ofstream colors_out;
+    Buffered_ofstream colors_out;
 
     if(colorfile != "") {
         colors = read_colorfile(colorfile);
         colors_out.open(new_colorfile);
     }
 
-    throwing_ofstream sequences_out(new_seqfile);
+    Buffered_ofstream sequences_out(new_seqfile);
 
     Sequence_Reader_Buffered sr(inputfile, inputfile_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
     LL seq_id = 0;
     LL n_written = 0;
+    stringstream ss;
     while(true){
         LL len = sr.get_next_read_to_buffer();
         if(len == 0) break;
@@ -261,8 +262,12 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
                 new_seq += c;
             else{
                 if(new_seq.size() > 0){
-                    sequences_out << ">\n" << new_seq << "\n";
-                    if(colorfile != "") colors_out << colors[seq_id] << "\n";
+                    ss.str(""); ss << ">\n" << new_seq << "\n";
+                    sequences_out.write(ss.str().data(), ss.str().size());
+                    if(colorfile != ""){
+                        ss.str(""); ss << colors[seq_id] << "\n";
+                        colors_out.write(ss.str().data(), ss.str().size());
+                    }
                     new_seq = "";
                     n_written++;
                 }
