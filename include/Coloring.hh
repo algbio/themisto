@@ -94,7 +94,7 @@ public:
 
         virtual void callback(const char* S, LL S_size, int64_t seq_id){
             if(seq_id >= seq_id_to_color_id->size()){
-                throw std::runtime_error("Error: less colors than input sequences");
+                throw std::runtime_error("Error at: seq_id >= seq_id_to_color_id->size()");
             }
             LL color = (*seq_id_to_color_id)[seq_id];
             write_log("Adding colors for sequence " + std::to_string(seq_id));
@@ -133,7 +133,7 @@ public:
         n_colors = *std::max_element(colors_assignments.begin(), colors_assignments.end()) + 1;
 
         write_log("Marking redundant color sets");
-        mark_redundant_color_sets(fastafile, boss, colorset_sampling_distance);
+        mark_redundant_color_sets(fastafile, boss);
 
         write_log("Getting (node,color) pairs");
         string node_color_pairs_file = get_node_color_pairs(boss, fastafile, colors_assignments, n_threads);
@@ -159,7 +159,7 @@ public:
         get_temp_file_manager().delete_file(by_colorsets);
 
         write_log("Building packed representation");
-        build_packed_representation(collected2, ram_bytes, boss, n_threads);
+        build_packed_representation(collected2, ram_bytes, boss, colorset_sampling_distance, n_threads);
     }
 
     bool is_redundant(LL node){
@@ -384,7 +384,7 @@ private:
     }
 
     // Input: pairs (node set, color set)
-    void build_packed_representation(string infile, LL ram_bytes, BOSS<sdsl::bit_vector>& boss, LL n_threads){
+    void build_packed_representation(string infile, LL ram_bytes, BOSS<sdsl::bit_vector>& boss, LL colorset_sampling_distance, LL n_threads){
 
         // todo: make these private functions return stuff instead of modifying the object state?
 
@@ -453,11 +453,13 @@ private:
             // Mark the nodes with this colorset to have a nonempty color set.
             for(LL node : node_set){
                 nonempty[node] = 1;
-                if(redundancy_marks[node] == 0){ // This should be always true
+                assert(redundancy_marks[node] == 0);
+                if(redundancy_marks[node] == 0){
                     nonempty_and_nonredundant[node] = 1;
                     n_marks++;
                     write_big_endian_LL(node_to_color_id_pairs_out, node);
                     write_big_endian_LL(node_to_color_id_pairs_out, class_id);
+                    n_marks += propagate_colorset_pointers(node, class_id, colorset_sampling_distance, boss, node_to_color_id_pairs_out);
                 } else{
                     cerr << "Error: this code line should never be reached" << endl; exit(1);
                 }
@@ -489,7 +491,7 @@ private:
         sdsl::util::init_support(nonempty_and_nonredundant_rs, &nonempty_and_nonredundant);
     }
 
-    void mark_redundant_color_sets(string fastafile, BOSS<sdsl::bit_vector>& boss, LL colorset_sampling_distance){
+    void mark_redundant_color_sets(string fastafile, BOSS<sdsl::bit_vector>& boss){
         // Mark all nodes that fulfill at least one of the following
         // (1) the node is first k-mer of an input sequence
         // (2) a predecessor of the node is the last k-mer of a reference sequence
@@ -533,36 +535,46 @@ private:
                 if(boss.outdegree(u) > 1) redundancy_marks[v] = 0;
             }
         }
+    }
 
+
+    // Returns the number of new marks
+    LL propagate_colorset_pointers(LL from_node, LL class_id, LL colorset_sampling_distance, BOSS<sdsl::bit_vector>& boss, Buffered_ofstream& out){
         // We have a temporary vector for marking new nodes. Otherwise we would mark in the same vector
         // that we are using to detect marking path starting points, which would mess things up.
-        sdsl::bit_vector redundancy_marks_temp = redundancy_marks; 
-        for(LL v = 1; v < boss.number_of_nodes(); v++){
-            if(redundancy_marks[v] == 0){
-                pair<int64_t, int64_t> I = boss.outlabel_range(v);
-                for(LL i = I.first; i <= I.second; i++){
-                    LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
-                    LL counter = 0;
-                    while(redundancy_marks[u] == 1){
-                        counter++;
-                        if(counter == colorset_sampling_distance){
-                            redundancy_marks_temp[u] = 0; // new mark
-                            counter = 0;
-                        }
-                        pair<int64_t, int64_t> I_u = boss.outlabel_range(u);
-                        if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
-                        u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
-                        // This loop is guaranteed to terminate. Proof:
-                        // If the in-degree and out-degree of u always stays 1, then we come back to v eventually,
-                        // which is marked as non-redundant, so we stop. Otherwise:
-                        // - If the out-degree of u becomes greater than 1 at some point, then the
-                        // successors of that u will be marked non-redundant by case (4)
-                        // - If the in-degree of u becomes greater than 1 at some point, then it is
-                        //   marked as non-redundant by case (3)
-                    }
+        LL n_new_marks = 0;
+        sdsl::bit_vector redundancy_marks_temp = redundancy_marks;
+        assert(redundancy_marks[from_node] == 0);
+        pair<int64_t, int64_t> I = boss.outlabel_range(from_node);
+        for(LL i = I.first; i <= I.second; i++){
+            LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
+            LL counter = 0;
+            while(redundancy_marks[u] == 1){
+                counter++;
+                if(counter == colorset_sampling_distance){
+                    redundancy_marks_temp[u] = 0; // new mark
+                    nonempty_and_nonredundant[u] = 1;
+                    nonempty[u] = 1;
+                    counter = 0;
+                    n_new_marks++;
+                    write_big_endian_LL(out, u);
+                    write_big_endian_LL(out, class_id);
                 }
+                pair<int64_t, int64_t> I_u = boss.outlabel_range(u);
+                if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
+                u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
+                // This loop is guaranteed to terminate. Proof:
+                // If the in-degree and out-degree of u always stays 1, then we come back to v eventually,
+                // which is marked as non-redundant, so we stop. Otherwise:
+                // - If the out-degree of u becomes greater than 1 at some point, then the
+                // successors of that u will be marked non-redundant by case (4)
+                // - If the in-degree of u becomes greater than 1 at some point, then it is
+                //   marked as non-redundant by case (3)
             }
         }
+        
         redundancy_marks = redundancy_marks_temp;
+        return n_new_marks;
     }
+
 };
