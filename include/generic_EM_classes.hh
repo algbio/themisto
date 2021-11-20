@@ -15,6 +15,7 @@
 #include "globals.hh"
 #include "Block.hh"
 #include "ParallelBoundedQueue.hh"
+#include "buffered_streams.hh"
 
 
 class Generic_Block_Producer{
@@ -87,14 +88,14 @@ public:
 class Constant_Block_Producer : public Generic_Block_Producer{
     public:
 
-    throwing_ifstream in;
+    Buffered_ifstream in;
     LL record_size;
 
     Constant_Block_Producer(string infile, LL record_size) : in(infile, ios::binary), record_size(record_size) {}
 
     virtual void run(ParallelBoundedQueue<Generic_Block*>& Q, LL block_size){
         while(true){
-            Constant_binary_block* block = get_next_constant_binary_block(in,block_size,record_size); // Freed by a consumer
+            Constant_binary_block* block = get_next_constant_binary_block(in, block_size,record_size); // Freed by a consumer
             if(block->starts.size() == 0){
                 Q.push(nullptr, 0);
                 break; // No more work available
@@ -107,7 +108,7 @@ class Constant_Block_Producer : public Generic_Block_Producer{
 class Constant_Record_Reader : public Generic_Record_Reader{
 public:
 
-    vector<throwing_ifstream> inputs;
+    vector<Buffered_ifstream> inputs;
     LL record_size;
 
     Constant_Record_Reader(LL record_size) : record_size(record_size){}
@@ -121,7 +122,7 @@ public:
     }
 
     virtual void close_files(){
-        for(throwing_ifstream& in : inputs) in.close();
+        for(Buffered_ifstream& in : inputs) in.close();
     }
 
     virtual LL get_num_files(){
@@ -140,7 +141,7 @@ public:
 
 class Constant_Record_Writer : public Generic_Record_Writer{
 public:
-    throwing_ofstream out;
+    Buffered_ofstream out;
     LL record_size;
 
     Constant_Record_Writer(LL record_size) : record_size(record_size){}
@@ -166,7 +167,7 @@ public:
 class Variable_Block_Producer : public Generic_Block_Producer{
     public:
 
-    throwing_ifstream in;
+    Buffered_ifstream in;
 
     Variable_Block_Producer(string infile) : in(infile, ios::binary) {}
 
@@ -185,7 +186,7 @@ class Variable_Block_Producer : public Generic_Block_Producer{
 class Variable_Record_Reader : public Generic_Record_Reader{
 public:
 
-    vector<throwing_ifstream> inputs;
+    vector<Buffered_ifstream> inputs;
 
     Variable_Record_Reader() {}
 
@@ -198,7 +199,7 @@ public:
     }
 
     virtual void close_files(){
-        for(throwing_ifstream& in : inputs) in.close();
+        for(Buffered_ifstream& in : inputs) in.close();
     }
 
     virtual LL get_num_files(){
@@ -213,7 +214,7 @@ public:
 
 class Variable_Record_Writer : public Generic_Record_Writer{
 public:
-    throwing_ofstream out;
+    Buffered_ofstream out;
 
     Variable_Record_Writer() {}
 
@@ -231,90 +232,3 @@ public:
     }
 
 };
-
-
-//
-// Line record classes below
-//
-
-
-class Line_Block_Producer : public Generic_Block_Producer{
-public:
-
-    throwing_ifstream in;
-
-    Line_Block_Producer(string infile) : in(infile) {}
-
-    virtual void run(ParallelBoundedQueue<Generic_Block*>& Q, LL block_size){
-        while(true){
-            Line_block* block = get_next_line_block(in,block_size); // Freed by a consumer
-            if(block->starts.size() == 0){
-                Q.push(nullptr, 0);
-                break; // No more work available
-            }
-            Q.push(block, block_size);
-        }
-    }
-};
-
-class Line_Record_Reader : public Generic_Record_Reader{
-public:
-
-    vector<throwing_ifstream> inputs;
-    string line; // Reusable buffer
-
-    Line_Record_Reader() {}
-
-    virtual void open_files(vector<string> filenames){
-        inputs.clear();
-        inputs.resize(filenames.size());
-        for(LL i = 0; i < filenames.size(); i++){
-            inputs[i].open(filenames[i]);
-        }
-    }
-
-    virtual void close_files(){
-        for(throwing_ifstream& in : inputs) in.close();
-    }
-
-    virtual LL get_num_files(){
-        return inputs.size();
-    }
-
-    virtual bool read_record(LL input_index, char** buffer, LL* buffer_size){
-        if(inputs[input_index].getline(line)){
-            while(*buffer_size < line.size() + 1){ // +1: null terminator
-                *buffer = (char*)realloc(*buffer, (*buffer_size)*2);
-                *buffer_size *= 2;
-            }
-            memcpy(*buffer, line.c_str(), line.size() + 1); // '\n' is now replaced with \0
-            return true;
-        }
-        return false;
-    }
-
-};
-
-class Line_Record_Writer : public Generic_Record_Writer{
-public:
-    throwing_ofstream out;
-
-    Line_Record_Writer() {}
-
-    virtual void open_file(string filename){
-        out.open(filename);
-    }
-
-    virtual void close_file(){
-        out.close();
-    }
-
-    virtual void write(char* record){
-        LL len = 0;
-        while(*(record+len) != 0) len++;
-        out.write(record, len);
-        out.write("\n", 1);
-    }
-
-};
-

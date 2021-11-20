@@ -16,15 +16,21 @@ private:
 
     
     vector<char> buf;
+    LL buf_cap = 1 << 20;
+
     LL buf_pos = 0;
     LL buf_size = 0;
     bool is_eof = false;
     ifstream stream;
-    LL buf_cap;
 
 public:
 
-    Buffered_ifstream(string filename, ios_base::openmode mode = ios_base::in) : stream(filename, mode), buf_cap(1 << 20) {
+    Buffered_ifstream(Buffered_ifstream&&) = default; // Movable
+    Buffered_ifstream& operator = (Buffered_ifstream&&) = default;  // Movable
+
+    Buffered_ifstream() {}
+
+    Buffered_ifstream(string filename, ios_base::openmode mode = ios_base::in) : stream(filename, mode) {
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
     }
@@ -61,6 +67,20 @@ public:
         return is_eof;
     }
 
+    void open(string filename, ios_base::openmode mode = ios_base::out){
+        buf.resize(buf_cap);
+        stream.open(filename, mode);
+        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
+        buf_size = 0;
+        buf_pos = 0;
+        is_eof = false;
+    }
+
+    void close(){
+        stream.close();
+    }
+
+
     void set_buffer_capacity(LL cap){
         this->buf_cap = cap;
         buf.resize(buf_cap);
@@ -88,6 +108,10 @@ private:
 
 public:
 
+    Buffered_ofstream(Buffered_ofstream&&) = default; // Movable
+    Buffered_ofstream& operator = (Buffered_ofstream&&) = default;  // Movable
+
+    Buffered_ofstream(){}
     Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::in) : stream(filename, mode){
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
@@ -106,6 +130,7 @@ public:
     }
 
     void open(string filename, ios_base::openmode mode = ios_base::out){
+        buf.resize(buf_cap);
         stream.open(filename, mode);
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf_size = 0;

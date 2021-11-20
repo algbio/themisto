@@ -26,29 +26,6 @@ string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_thr
     return outfile;
 }
 
-// Input: file with one ';'-separated pair of strings (x,y) on each line
-//        cmp_1 compares x values and cmp_y compares y values. 
-//        The comparison functions should return < 0, 0 or > 0 like strcmp.
-// Output: a file with the lines sorted by x if key = 0, or by y if key == 1
-//         if the key values are equal, the other elements are compared
-string EM_line_sort_pairs(string infile, int (*cmp_1) (const char* x_1, const char* x_2), 
-                                         int (*cmp_2) (const char* x_1, const char* x_2), 
-                                         LL key, LL ram_bytes, LL n_threads){
-    assert(key == 0 || key == 1);
-
-    auto cmp = [&](const char* A, const char* B) -> bool{
-        vector<string> splitted_A = split(A,';');
-        vector<string> splitted_B = split(B,';');
-        LL b = cmp_1(splitted_A[key].c_str(), splitted_B[key].c_str());
-        if(b == 0) b = cmp_2(splitted_A[1-key].c_str(), splitted_B[1-key].c_str());
-        return b < 0;
-    };
-    
-    string outfile = get_temp_file_manager().create_filename();
-    EM_sort(infile, outfile, cmp, ram_bytes, 4, n_threads, EM_LINES);
-    return outfile;
-}
-
 string EM_delete_duplicate_lines_from_sorted_file(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
@@ -176,7 +153,7 @@ string EM_sort_by_colorsets_binary(string infile, LL ram_bytes, LL n_threads){
     };
     
     string outfile = get_temp_file_manager().create_filename();
-    EM_sort(infile, outfile, cmp, ram_bytes, 4, n_threads, EM_VARIABLE_BINARY);
+    EM_sort_variable_length_records(infile, outfile, cmp, ram_bytes, 4, n_threads);
     return outfile;
 }
 

@@ -112,7 +112,7 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
 }
 
 void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, Generic_Record_Reader* reader, Generic_Record_Writer* writer){
-    assert(k >= 2);
+    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
 
     // Number of blocks in the memory at once:
     // - 1 per consumer thread in processing
@@ -186,7 +186,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
 
 // Constant size records of record_size bytes each
 void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL record_size, LL n_threads){
-    assert(k >= 2);
+    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
 
     Generic_Block_Producer* producer = new Constant_Block_Producer(infile, record_size);
     vector<Generic_Block_Consumer*> consumers;
@@ -204,45 +204,18 @@ void EM_sort_constant_binary(string infile, string outfile, const std::function<
 
 }
 
-// Binary format of record: first 8 bytes give the length of the record, then comes the record
-// Line format of record: A char sequence terminated by \n\0. For the cmp function the terminator is just \0.
-// k = k-way merge parameter
-// mode = EM_LINES or mode = EM_VARIABLE_BINARY or mode = EM_CONSTANT_BINARY
-void EM_sort(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL n_threads, LL mode){ // todo: rename to EM_sort_variable
+void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL k, LL n_threads){
+    if(k < 2) throw std::invalid_argument("The k in a k-way merge must be at least 2");
 
-    assert((mode == EM_LINES || mode == EM_VARIABLE_BINARY) && k >= 2);
-
-    Generic_Block_Producer* producer; 
-    if(mode == EM_LINES)
-        producer = new Line_Block_Producer(infile);
-    else if(mode == EM_VARIABLE_BINARY)
-        producer = new Variable_Block_Producer(infile);
-    else{
-        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
-    }
+    Generic_Block_Producer* producer = new Variable_Block_Producer(infile);
 
     vector<Generic_Block_Consumer*> consumers;
 
     for(LL i = 0; i < n_threads; i++)
         consumers.push_back(new Block_Consumer(i));
     
-    Generic_Record_Reader* reader;
-    if(mode == EM_LINES)
-        reader = new Line_Record_Reader();
-    else if(mode == EM_VARIABLE_BINARY)
-        reader = new Variable_Record_Reader();
-    else {
-        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
-    }        
-
-    Generic_Record_Writer* writer;
-    if(mode == EM_LINES)
-        writer = new Line_Record_Writer();
-    else if(mode == EM_VARIABLE_BINARY)
-        writer = new Variable_Record_Writer();
-    else{
-        throw std::runtime_error("Invalid sorting mode: " + to_string(mode));
-    }
+    Variable_Record_Reader* reader = new Variable_Record_Reader();
+    Variable_Record_Writer* writer = new Variable_Record_Writer();
 
     EM_sort_generic(infile, outfile, cmp, RAM_bytes, k, producer, consumers, reader, writer);
 
