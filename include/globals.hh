@@ -35,12 +35,13 @@ using namespace std::chrono;
 // Returns a reference to the singleton temp file manager
 Temp_File_Manager& get_temp_file_manager();
 
+enum LogLevel {OFF = 0, MAJOR = 1, MINOR = 2, DEBUG = 3};
+
 long long cur_time_millis();
 double seconds_since_program_start();
 string getTimeString();
-void enable_logging();
-void disable_logging();
-void write_log(string message);
+void set_log_level(LogLevel level);
+void write_log(string message, LogLevel level = MAJOR);
 map<string,vector<string> > parse_args(int argc, char** argv);
 string figure_out_file_format(string filename);
 char fix_char(char c);
@@ -136,7 +137,7 @@ class Progress_printer{
     void job_done(){
         if(next_print == processed){
             LL progress_percent = round(100 * ((double)processed / n_jobs));
-            write_log("Progress: " + to_string(progress_percent) + "%");
+            write_log("Progress: " + to_string(progress_percent) + "%", MINOR);
             next_print += n_jobs / total_prints;
         }
         processed++;

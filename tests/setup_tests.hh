@@ -60,7 +60,7 @@ void setup_tests(int argc, char** argv){
     get_temp_file_manager().set_dir("temp");
 
     verbose ? enable_test_logging() : disable_test_logging(); // test logger
-    verbose ? enable_logging() : disable_logging(); // main logger
+    verbose ? set_log_level(LogLevel::DEBUG) : set_log_level(LogLevel::OFF); // main logger
 
     ::testing::InitGoogleTest(&argc, argv);
 

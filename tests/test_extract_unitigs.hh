@@ -33,7 +33,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
             string colorfile = "example_input/colors.txt";
             LL k = 30;
             
-            enable_logging();
+            set_log_level(LogLevel::MAJOR);
 
             // Build Themisto
 
@@ -64,7 +64,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
                 unitigs.push_back(line);
             }
 
-            disable_logging();
+            set_log_level(LogLevel::OFF);
         }
     }
 

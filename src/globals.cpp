@@ -22,21 +22,15 @@ string getTimeString(){
     return time.substr(0,time.size() - 1); // Trim the trailing newline
 }
 
-bool logging_enabled = true;
-
-void enable_logging(){
-    logging_enabled = true;
+static LogLevel loglevel = MAJOR;
+void set_log_level(LogLevel level){
+    loglevel = level;
 }
 
-void disable_logging(){
-    logging_enabled = false;
-}
-
-std::mutex write_log_mutex;
-
-void write_log(string message){
-    std::lock_guard<std::mutex> lock(write_log_mutex);
-    if(logging_enabled){
+static std::mutex write_log_mutex;
+void write_log(string message, LogLevel level){
+    if(level <= loglevel){
+        std::lock_guard<std::mutex> lock(write_log_mutex);
         std::streamsize default_precision = std::cout.precision();
 
         std::cerr << 

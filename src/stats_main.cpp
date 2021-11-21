@@ -67,7 +67,6 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)");
-        disable_logging(); // Unitig extraction is chatty
         UnitigExtractor UE;
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
         throwing_ofstream unitigs_out(unitigs_file);
@@ -94,7 +93,6 @@ int stats_main(int argc, char** argv){
         cout << "Max unitig length: " << max_unitig_len << endl;
         cout << "Avg unitig length: " << (double)unitig_len_sum / unitig_count << endl;
 
-        enable_logging();
     }
 
     return 0;
