@@ -37,8 +37,7 @@ int extract_unitigs_main(int argc, char** argv){
     string colors_outfile = opts["colors-out"].as<string>();
     bool do_colors = (colors_outfile != "");
     if(unitigs_outfile == "" && colors_outfile == ""){
-        write_log("Error: no output files given");
-        return 1;
+        throw std::runtime_error("Error: no output files given");
     }
     
     // Prepare output streams
@@ -62,14 +61,14 @@ int extract_unitigs_main(int argc, char** argv){
 
     // Start
 
-    write_log("Starting");
-    write_log("Loading the index");    
+    write_log("Starting", LogLevel::MAJOR);
+    write_log("Loading the index", LogLevel::MAJOR);    
     Themisto themisto;
     themisto.load_boss(index_dbg_file);
     themisto.load_colors(index_color_file);
     
 
-    write_log("Extracting unitigs");
+    write_log("Extracting unitigs", LogLevel::MAJOR);
     
     UnitigExtractor UE;
     UE.extract_unitigs(themisto, *unitigs_out, do_colors, *colors_out);

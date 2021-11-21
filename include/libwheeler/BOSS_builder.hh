@@ -113,8 +113,7 @@ public:
 
     Kmer_stream_from_KMC_DB(string KMC_db_path, bool add_revcomps) : add_revcomps(add_revcomps) {
         if (!kmer_database.OpenForListing(KMC_db_path)){
-            write_log("Error opening KMC database " + KMC_db_path);
-            exit(1);
+            throw std::runtime_error("Error opening KMC database " + KMC_db_path);
         }
 
 		kmer_database.Info(_kmer_length, _mode, _counter_size, _lut_prefix_length, _signature_len, _min_count, _max_count, _total_kmers);
@@ -189,8 +188,7 @@ public:
         sorted_filename = get_temp_file_manager().create_filename("kmers_sorted");
         unsorted.open(unsorted_filename, ios_base::binary);
         if(!unsorted.good()){
-            write_log("Error writing to file " + unsorted_filename);
-            exit(1);
+            throw runtime_error("Error writing to file " + unsorted_filename);
         }
     }
 
@@ -617,7 +615,7 @@ BOSS<bitvector_t> build_BOSS_with_maps(vector<string> reads, LL k, bool include_
     // Make sure the root node exists
     if(M.find("") == M.end()) M[""] = Edge_Info();
 
-    write_log("map build added " + to_string(M.size() - M_copy.size()) + " dummies (k = " + to_string(k) + ")");
+    write_log("map build added " + to_string(M.size() - M_copy.size()) + " dummies (k = " + to_string(k) + ")", LogLevel::MAJOR);
 
 
     // Build the boss data structures    

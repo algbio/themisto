@@ -175,7 +175,7 @@ std::string fix_alphabet(const std::string& input_file, const int mode){
         out.write(newline.data(), 1);
     }
     
-    write_log("Replaced " + to_string(n_replaced) + " characters");
+    write_log("Replaced " + to_string(n_replaced) + " characters", LogLevel::MAJOR);
     
     return output_file;
 }

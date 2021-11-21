@@ -47,7 +47,7 @@ bool memcmp_variable_binary_records(const char* x, const char* y){
 template <typename record_reader_t, typename record_writer_t>
 void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, record_reader_t& reader, record_writer_t& writer){
 
-    write_log("Doing merge number " + to_string(merge_count));
+    write_log("Doing merge number " + to_string(merge_count), LogLevel::MINOR);
 
     vector<char*> input_buffers;
     vector<LL> input_buffer_sizes;
@@ -123,9 +123,9 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     // Create consumers
     for(int64_t i = 0; i < consumers.size(); i++){
         threads.push_back(std::thread([i, &Q, &block_files, &cmp, &consumers](){
-            write_log("Starting thread " + to_string(i));
+            write_log("Starting thread " + to_string(i), LogLevel::MINOR);
             consumers[i]->run(Q,cmp);
-            write_log("Thread " + to_string(i) + ": done");
+            write_log("Thread " + to_string(i) + ": done", LogLevel::MINOR);
         }));
     }
 

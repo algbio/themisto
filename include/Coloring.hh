@@ -97,7 +97,7 @@ public:
                 throw std::runtime_error("Error at: seq_id >= seq_id_to_color_id->size()");
             }
             LL color = (*seq_id_to_color_id)[seq_id];
-            write_log("Adding colors for sequence " + std::to_string(seq_id));
+            write_log("Adding colors for sequence " + std::to_string(seq_id), LogLevel::MINOR);
             if(S_size >= boss->get_k() + 1){
                 // We have a +1 in the if condition because the graph is edge centric (= defined by (k+1)-mers),
                 // so sequences of size exactly k should not produce colors.
@@ -132,33 +132,33 @@ public:
 
         n_colors = *std::max_element(colors_assignments.begin(), colors_assignments.end()) + 1;
 
-        write_log("Marking redundant color sets");
+        write_log("Marking redundant color sets", LogLevel::MAJOR);
         mark_redundant_color_sets(fastafile, boss);
 
-        write_log("Getting (node,color) pairs");
+        write_log("Getting (node,color) pairs", LogLevel::MAJOR);
         string node_color_pairs_file = get_node_color_pairs(boss, fastafile, colors_assignments, n_threads);
 
-        write_log("Sorting (node,color) pairs");
+        write_log("Sorting (node,color) pairs", LogLevel::MAJOR);
         string sorted = EM_sort_big_endian_LL_pairs(node_color_pairs_file, ram_bytes, 0, n_threads);
         get_temp_file_manager().delete_file(node_color_pairs_file);
 
-        write_log("Deleting duplicate (node,color) pairs");
+        write_log("Deleting duplicate (node,color) pairs", LogLevel::MAJOR);
         string filtered_binary = EM_delete_duplicate_LL_pair_records(sorted);
         get_temp_file_manager().delete_file(sorted);
 
-        write_log("Collecting color sets");
+        write_log("Collecting color sets", LogLevel::MAJOR);
         string collected = EM_collect_colorsets_binary(filtered_binary);
         get_temp_file_manager().delete_file(filtered_binary);
 
-        write_log("Sorting color sets");
+        write_log("Sorting color sets", LogLevel::MAJOR);
         string by_colorsets = EM_sort_by_colorsets_binary(collected, ram_bytes, n_threads);
         get_temp_file_manager().delete_file(collected);
 
-        write_log("Collecting node sets");
+        write_log("Collecting node sets", LogLevel::MAJOR);
         string collected2 = EM_collect_nodes_by_colorset_binary(by_colorsets);
         get_temp_file_manager().delete_file(by_colorsets);
 
-        write_log("Building packed representation");
+        write_log("Building packed representation", LogLevel::MAJOR);
         build_packed_representation(collected2, ram_bytes, boss, colorset_sampling_distance, n_threads);
     }
 

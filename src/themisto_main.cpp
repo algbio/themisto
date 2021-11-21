@@ -19,8 +19,8 @@ void print_help(int argc, char** argv){
 
 int main(int argc, char** argv){
 
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION));
-    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1));
+    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), LogLevel::MAJOR);
+    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1), LogLevel::MAJOR);
 
     if(argc == 1){
         print_help(argc, argv);
@@ -42,10 +42,10 @@ int main(int argc, char** argv){
         else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
         else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
         else if(command == "stats") return stats_main(argc, argv);
-        else if(command == "lookup-kmer") write_log("Error: not implemented.");
-        else if(command == "lookup-color") write_log("Error: not implemented.");
+        else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");
+        else if(command == "lookup-color") throw std::runtime_error("Error: not implemented.");
         else{
-            write_log("Invalid command: " + command);
+            throw std::runtime_error("Invalid command: " + command);
             return 1;
         }
     } catch (const std::runtime_error &e){

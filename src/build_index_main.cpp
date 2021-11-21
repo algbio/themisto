@@ -134,10 +134,10 @@ int build_index_main(int argc, char** argv){
     get_temp_file_manager().set_dir(C.temp_dir);
 
     cerr << C.to_string() << endl;
-    write_log("Starting");
+    write_log("Starting", LogLevel::MAJOR);
 
     if(C.input_format == "gzip"){
-        write_log("Decompressing the input file");
+        write_log("Decompressing the input file", LogLevel::MAJOR);
         string new_name = get_temp_file_manager().create_filename("input");
         check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
         C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
@@ -146,40 +146,40 @@ int build_index_main(int argc, char** argv){
 
     if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
-        write_log("Assigning colors");
+        write_log("Assigning colors", LogLevel::MAJOR);
         C.colorfile = generate_default_colorfile(C.inputfile, C.input_format);
     }
 
     // Deal with non-ACGT characters
     if(C.del_non_ACGT){
-        write_log("Splitting sequences at non-ACGT characters");
+        write_log("Splitting sequences at non-ACGT characters", LogLevel::MAJOR);
         std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
         C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file
     } else {
-        write_log("Replacing non-ACGT characters with random nucleotides");
+        write_log("Replacing non-ACGT characters with random nucleotides", LogLevel::MAJOR);
         C.inputfile = fix_alphabet(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
         C.input_format = "fasta"; // fix_alphabet returns a fasta file
     }
     
     if(C.load_dbg){
-        write_log("Loading de Bruijn Graph");
+        write_log("Loading de Bruijn Graph", LogLevel::MAJOR);
         themisto.load_boss(C.index_dbg_file);
     } else{
-        write_log("Building de Bruijn Graph");
+        write_log("Building de Bruijn Graph", LogLevel::MAJOR);
         themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
         themisto.save_boss(C.index_dbg_file);
-        write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)");
+        write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", LogLevel::MAJOR);
     }
 
     if(!C.no_colors){
-        write_log("Building colors");
+        write_log("Building colors", LogLevel::MAJOR);
         themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         themisto.save_colors(C.index_color_file);
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
 
-    write_log("Finished");
+    write_log("Finished", LogLevel::MAJOR);
 
     return 0;
 }

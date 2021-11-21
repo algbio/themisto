@@ -38,11 +38,11 @@ int stats_main(int argc, char** argv){
 
     Themisto themisto;
 
-    write_log("Loading the index");    
+    write_log("Loading the index", LogLevel::MAJOR);    
     themisto.load_boss(index_dbg_file);
     themisto.load_colors(index_color_file);
 
-    write_log("Computing index statistics");
+    write_log("Computing index statistics", LogLevel::MAJOR);
     vector<bool> dummy_marks = themisto.boss.get_dummy_node_marks();
 
     LL total_nodes = themisto.boss.number_of_nodes();
@@ -66,12 +66,11 @@ int stats_main(int argc, char** argv){
     cout << "Sum of sizes of all distinct color sets: " << themisto.coloring.get_color_set_concatenation_length() << endl;
 
     if(do_unitigs){
-        write_log("Extracting unitigs (this could take a while)");
+        write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
         UnitigExtractor UE;
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
         throwing_ofstream unitigs_out(unitigs_file);
         NullStream null_stream;
-        write_log("Extracting unitigs");
         UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream);
         unitigs_out.close();
         

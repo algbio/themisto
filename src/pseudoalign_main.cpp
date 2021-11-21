@@ -129,17 +129,17 @@ int pseudoalign_main(int argc, char** argv){
 
     C.check_valid();
 
-    write_log("Starting");
+    write_log("Starting", LogLevel::MAJOR);
 
     get_temp_file_manager().set_dir(C.temp_dir);
 
-    write_log("Loading the index");    
+    write_log("Loading the index", LogLevel::MAJOR);    
     Themisto themisto;
     themisto.load_boss(C.index_dbg_file);
     themisto.load_colors(C.index_color_file);
 
     for(LL i = 0; i < C.query_files.size(); i++){
-        write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")");
+        write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
 
         string inputfile = C.query_files[i];
         string file_format = figure_out_file_format(inputfile);
@@ -154,7 +154,7 @@ int pseudoalign_main(int argc, char** argv){
         themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
-    write_log("Finished");
+    write_log("Finished", LogLevel::MAJOR);
 
     return 0;
 }

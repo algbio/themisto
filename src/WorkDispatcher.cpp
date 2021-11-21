@@ -11,7 +11,7 @@
 using namespace std;
 
 void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id){
-    write_log("Starting thread " + to_string(thread_id));
+    write_log("Starting thread " + to_string(thread_id), LogLevel::MINOR);
     while(true){
         ReadBatch* batch  = Q.pop();
         if(batch->data.size() == 0){
@@ -30,7 +30,7 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
         }
         delete batch; // Allocated by producer
     }
-    write_log("Thread " + to_string(thread_id) + " done");
+    write_log("Thread " + to_string(thread_id) + " done", LogLevel::MINOR);
 }
 
 void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Buffered& sr, int64_t batch_size){
