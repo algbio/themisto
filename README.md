@@ -139,7 +139,7 @@ Usage:
       --no-colors               Build only the de Bruijn graph without 
                                 colors.
       --load-dbg                If given, loads a precomputed de Bruijn 
-                                graph from the index directory. If this is 
+                                graph from the index prefix. If this is 
                                 given, the parameter -k must not be given 
                                 because the order k is defined by the 
                                 precomputed de Bruijn graph.
