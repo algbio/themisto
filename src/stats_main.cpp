@@ -17,6 +17,7 @@ int stats_main(int argc, char** argv){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("unitigs", "Also compute statistics on unitigs. This takes a while and requires the temporary directory to be set.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
+        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -31,6 +32,7 @@ int stats_main(int argc, char** argv){
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     bool do_unitigs = opts["unitigs"].as<bool>();
+    if(opts["verbose"].as<bool>()) set_log_level(LogLevel::MINOR);
     check_readable(index_dbg_file);
     check_readable(index_color_file);
 

@@ -22,6 +22,7 @@ struct Build_Config{
     bool no_colors = false;
     bool del_non_ACGT = false;
     LL colorset_sampling_distance = 1;
+    bool verbose = false;
     
     void check_valid(){
         check_true(inputfile != "", "Input file not set");
@@ -63,7 +64,8 @@ struct Build_Config{
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
-        ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize"); // Last has no endline
+        ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
+        ss << "Verbose mode = " << (verbose ? "true" : "false"); // Last has no endline
         return ss.str();
     }
 };
@@ -94,6 +96,7 @@ int build_index_main(int argc, char** argv){
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the parameter -k must not be given because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
+        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -127,6 +130,9 @@ int build_index_main(int argc, char** argv){
     C.no_colors = opts["no-colors"].as<bool>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
+    C.verbose = opts["verbose"].as<bool>();
+
+    if(C.verbose) set_log_level(LogLevel::MINOR);
 
     create_directory_if_does_not_exist(C.temp_dir);
 

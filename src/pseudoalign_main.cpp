@@ -19,6 +19,7 @@ struct Pseudoalign_Config{
     bool reverse_complements = false;
     bool sort_output = false;
     LL n_threads = 1;
+    bool verbose = false;
 
     void check_valid(){
         for(string query_file : query_files){
@@ -86,6 +87,7 @@ int pseudoalign_main(int argc, char** argv){
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
+        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -120,6 +122,8 @@ int pseudoalign_main(int argc, char** argv){
     C.n_threads = opts["n-threads"].as<LL>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
+    C.verbose = opts["verbose"].as<bool>(); 
+    if(C.verbose) set_log_level(LogLevel::MINOR);
 
     create_directory_if_does_not_exist(C.temp_dir);
 
