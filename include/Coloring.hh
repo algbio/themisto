@@ -404,6 +404,10 @@ private:
         nonempty_and_nonredundant.resize(boss.number_of_nodes());
         sdsl::util::set_to_value(nonempty_and_nonredundant,0);
 
+        // We have a temporary vector for marking new nodes. Otherwise we would mark in the same vector
+        // that we are using to detect marking path starting points, which would mess things up.
+        sdsl::bit_vector redundancy_marks_temp = redundancy_marks;
+
         LL index_in_color_sets = 0;
         LL class_id = 0;
 
@@ -459,7 +463,7 @@ private:
                     n_marks++;
                     write_big_endian_LL(node_to_color_id_pairs_out, node);
                     write_big_endian_LL(node_to_color_id_pairs_out, class_id);
-                    n_marks += propagate_colorset_pointers(node, class_id, colorset_sampling_distance, boss, node_to_color_id_pairs_out);
+                    n_marks += propagate_colorset_pointers(redundancy_marks_temp, node, class_id, colorset_sampling_distance, boss, node_to_color_id_pairs_out);
                 } else{
                     cerr << "Error: this code line should never be reached" << endl; exit(1);
                 }
@@ -468,6 +472,8 @@ private:
         }
 
         node_to_color_id_pairs_out.close();
+        
+        redundancy_marks = redundancy_marks_temp;
         
         // Build node_to_color_set_id
         node_to_color_set_id = sdsl::int_vector<>(n_marks, 0, ceil(log2(n_classes)));
@@ -539,11 +545,10 @@ private:
 
 
     // Returns the number of new marks
-    LL propagate_colorset_pointers(LL from_node, LL class_id, LL colorset_sampling_distance, BOSS<sdsl::bit_vector>& boss, Buffered_ofstream& out){
-        // We have a temporary vector for marking new nodes. Otherwise we would mark in the same vector
-        // that we are using to detect marking path starting points, which would mess things up.
+    LL propagate_colorset_pointers(sdsl::bit_vector& redundancy_marks_temp, LL from_node, LL class_id, LL colorset_sampling_distance, BOSS<sdsl::bit_vector>& boss, Buffered_ofstream& out){
+
         LL n_new_marks = 0;
-        sdsl::bit_vector redundancy_marks_temp = redundancy_marks;
+        
         assert(redundancy_marks[from_node] == 0);
         pair<int64_t, int64_t> I = boss.outlabel_range(from_node);
         for(LL i = I.first; i <= I.second; i++){
@@ -573,7 +578,6 @@ private:
             }
         }
         
-        redundancy_marks = redundancy_marks_temp;
         return n_new_marks;
     }
 
