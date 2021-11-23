@@ -110,6 +110,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     // So we have the equation (n_threads + 2)*B = RAM_bytes. Solve for B:
 
     LL B = RAM_bytes / (consumers.size() + 2);
+    B = min(B, (LL)(std::filesystem::file_size(infile) / consumers.size())); // Make sure all threads have work
 
     vector<string> block_files;
     ParallelBoundedQueue<Generic_Block*> Q(1); // 1 byte = basically only one block can be in the queue at a time
