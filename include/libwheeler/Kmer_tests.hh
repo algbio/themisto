@@ -77,8 +77,10 @@ TEST(KMER, basic){
 }
 
 TEST(KMER, serialization){
-    string S = debug_test_get_random_DNA_string(255);
-    Kmer<255> kmer(S);
+    const string S = debug_test_get_random_DNA_string(255);
+    const Kmer<255> kmer(S);
+
+    // Test serialization to file
     string filename = get_temp_file_manager().create_filename("kmer-serialization");
     ofstream out(filename, ios_base::binary);
     kmer.serialize(out);
@@ -87,8 +89,17 @@ TEST(KMER, serialization){
     Kmer<255> loaded;
     loaded.load(in);
     ASSERT_TRUE(kmer == loaded);
-    ASSERT_TRUE(kmer.to_string() == S);
-    ASSERT_TRUE(kmer.get_k() == S.size());
+    ASSERT_TRUE(loaded.to_string() == S);
+    ASSERT_TRUE(loaded.get_k() == S.size());
+
+    // Test serialization to a char buffer
+    char buffer[Kmer<255>::size_in_bytes()];
+    kmer.serialize(buffer);
+    Kmer<255> loaded2;
+    loaded2.load(buffer);
+    ASSERT_TRUE(kmer == loaded2);
+    ASSERT_TRUE(loaded2.to_string() == S);
+    ASSERT_TRUE(loaded2.get_k() == S.size());    
 }
 
 TEST(KMER, colex){
