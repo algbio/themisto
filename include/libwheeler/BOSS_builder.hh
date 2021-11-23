@@ -159,25 +159,37 @@ class Kmer_sorter_disk{
 
 private:
 
+// Have pointer members -> no copying
+Kmer_sorter_disk(Kmer_sorter_disk const&) = delete;
+Kmer_sorter_disk& operator=(Kmer_sorter_disk const&) = delete;
+
 bool is_sorted = false;
 bool all_read = false;
 string unsorted_filename;
 string sorted_filename;
-ofstream unsorted;
-ifstream sorted;
+Buffered_ofstream unsorted;
+Buffered_ifstream sorted;
 LL mem_budget_bytes = 1e9;
 LL n_threads;
+char* out_buffer;
+char* in_buffer;
 
 pair<Kmer<KMER_MAX_LENGTH>, payload_t> top;
 
 void update_top(){
     Kmer<KMER_MAX_LENGTH> x; payload_t E;
-    x.load(sorted);
+
+    sorted.read(in_buffer, Kmer<KMER_MAX_LENGTH>::size_in_bytes());
+    x.load(in_buffer);
+
     if(sorted.eof()){
         all_read = true;
         return;
     }
-    E.load(sorted);
+
+    sorted.read(in_buffer, payload_t::size_in_bytes());
+    E.load(in_buffer);
+
     top = {x,E};
 }
 
@@ -187,9 +199,9 @@ public:
         unsorted_filename = get_temp_file_manager().create_filename("kmers");
         sorted_filename = get_temp_file_manager().create_filename("kmers_sorted");
         unsorted.open(unsorted_filename, ios_base::binary);
-        if(!unsorted.good()){
-            throw runtime_error("Error writing to file " + unsorted_filename);
-        }
+        LL buffer_size = max(Kmer<KMER_MAX_LENGTH>::size_in_bytes(), payload_t::size_in_bytes());
+        out_buffer = (char*)malloc(buffer_size);
+        in_buffer = (char*)malloc(buffer_size);
     }
 
     void set_mem_budget(LL bytes){
@@ -197,8 +209,12 @@ public:
     }
 
     void add(Kmer<KMER_MAX_LENGTH> x, payload_t E){
-        x.serialize(unsorted);
-        E.serialize(unsorted);
+
+        x.serialize(out_buffer);
+        unsorted.write(out_buffer, Kmer<KMER_MAX_LENGTH>::size_in_bytes());
+
+        E.serialize(out_buffer); // Overwrites x
+        unsorted.write(out_buffer, payload_t::size_in_bytes());
     }
 
     void sort(){
@@ -235,6 +251,11 @@ public:
 
     pair<Kmer<KMER_MAX_LENGTH>, payload_t> peek_next(){
         return top;
+    }
+
+    ~Kmer_sorter_disk(){
+        free(out_buffer);
+        free(in_buffer);
     }
 
 };
@@ -400,6 +421,15 @@ private:
 
         void load(istream& in){
             in.read((char*)(&data), sizeof(data));
+        }
+
+        // out must have at least size_in_bytes() bytes of space
+        void serialize(char* out) const{
+            memcpy(out, (char*)(&data), sizeof(data));
+        }
+
+        void load(const char* in){
+            memcpy((char*)(&data), in, sizeof(data));
         }
 
     };

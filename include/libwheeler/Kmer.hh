@@ -221,9 +221,17 @@ public:
         assert(k <= min(max_len, (LL)255));
     }
 
-    void load(const char* bytes){
-        memcpy(data, bytes, sizeof(data));
-        memcpy(&k, bytes + sizeof(data), sizeof(k));
+
+    // `out` must have at least size_in_bytes() bytes of space
+    void serialize(char* out) const{
+        memcpy(out, (char*)(data), sizeof(data));
+        memcpy(out + sizeof(data), (char*)(&k), sizeof(k));
+    }
+
+    // Load from memory serialized to by member function `serialize(char* out)`
+    void load(const char* in){
+        memcpy((char*)(data), in, sizeof(data));
+        memcpy((char*)(&k), in + sizeof(data), sizeof(k));
         assert(k <= min(max_len, (LL)255));
     }
 
