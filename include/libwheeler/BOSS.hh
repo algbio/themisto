@@ -124,7 +124,7 @@ public:
     }
 
     // Computes the label of the given node to the give char array. The char array label should
-    // have at least k+1 bytes of space: k bytes for the k-mer and 1 byte for the nuint64_t terminator.
+    // have at least k+1 bytes of space: k bytes for the k-mer and 1 byte for the null terminator.
     // The label may be shorter than k characters. Returns the length of the label.
     int64_t get_node_label(int64_t node, char* label) const{
         assert(node != -1);
@@ -325,3 +325,4 @@ bool operator==(BOSS<bitvector_t>& boss1, BOSS<bitvector_t>& boss2){
     return *static_cast<wgi::WheelerIndex<bitvector_t>*>(&boss1) == 
            *static_cast<wgi::WheelerIndex<bitvector_t>*>(&boss2) && boss1.k == boss2.k;
 }
+
