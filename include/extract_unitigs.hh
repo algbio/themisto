@@ -130,7 +130,7 @@ private:
     void write_linkage(LL from_unitig, vector<LL> to_unitigs, ostream& gfa_out, LL k){
         for(LL to_unitig : to_unitigs){
             // Print overlap with k-1 characters
-            gfa_out << "L\t" << from_unitig << "\t+\t" << to_unitig << "\t+\t " << (k-1) << "M\n";
+            gfa_out << "L\t" << from_unitig << "\t+\t" << to_unitig << "\t+\t" << (k-1) << "M\n";
         }
     }
 
