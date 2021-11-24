@@ -23,6 +23,7 @@ struct Build_Config{
     bool del_non_ACGT = false;
     LL colorset_sampling_distance = 1;
     bool verbose = false;
+    bool silent = false;
     
     void check_valid(){
         check_true(inputfile != "", "Input file not set");
@@ -65,7 +66,13 @@ struct Build_Config{
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
-        ss << "Verbose mode = " << (verbose ? "true" : "false"); // Last has no endline
+
+        string verbose_level = "normal";
+        if(verbose) verbose_level = "versose";
+        if(silent) verbose_level = "silent";
+
+        ss << "Verbosity = " << verbose_level; // Last has no endline
+
         return ss.str();
     }
 };
@@ -97,6 +104,7 @@ int build_index_main(int argc, char** argv){
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the parameter -k must not be given because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -131,15 +139,18 @@ int build_index_main(int argc, char** argv){
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
     C.verbose = opts["verbose"].as<bool>();
+    C.silent = opts["silent"].as<bool>();
 
+    if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
+    if(C.silent) set_log_level(LogLevel::OFF);
 
     create_directory_if_does_not_exist(C.temp_dir);
 
     C.check_valid();
     get_temp_file_manager().set_dir(C.temp_dir);
 
-    cerr << C.to_string() << endl;
+    write_log("Build configuration:\n" + C.to_string(), LogLevel::MAJOR);
     write_log("Starting", LogLevel::MAJOR);
 
     if(C.input_format == "gzip"){

@@ -19,6 +19,7 @@ int extract_unitigs_main(int argc, char** argv){
         ("gfa-out", "Output the unitig graph in GFA1 format (optional).", cxxopts::value<string>()->default_value(""))
         ("colors-out", "Output filename for the unitig colors (optional). If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig (without the '>'), and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -30,7 +31,11 @@ int extract_unitigs_main(int argc, char** argv){
         return 1;
     }
 
+    if(opts["verbose"].as<bool>() && opts["silent"].as<bool>())
+        throw runtime_error("Can not give both --verbose and --silent");
     if(opts["verbose"].as<bool>()) set_log_level(LogLevel::MINOR);
+    if(opts["silent"].as<bool>()) set_log_level(LogLevel::OFF);
+
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     check_readable(index_dbg_file);

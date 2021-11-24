@@ -19,8 +19,15 @@ void print_help(int argc, char** argv){
 
 int main(int argc, char** argv){
 
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), LogLevel::MAJOR);
-    write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1), LogLevel::MAJOR);
+    bool silent_in_argv = false;
+    for(LL i = 1; i < argc; i++)
+        if(string(argv[i]) == string("--silent"))
+            silent_in_argv = true;
+
+    if(!silent_in_argv){
+        write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), LogLevel::MAJOR);
+        write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1), LogLevel::MAJOR);
+    }
 
     if(argc == 1){
         print_help(argc, argv);

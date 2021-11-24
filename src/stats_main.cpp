@@ -18,6 +18,7 @@ int stats_main(int argc, char** argv){
         ("unitigs", "Also compute statistics on unitigs. This takes a while and requires the temporary directory to be set.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -32,7 +33,12 @@ int stats_main(int argc, char** argv){
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     bool do_unitigs = opts["unitigs"].as<bool>();
+
+    if(opts["verbose"].as<bool>() && opts["silent"].as<bool>())
+        throw runtime_error("Can not give both --verbose and --silent");
     if(opts["verbose"].as<bool>()) set_log_level(LogLevel::MINOR);
+    if(opts["silent"].as<bool>()) set_log_level(LogLevel::OFF);
+
     check_readable(index_dbg_file);
     check_readable(index_color_file);
 

@@ -20,6 +20,7 @@ struct Pseudoalign_Config{
     bool sort_output = false;
     LL n_threads = 1;
     bool verbose = false;
+    bool silent = false;
 
     void check_valid(){
         for(string query_file : query_files){
@@ -88,6 +89,7 @@ int pseudoalign_main(int argc, char** argv){
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
@@ -123,7 +125,11 @@ int pseudoalign_main(int argc, char** argv){
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
     C.verbose = opts["verbose"].as<bool>(); 
+    C.silent = opts["silent"].as<bool>();
+
+    if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
+    if(C.silent) set_log_level(LogLevel::OFF);
 
     create_directory_if_does_not_exist(C.temp_dir);
 
