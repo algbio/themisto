@@ -98,7 +98,7 @@ private:
         // Linkage
         for(LL i = 0; i < colored_unitigs.size(); i++){
             if(i < (LL)colored_unitigs.size()-1) // Not last
-                colored_unitigs[i].links.push_back(colored_unitigs[i].id); // Chain unitigs
+                colored_unitigs[i].links.push_back(colored_unitigs[i+1].id); // Chain unitigs
             else // Last
                 colored_unitigs[i].links = U.links; // The outgoing links of the original unitig
         }

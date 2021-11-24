@@ -20,8 +20,124 @@
 #include <sstream>
 #include "commands.hh"
 
+class EXTRACT_UNITIGS_TEST_HAND_CRAFTED : public testing::Test {
+
+    protected:
+
+    string indexprefix;
+    Themisto* themisto;
+    vector<bool> is_dummy;
+    vector<string> unitigs;
+
+    void SetUp() override {
+        string random_data = "AATACCATGTCACAGCGTCAACGTTCAACACGCCCATACTGTGTTCCTGCGATGGGGGAGTAGTGACCCTCGATGCTGGACAATAACCCGATGACTAGACATAACGTCAATCTCGCTCTGTGTATTCGTATCGCCCATAGCTCTTCCATAAGCGTATTGAGTTGGGCTGTAAACACGGCCCCTTATAATTCTCTATTCTATGCACCGGTACCTATCTCAGGGCACAACTCCTGCCCGCTTTGGATTACTCGAGTACTGGCGCCACCTAATGCAGTACCCCCGAGTGGGATGAGTCAAATTTACGTGACCGGGAACACCATAGGTCCGCGTAAATACTGTGGGGCTATCCTTGGGCAACCTACTGTCACAGAGCTGGTACTCATATCTACATCACGCGTCGCAGAACAGCCAATCGGGCTGGATGTCAAAAGTAACAAGCGTGGTCCCTTAGGCGAAACCCGATCCTGATTTCAATAGGTTCCGTCCCGGGGGAGTAGCATCGGGCACGCAGCTTCCAAAACAGAATCGCCGTGGCCATATCGATGTCACGACGACGTTCACGGTTGGTTCCTCTTGAAGGCTCCCAGTCCTAGTGACGCGAGACGGTGATGTCGTGAGCGGAAGTGAACTCGGTCTTTGATTAATGTCAAAGCGCCGAGGCCCACGCATTCCCATCCACAAGTGTCTCTATGTGAGTGGTTTGTCCGCAAAGTAACCGGCGGACGCCCATCCCCGATCCTATAGCCGGAATAGTAGATGTTATAATTCTGAGGTATCGCCGTTGAGAGCTTATGCACCTCGGCCGTAGGGAGGTGGGAAGCGTTAGCGTCCCATAGACGGGGGTATATTTTCATCATGACTGTTGAAATCTGCGTTCGGAGGTTACACAGGGACGGAAGTGACTAATCGTGTCAAAGGACTTGTCTTCTCCTCTGCTCATGGGAAACCTACCACCACAGTCCCTGTGATGAAACGGATTTTCTCACTGTAGCTTTCAATT";
+
+        LL k = 30;
+
+        vector<string> seqs;
+        vector<LL> colors;
+
+        // Single nucleotide change
+
+        string S = random_data.substr(0,150);
+        seqs.push_back(S);
+        colors.push_back(0);
+
+        S[75] = (S[75] == 'A') ? 'C' : 'A';
+        seqs.push_back(S);
+        colors.push_back(0);
+
+        // Self-loop
+        seqs.push_back(random_data.substr(150,50) 
+                     + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" 
+                     + random_data.substr(200,50));
+        colors.push_back(0);
+
+        // Long periodic string
+        seqs.push_back(random_data.substr(250,20) + random_data.substr(250,20) + random_data.substr(250,20));
+        colors.push_back(0);
+
+        // Color ends in the middle of a unitig
+        seqs.push_back(random_data.substr(270, 100));
+        colors.push_back(1);
+        seqs.push_back(random_data.substr(270, 80));
+        colors.push_back(2);
+
+        // Color starts in the middle of a unitig
+        seqs.push_back(random_data.substr(370, 100));
+        colors.push_back(3);
+        seqs.push_back(random_data.substr(400, 100));
+        colors.push_back(4);
+
+        // Color fully contained in a unitig
+        seqs.push_back(random_data.substr(500, 100));
+        colors.push_back(5);
+        seqs.push_back(random_data.substr(525, 50));
+        colors.push_back(6);
+
+        // Isolated unitig
+        seqs.push_back(random_data.substr(600, 50));
+        colors.push_back(7);
+
+        // X-shape
+        seqs.push_back("A" + random_data.substr(650, 29) + "AG");
+        seqs.push_back("C" + random_data.substr(650, 29) + "AT");
+        colors.push_back(0);
+        colors.push_back(0);
+
+        ASSERT_EQ(seqs.size(), colors.size());
+
+        themisto = new Themisto();
+        string seqfile = get_temp_file_manager().create_filename("",".fna");
+        string colorfile = get_temp_file_manager().create_filename("",".txt");
+        write_as_fasta(seqs, seqfile);
+        write_vector(colors, colorfile);
+        
+        set_log_level(LogLevel::MAJOR);
+
+        // Build Themisto
+
+        indexprefix = get_temp_file_manager().create_filename();
+
+        stringstream argstring;
+        argstring << "build -k"  << k << " --n-threads " << 4 << " --mem-megas " << 1024 << " -i " << seqfile << " -c " << colorfile << " -o " << indexprefix << " --temp-dir " << get_temp_file_manager().get_dir();
+        Argv argv(split(argstring.str()));
+        build_index_main(argv.size, argv.array);
+        
+        themisto->load(indexprefix);
+
+        logger << "Getting dummy marks" << endl;
+        is_dummy = themisto->boss.get_dummy_node_marks();
+        
+        // Call extract unitigs
+        string unitigs_outfile = get_temp_file_manager().create_filename();
+        stringstream argstring2;
+        argstring2 << "extract-unitigs -i " << indexprefix << " --fasta-out " << unitigs_outfile;
+        Argv argv2(split(argstring2.str()));
+        extract_unitigs_main(argv2.size, argv2.array);
+
+        throwing_ifstream unitigs_in(unitigs_outfile);
+        // Parse unitigs
+        string line;
+        while(getline(unitigs_in.stream, line)){
+            if(line[0] == '>') continue;
+            unitigs.push_back(line);
+        }
+
+        set_log_level(LogLevel::OFF);
+
+    }
+
+    virtual void TearDown() {
+        delete themisto;
+    }
+
+
+};
+
 class EXTRACT_UNITIGS_TEST : public testing::Test {
    protected:
+
     static void SetUpTestCase() {
         
         // Avoid reallocating static objects if called in subclasses
@@ -91,7 +207,7 @@ vector<bool> EXTRACT_UNITIGS_TEST::is_dummy;
 // edges from non-dummy nodes.
 
 
-TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
+TEST_F(EXTRACT_UNITIGS_TEST_HAND_CRAFTED, no_branches){
     BOSS<sdsl::bit_vector>& boss = themisto->boss;
     LL k = boss.get_k();
     for(string unitig : unitigs){
@@ -115,7 +231,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
     }
 }
 
-TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
+TEST_F(EXTRACT_UNITIGS_TEST_HAND_CRAFTED, split_by_colorsets){
     // We're re-using the same Themisto index, so we use the same test fixture as
     // the other tests. However we don't case about the precomputed untigs.
 
@@ -174,7 +290,7 @@ bool is_cyclic(LL first, LL last, BOSS<sdsl::bit_vector>& boss){
     return true;
 }
 
-TEST_F(EXTRACT_UNITIGS_TEST, maximality){
+TEST_F(EXTRACT_UNITIGS_TEST_HAND_CRAFTED, maximality){
     BOSS<sdsl::bit_vector>& boss = themisto->boss;
     LL k = boss.get_k();
     for(LL unitig_id = 0; unitig_id < (LL)unitigs.size(); unitig_id++){
@@ -202,7 +318,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality){
 }
 
 // Check that every non-dummy node is in exactly one unitig
-TEST_F(EXTRACT_UNITIGS_TEST, partition){
+TEST_F(EXTRACT_UNITIGS_TEST_HAND_CRAFTED, partition){
     BOSS<sdsl::bit_vector>& boss = themisto->boss;
     LL k = boss.get_k();
     vector<bool> found = is_dummy; // dummies are marked as found from the beginning

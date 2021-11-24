@@ -36,7 +36,7 @@ int extract_unitigs_main(int argc, char** argv){
     check_readable(index_dbg_file);
     check_readable(index_color_file);
 
-    string unitigs_outfile = opts["fasta"].as<string>();
+    string unitigs_outfile = opts["fasta-out"].as<string>();
     string gfa_outfile = opts["gfa-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
     bool do_colors = (colors_outfile != "");

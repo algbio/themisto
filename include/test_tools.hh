@@ -23,6 +23,12 @@ void print(T C){
     cout << "]" << endl;
 }
 
+template<typename T>
+void write_vector(vector<T>& v, string outfilename){
+    throwing_ofstream out(outfilename);
+    for(T& t : v) out << t << "\n";
+}
+
 set<char> get_alphabet(string S);
 
 set<string> get_all_distinct_kmers(string S, LL k);
