@@ -15,7 +15,7 @@ int extract_unitigs_main(int argc, char** argv){
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
-        ("unitigs-out", "Output filename for the unitigs in FASTA format (optional).", cxxopts::value<string>()->default_value(""))
+        ("fasta-out", "Output filename for the unitigs in FASTA format (optional).", cxxopts::value<string>()->default_value(""))
         ("gfa-out", "Output the unitig graph in GFA1 format (optional).", cxxopts::value<string>()->default_value(""))
         ("colors-out", "Output filename for the unitig colors (optional). If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig (without the '>'), and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
@@ -36,7 +36,7 @@ int extract_unitigs_main(int argc, char** argv){
     check_readable(index_dbg_file);
     check_readable(index_color_file);
 
-    string unitigs_outfile = opts["unitigs-out"].as<string>();
+    string unitigs_outfile = opts["fasta"].as<string>();
     string gfa_outfile = opts["gfa-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
     bool do_colors = (colors_outfile != "");

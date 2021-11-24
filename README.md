@@ -205,7 +205,7 @@ Usage:
 
   -i, --index-prefix arg  The index prefix that was given to the build 
                           command.
-      --unitigs-out arg   Output filename for the unitigs in FASTA format 
+      --fasta-out arg     Output filename for the unitigs in FASTA format 
                           (optional). (default: "")
       --gfa-out arg       Output the unitig graph in GFA1 format 
                           (optional). (default: "")
@@ -226,7 +226,6 @@ Usage:
                           file. (default: "")
   -v, --verbose           More verbose progress reporting into stderr.
   -h, --help              Print usage
-
 ```
 
 ## Extracting index statistics with `stats`
