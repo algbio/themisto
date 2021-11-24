@@ -73,7 +73,7 @@ int stats_main(int argc, char** argv){
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
         throwing_ofstream unitigs_out(unitigs_file);
         NullStream null_stream;
-        UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream);
+        UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream, null_stream);
         unitigs_out.close();
         
         LL unitig_count = 0;

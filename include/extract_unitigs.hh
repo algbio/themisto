@@ -12,11 +12,15 @@ private:
 
     struct Unitig{
         vector<LL> nodes;
+        vector<LL> links; // Outgoing edges from this unitig, as a list of unitig ids
+        LL id;
     };
 
     struct Colored_Unitig{
         vector<LL> nodes;
         vector<LL> colorset;
+        vector<LL> links; // Outgoing edges from this unitig, as a list of unitig ids
+        LL id;
     };
 
     // Assumes that dummy nodes are always visited
@@ -52,11 +56,21 @@ private:
             forward.push_back(u);
         }
 
+        // Collect the unitig path
         Unitig U;
         for(LL i = (LL)backward.size()-1; i >= 0; i--) U.nodes.push_back(backward[i]);
         U.nodes.push_back(v);
         for(LL w : forward) U.nodes.push_back(w);
         
+        // Compute links
+        pair<LL,LL> outlabel_range = boss.outlabel_range(U.nodes.back());
+        for(LL i = outlabel_range.first; i <= outlabel_range.second; i++){
+            LL successor = boss.walk(U.nodes.back(), boss.outlabels_at(i));
+            assert(successor != -1); // Must exist
+            U.links.push_back(successor);
+        }
+
+        U.id = U.nodes[0];
         return U;
     }
 
@@ -74,11 +88,21 @@ private:
             for(LL i = run_start; i <= run_end; i++) 
                 colored.nodes.push_back(U.nodes[i]);
             colored.colorset = themisto.coloring.get_colorvec(U.nodes[run_start], themisto.boss);
+            colored.id = U.nodes[run_start];
 
-            colored_unitigs.push_back(colored);
+            colored_unitigs.push_back(colored); // Links are added later
             
             run_start = run_end;
         }
+
+        // Linkage
+        for(LL i = 0; i < colored_unitigs.size(); i++){
+            if(i < (LL)colored_unitigs.size()-1) // Not last
+                colored_unitigs[i].links.push_back(colored_unitigs[i].id); // Chain unitigs
+            else // Last
+                colored_unitigs[i].links = U.links; // The outgoing links of the original unitig
+        }
+
         return colored_unitigs;
     }
 
@@ -91,16 +115,23 @@ private:
         return first_kmer + rest;
     }
 
-    void write_colored_unitig(Colored_Unitig& CU, LL unitig_id, Themisto& themisto, ostream& unitigs_out, ostream& colorsets_out){
-        unitigs_out << ">u" << unitig_id << "\n" << get_unitig_string(CU.nodes, themisto) << "\n";
-
-        colorsets_out << "u" << unitig_id;
-        for(LL color : CU.colorset) colorsets_out << " " << color;
+    void write_colorset(LL unitig_id, vector<LL>& colorset, ostream& colorsets_out){
+        colorsets_out << unitig_id;
+        for(LL color : colorset) colorsets_out << " " << color;
         colorsets_out << "\n";
     }
 
-    void write_unitig(Unitig& U, LL unitig_id, Themisto& themisto, ostream& unitigs_out){
-        unitigs_out << ">u" << unitig_id << "\n" << get_unitig_string(U.nodes, themisto) << "\n";
+    void write_unitig(vector<LL>& nodes, LL unitig_id, Themisto& themisto, ostream& fasta_out, ostream& gfa_out){
+        string unitig_string = get_unitig_string(nodes, themisto);
+        fasta_out << ">" << unitig_id<< "\n" << unitig_string << "\n";
+        gfa_out << "S\t" << unitig_id << "\t" << unitig_string << "\n";
+    }
+
+    void write_linkage(LL from_unitig, vector<LL> to_unitigs, ostream& gfa_out, LL k){
+        for(LL to_unitig : to_unitigs){
+            // Print overlap with k-1 characters
+            gfa_out << "L\t" << from_unitig << "\t+\t" << to_unitig << "\t+\t " << (k-1) << "M\n";
+        }
     }
 
 public:
@@ -112,10 +143,12 @@ public:
     // The unitigs are written in fasta-format.
     // The colorsets are written one per line, in the same order as unitigs, in a space-separated format "id c1 c2 ..",
     // where id is the fasta header of the colorset, and c1 c2... are the colors.
-    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out){
+    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out){
         BOSS<sdsl::bit_vector>& boss = themisto.boss;
-        LL unitigs_written = 0;
-        vector<bool> visited = themisto.boss.get_dummy_node_marks();
+
+        gfa_out << "H" << "\t" << "VN:Z:1.0" << "\n"; // Header
+
+        vector<bool> visited = boss.get_dummy_node_marks();
 
         LL non_dummies = 0;
         for(LL i = 0; i < visited.size(); i++) if(!visited[i]) non_dummies++;
@@ -127,10 +160,13 @@ public:
                 for(LL i = 0; i < U.nodes.size(); i++) pp.job_done(); // Record progress
                 if(split_by_colorset_runs){
                     for(Colored_Unitig& CU : split_to_colorset_runs(U, themisto)){
-                        write_colored_unitig(CU, unitigs_written++, themisto, unitigs_out, colorsets_out);
+                        write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
+                        write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
+                        write_colorset(CU.id, CU.colorset, colorsets_out);
                     }
                 } else{
-                    write_unitig(U, unitigs_written++, themisto, unitigs_out);
+                    write_unitig(U.nodes, U.id, themisto, unitigs_out, gfa_out);
+                    write_linkage(U.id, U.links, gfa_out, boss.get_k());
                 }
             }
         }

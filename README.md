@@ -205,23 +205,28 @@ Usage:
 
   -i, --index-prefix arg  The index prefix that was given to the build 
                           command.
-      --unitigs-out arg   Output filename for the unitigs (outputted in 
-                          FASTA format). (default: "")
-      --colors-out arg    Output filename for the unitig colors. If this 
-                          option is not given, the colors are not computed. 
-                          Note that giving this option affects the unitigs 
-                          written to unitigs-out: if a unitig has nodes 
-                          with different color sets, the unitig is split 
-                          into maximal segments of nodes that have equal 
-                          color sets. The file format of the color file is 
-                          as follows: there is one line for each unitig. 
-                          The lines contain space-separated strings. The 
-                          first string on a line is the FASTA header of a 
-                          unitig, and the following strings on the line are 
-                          the integer color labels of the colors of that 
-                          unitig. The unitigs appear in the same order as 
-                          in the FASTA file. (default: "")
+      --unitigs-out arg   Output filename for the unitigs in FASTA format 
+                          (optional). (default: "")
+      --gfa-out arg       Output the unitig graph in GFA1 format 
+                          (optional). (default: "")
+      --colors-out arg    Output filename for the unitig colors (optional). 
+                          If this option is not given, the colors are not 
+                          computed. Note that giving this option affects 
+                          the unitigs written to unitigs-out: if a unitig 
+                          has nodes with different color sets, the unitig 
+                          is split into maximal segments of nodes that have 
+                          equal color sets. The file format of the color 
+                          file is as follows: there is one line for each 
+                          unitig. The lines contain space-separated 
+                          strings. The first string on a line is the FASTA 
+                          header of a unitig (without the '>'), and the 
+                          following strings on the line are the integer 
+                          color labels of the colors of that unitig. The 
+                          unitigs appear in the same order as in the FASTA 
+                          file. (default: "")
+  -v, --verbose           More verbose progress reporting into stderr.
   -h, --help              Print usage
+
 ```
 
 ## Extracting index statistics with `stats`

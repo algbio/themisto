@@ -15,8 +15,9 @@ int extract_unitigs_main(int argc, char** argv){
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
-        ("unitigs-out", "Output filename for the unitigs (outputted in FASTA format).", cxxopts::value<string>()->default_value(""))
-        ("colors-out", "Output filename for the unitig colors. If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig, and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
+        ("unitigs-out", "Output filename for the unitigs in FASTA format (optional).", cxxopts::value<string>()->default_value(""))
+        ("gfa-out", "Output the unitig graph in GFA1 format (optional).", cxxopts::value<string>()->default_value(""))
+        ("colors-out", "Output filename for the unitig colors (optional). If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig (without the '>'), and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
@@ -36,9 +37,10 @@ int extract_unitigs_main(int argc, char** argv){
     check_readable(index_color_file);
 
     string unitigs_outfile = opts["unitigs-out"].as<string>();
+    string gfa_outfile = opts["gfa-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
     bool do_colors = (colors_outfile != "");
-    if(unitigs_outfile == "" && colors_outfile == ""){
+    if(unitigs_outfile == "" && colors_outfile == "" && gfa_outfile == ""){
         throw std::runtime_error("Error: no output files given");
     }
     
@@ -46,14 +48,21 @@ int extract_unitigs_main(int argc, char** argv){
 
     NullStream null_stream;
     throwing_ofstream unitigs_ofstream;
+    throwing_ofstream gfa_ofstream;
     throwing_ofstream colors_ofstream;
-
+    
     ostream* unitigs_out = &null_stream;
+    ostream* gfa_out = &null_stream;
     ostream* colors_out = &null_stream;
 
     if(unitigs_outfile != ""){
         unitigs_ofstream.open(unitigs_outfile);
         unitigs_out = &(unitigs_ofstream.stream);
+    }
+
+    if(gfa_outfile != ""){
+        gfa_ofstream.open(gfa_outfile);
+        gfa_out = &(gfa_ofstream.stream);
     }
 
     if(colors_outfile != ""){
@@ -69,11 +78,10 @@ int extract_unitigs_main(int argc, char** argv){
     themisto.load_boss(index_dbg_file);
     themisto.load_colors(index_color_file);
     
-
     write_log("Extracting unitigs", LogLevel::MAJOR);
     
     UnitigExtractor UE;
-    UE.extract_unitigs(themisto, *unitigs_out, do_colors, *colors_out);
+    UE.extract_unitigs(themisto, *unitigs_out, do_colors, *colors_out, *gfa_out);
 
     return 0;
     
