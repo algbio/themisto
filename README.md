@@ -68,7 +68,7 @@ There is an example dataset with sequences at `example_input/coli3.fna` and colo
 ./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt --index-prefix my_index --temp-dir temp --mem-megas 1000 --n-threads 4
 ```
 
-We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take about one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
+We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take less than one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
 
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
 
