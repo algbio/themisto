@@ -41,6 +41,7 @@ long long cur_time_millis();
 double seconds_since_program_start();
 string getTimeString();
 void set_log_level(LogLevel level);
+LogLevel get_log_level();
 void write_log(string message, LogLevel level);
 map<string,vector<string> > parse_args(int argc, char** argv);
 string figure_out_file_format(string filename);

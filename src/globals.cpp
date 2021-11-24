@@ -26,6 +26,9 @@ static LogLevel loglevel = MAJOR;
 void set_log_level(LogLevel level){
     loglevel = level;
 }
+LogLevel get_log_level(){
+    return loglevel;
+}
 
 static std::mutex write_log_mutex;
 void write_log(string message, LogLevel level){

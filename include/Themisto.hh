@@ -237,7 +237,7 @@ public:
 
         write_log("Building KMC database", LogLevel::MAJOR);
         string KMC_db_path_prefix = get_temp_file_manager().create_filename("KMC-");
-        KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, get_temp_file_manager().get_dir(), KMC_db_path_prefix, revcomps);
+        KMC_wrapper(k+1, max(1LL, memory_bytes / (1LL << 30)), n_threads, fastafile, get_temp_file_manager().get_dir(), KMC_db_path_prefix, revcomps, get_log_level() == LogLevel::OFF);
         write_log("Building KMC database finished", LogLevel::MAJOR);
         Kmer_stream_from_KMC_DB edgemer_stream(KMC_db_path_prefix, revcomps);
         BOSS_builder<BOSS<sdsl::bit_vector>, Kmer_stream_from_KMC_DB> builder;

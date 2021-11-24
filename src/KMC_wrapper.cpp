@@ -479,12 +479,12 @@ void call_kmc(int argc, _TCHAR* argv[])
 }
 
 // Only works for alphabet {a,c,g,t,A,C,G,T}
-void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string tempdir, string database_filename_prefix, bool only_canonical_kmers){
+void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafile, string tempdir, string database_filename_prefix, bool only_canonical_kmers, bool silent){
 
 	// Check that the alphabet is {a,c,g,t,A,C,G,T} (otherwise k-mers would be dropped silently)
 	throwing_ifstream fasta_input(fastafile);
 	string line;
-	cerr << "Validating input alphabet" << endl;
+	if(!silent) cerr << "Validating input alphabet" << endl;
 	while(getline(fasta_input.stream, line)){
 		if(line.size() > 0 && line[0] != '>'){
 			for(char c : line){
@@ -511,13 +511,22 @@ void KMC_wrapper(int64_t k, int64_t ram_gigas, int64_t n_threads, string fastafi
 	if(!only_canonical_kmers){
 		argv.insert(argv.begin()+1, "-b");
 	}
+	if(silent){
+		std::stringstream buffer; // Redirect stderr here
+		std::streambuf* old = std::cerr.rdbuf(buffer.rdbuf());
 
-	cerr << "Calling KMC with: ";
-	for(string S : argv) cerr << S << " ";
-	cerr << endl;
-	
-	Argv A(argv);
-    call_kmc(argv.size(), A.array);
+		Argv A(argv);
+		call_kmc(argv.size(), A.array);
 
+		std::cerr.rdbuf(old); // Restore cerr
+	}
+
+	else{ // Not silent
+		cerr << "Calling KMC with: ";
+		for(string S : argv) cerr << S << " ";
+		cerr << endl;
+		Argv A(argv);
+		call_kmc(argv.size(), A.array);
+	}
 }
 
