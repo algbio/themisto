@@ -36,7 +36,7 @@ public:
     outedge_generator outedges(Node v); // Return a generator for a range-for loop
     inedge_generator inedges(Node v); // Return a generator for a range-for loop
 
-    Node locate(const string& kmer){ // Returns -1 if does not exist
+    Node locate(const string& kmer){ // Returns a node with id -1 if does not exist
         return {boss->find_kmer(kmer)};
     }
 
@@ -59,6 +59,26 @@ public:
         assert(v.id != -1);
         return boss->outdegree(v.id);
     }
+
+    // If the indegree of v is not 1, throws an error.
+    // Otherwise, returns the node at the start of the incoming edge to v
+    Node pred(const Node& v){
+        if(indegree(v) != 1) 
+            throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
+        else{
+            return {boss->edge_source(boss->inedge_range(v.id).first)}; // predecessor
+        }
+    }
+
+    // If the outdegree of v is not 1, throws an error.
+    // Otherwise, returns the node at the end of the outgoing edge to v
+    Node succ(const Node& v){
+        if(outdegree(v) != 1) 
+            throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
+        else{
+            return {boss->walk(v.id, boss->outlabels_at(boss->outlabel_range(v.id).first))}; // successor
+        }
+    }    
 
 };
 
