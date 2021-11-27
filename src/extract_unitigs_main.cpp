@@ -79,9 +79,10 @@ int extract_unitigs_main(int argc, char** argv){
 
     write_log("Starting", LogLevel::MAJOR);
     write_log("Loading the index", LogLevel::MAJOR);    
+
     Themisto themisto;
     themisto.load_boss(index_dbg_file);
-    themisto.load_colors(index_color_file);
+    if(do_colors) themisto.load_colors(index_color_file);
     
     write_log("Extracting unitigs", LogLevel::MAJOR);
     
