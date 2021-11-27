@@ -36,15 +36,16 @@ int extract_unitigs_main(int argc, char** argv){
     if(opts["verbose"].as<bool>()) set_log_level(LogLevel::MINOR);
     if(opts["silent"].as<bool>()) set_log_level(LogLevel::OFF);
 
-    string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
-    string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
-    check_readable(index_dbg_file);
-    check_readable(index_color_file);
-
     string unitigs_outfile = opts["fasta-out"].as<string>();
     string gfa_outfile = opts["gfa-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
     bool do_colors = (colors_outfile != "");
+    string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
+    string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
+    
+    check_readable(index_dbg_file);
+    if(do_colors) check_readable(index_color_file);
+    
     if(unitigs_outfile == "" && colors_outfile == "" && gfa_outfile == ""){
         throw std::runtime_error("Error: no output files given");
     }
