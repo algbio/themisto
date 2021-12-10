@@ -68,7 +68,7 @@ struct Build_Config{
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
 
         string verbose_level = "normal";
-        if(verbose) verbose_level = "versose";
+        if(verbose) verbose_level = "verbose";
         if(silent) verbose_level = "silent";
 
         ss << "Verbosity = " << verbose_level; // Last has no endline
