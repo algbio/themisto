@@ -502,6 +502,7 @@ public:
         sorter1.set_mem_budget(mem_bytes);
         LL k = 0;
         LL n_records_written = 0;
+        LL edge_count = 0;
         while(!input.done()){
             Kmer<KMER_MAX_LENGTH> edgemer = input.next();
             k = edgemer.get_k() - 1; // Edgemers are (k+1)-mers
@@ -517,12 +518,14 @@ public:
             Edgeset suffixE; suffixE.set_have_in(first, true);
             sorter1.add(suffix, suffixE); n_records_written++;
 
+            edge_count++;
+
         }
-        write_log("Sorting (k+1)-mers", LogLevel::MAJOR);
+        write_log("Sorting " + to_string(edge_count) + " (k+1)-mers", LogLevel::MAJOR);
         sorter1.sort();
 
         // Dummies
-        write_log("Sorting dummy (k+1)-mers", LogLevel::MAJOR);
+        write_log("Adding dummy (k+1)-mers", LogLevel::MAJOR);
         Kmer_sorter_disk<Edgeset> sorter2(n_threads);
         sorter2.set_mem_budget(mem_bytes);
         LL n_dummies_disk = add_dummies(sorter1, sorter2);
