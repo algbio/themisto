@@ -518,9 +518,11 @@ public:
             sorter1.add(suffix, suffixE); n_records_written++;
 
         }
+        write_log("Sorting (k+1)-mers", LogLevel::MAJOR);
         sorter1.sort();
 
         // Dummies
+        write_log("Sorting dummy (k+1)-mers", LogLevel::MAJOR);
         Kmer_sorter_disk<Edgeset> sorter2(n_threads);
         sorter2.set_mem_budget(mem_bytes);
         LL n_dummies_disk = add_dummies(sorter1, sorter2);
@@ -556,6 +558,7 @@ public:
             }
         };
 
+        write_log("Constructing Wheeler BOSS components.", LogLevel::MAJOR);
         while(!merger.stream_done()){
             Kmer<KMER_MAX_LENGTH> cur_kmer; Edgeset E;
             tie(cur_kmer,E) = merger.stream_next();
