@@ -88,17 +88,24 @@ void dump_C_array(const vector<LL>& C, string filename){
     }
 }
 
-LL nodeboss_search(const map<char, vector<LL>>& rank1_answers, const vector<LL>& C, const string& kmer){
+LL nodeboss_search(const map<char, vector<LL>>& rank1_answers, const vector<LL>& C, const string& kmer, LL n_nodes){
     LL node_left = 0;
-    LL node_right = rank1_answers.at('A').size()-1; // number of nodes - 1
+    LL node_right = n_nodes-1;
+    cerr << node_left << " " << node_right << endl;
     for(LL i = 0; i < kmer.size(); i++){
-        cerr << node_left << " " << node_right << endl;
         char c = kmer[i];
-        node_left = C[c] + rank1_answers.at(c)[node_left];
-        node_right = C[c] + rank1_answers.at(c)[node_right+1] - 1;
+        char c_idx = 0;
+        switch(c){
+            case 'A': c_idx = 0; break;
+            case 'C': c_idx = 1; break;
+            case 'G': c_idx = 2; break;
+            case 'T': c_idx = 3; break;
+        }
+        node_left = C[c_idx] + rank1_answers.at(c)[node_left];
+        node_right = C[c_idx] + rank1_answers.at(c)[node_right+1] - 1;
+        cerr << node_left << " " << node_right << endl;
         if(node_left > node_right) return -1; // Not found
     }
-    cerr << node_left << " " << node_right << endl;
     if(node_left != node_right){
         cerr << "node_left != node_right" << endl;
         exit(1);
@@ -113,21 +120,22 @@ void run_test(const BOSS<sdsl::bit_vector>& boss, const map<char, vector<bool>>&
     write_log("Precomputing rank answers", LogLevel::MAJOR);
     map<char, vector<LL>> rank1_answers;
     for(char c : boss.get_alphabet()){
-        rank1_answers[c].resize(BWTs.at(c).size());
+        rank1_answers[c].resize(BWTs.at(c).size()+1); // +1: To allow querying one past the end
         LL answer = 0;
-        for(LL i = 0; i < rank1_answers[c].size(); i++){
+        for(LL i = 0; i < boss.number_of_nodes(); i++){
             rank1_answers[c][i] = answer;
             answer += BWTs.at(c)[i];
         }
-        cout << c << " " << rank1_answers[c] << endl;
+        rank1_answers[c].back() = answer; // Last one
+        //cout << c << " " << rank1_answers[c] << endl;
     }
 
     // Search for all nodes
     for(LL v = 0; v < boss.number_of_nodes(); v++){
         string kmer = boss.get_node_label(v);
         if(kmer.size() < boss.get_k()) continue;
-        LL colex = nodeboss_search(rank1_answers, C, kmer);
-        cout << colex << " " << v << endl;
+        LL colex = nodeboss_search(rank1_answers, C, kmer, boss.number_of_nodes());
+        cout << "Check: " << colex << " " << v << endl;
         if(colex != v){
             cout << "WRONG ANSWER" << endl;
             exit(1);
@@ -143,21 +151,21 @@ void dump_nodeboss(BOSS<sdsl::bit_vector>& boss, string out_prefix){
 
     write_log("Dumping bit BWT vectors to disk", LogLevel::MAJOR);
     for(char c : boss.get_alphabet()){
-        cout << c << " ";; // DEBUG
-        for(bool b : BWTs[c]) cout << b; // DEBUG
-        cout << endl; // DEBUG
+        //cout << c << " ";; // DEBUG
+        //for(bool b : BWTs[c]) cout << b; // DEBUG
+        //cout << endl; // DEBUG
         string filename = out_prefix + "BWT_" + c;
         dump_bit_vector(BWTs[c], filename);
     }
 
     write_log("Computing the C array", LogLevel::MAJOR);
     vector<LL> C_array = get_C_array(BWTs);
-    cout << "C array " << C_array << endl; // DEBUG
+    //cout << "C array " << C_array << endl; // DEBUG
 
     write_log("Dumping C array to disk", LogLevel::MAJOR);
     dump_C_array(C_array, out_prefix + "_C");
 
-    run_test(boss, BWTs, C_array);
+    //run_test(boss, BWTs, C_array);
     
 }
 
