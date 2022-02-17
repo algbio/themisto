@@ -125,11 +125,13 @@ include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libw
 ## Libraries & executables to build
 add_library(kmc_wrapper src/KMC_wrapper.cpp)
 add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
+add_executable(dump_nodeboss src/dump_nodeboss.cpp ${THEMISTO_SOURCES})
 
 ## Fix compilation order
 add_dependencies(kmc_wrapper kmc)
 add_dependencies(sdsl divsufsort64)
 add_dependencies(themisto kmc_wrapper)
+add_dependencies(dump_nodeboss kmc_wrapper)
 
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
@@ -146,6 +148,7 @@ endif()
 ## Link
 target_link_libraries(kmc_wrapper kmc Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
 target_link_libraries(themisto kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
+target_link_libraries(dump_nodeboss kmc_wrapper sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
