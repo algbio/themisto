@@ -179,10 +179,11 @@ public:
     // If split_by_colorset_runs == true, also splits the unitigs to maximal runs of nodes that have
     // the same colorset, and writes the color sets to colorsets_out. If split_by_colorset_runs == false,
     // then colorsets_out is unused.
+    // If min_colors > 0, extracts maximal unitigs where each node has at least >=min_colors colors.
     // The unitigs are written in fasta-format.
     // The colorsets are written one per line, in the same order as unitigs, in a space-separated format "id c1 c2 ..",
     // where id is the fasta header of the colorset, and c1 c2... are the colors.
-    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out){
+    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out, LL min_colors = 0){
         BOSS<sdsl::bit_vector>& boss = themisto.boss;
 
         gfa_out << "H" << "\t" << "VN:Z:1.0" << "\n"; // Header
@@ -197,8 +198,8 @@ public:
             if(!visited[v]){
                 Unitig U = get_node_unitig_containing(v, boss, visited);
                 for(LL i = 0; i < U.nodes.size(); i++) pp.job_done(); // Record progress
-		if (false) {
-		    for(Colored_Unitig& CU : split_by_colorset_size(1117, U, themisto)){ // HARDOCDED colorset size!
+		if (min_colors > 0) {
+		    for(Colored_Unitig& CU : split_by_colorset_size(min_colors, U, themisto)){
                         write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
                         write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
 		    }
