@@ -224,6 +224,9 @@ Usage:
                           color labels of the colors of that unitig. The 
                           unitigs appear in the same order as in the FASTA 
                           file. (default: "")
+      --min-colors arg    Extract maximal unitigs with at least (>=)
+                          min-colors in each node. Can't be used with
+                          --colors-out. (optional) (default: 0)
   -v, --verbose           More verbose progress reporting into stderr.
   -h, --help              Print usage
 ```
