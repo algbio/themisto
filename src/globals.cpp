@@ -252,7 +252,9 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
         string new_seq;
         for(LL i = 0; i <= len; i++){
             char c = sr.read_buf[i];
-            assert((c >= 'A' && c <= 'Z') || c == '$');
+            if((!(c >= 'A' && c <= 'Z') && c != '$'))
+                throw runtime_error("Invalid character found: '" + std::string(1,c) + "'");
+
             if(c == 'A' || c == 'C' || c == 'G' || c == 'T')
                 new_seq += c;
             else{
