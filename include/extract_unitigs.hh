@@ -106,6 +106,45 @@ private:
         return colored_unitigs;
     }
 
+    // Extracts maximal unitigs that have at least n_min_colors colors
+    vector<Colored_Unitig> split_by_colorset_size(const LL n_min_colors, Unitig& U, Themisto& themisto){
+        vector<Colored_Unitig> colored_unitigs;
+        auto get_n_colors = [&](LL node){return themisto.coloring.get_colorset_size(node, themisto.boss);};
+
+	LL run_start = 0;
+	while (run_start < U.nodes.size()) {
+	    LL n_colors_for_node = get_n_colors(U.nodes[run_start]);
+
+	    if (n_colors_for_node >= n_min_colors) {
+		LL run_end = run_start;
+		while(run_end < U.nodes.size()-1 && get_n_colors(U.nodes[run_end + 1]) >= n_min_colors){
+		    run_end++;
+		}
+
+		Colored_Unitig colored;
+		for(LL i = run_start; i <= run_end; i++)
+		    colored.nodes.push_back(U.nodes[i]);
+
+		colored.id = U.nodes[run_start];
+
+		colored_unitigs.push_back(colored); // Links are added later
+
+		run_start = run_end;
+	    }
+	    ++run_start;
+	}
+
+        // Linkage
+        for(LL i = 0; i < colored_unitigs.size(); i++){
+            if(i < (LL)colored_unitigs.size()-1) // Not last
+                colored_unitigs[i].links.push_back(colored_unitigs[i+1].id); // Chain unitigs
+            else // Last
+                colored_unitigs[i].links = U.links; // The outgoing links of the original unitig
+        }
+
+        return colored_unitigs;
+    }
+
     string get_unitig_string(vector<LL>& nodes, Themisto& themisto){
         if(nodes.size() == 0) return "";
         string first_kmer = themisto.boss.get_node_label(nodes[0]);
@@ -140,10 +179,11 @@ public:
     // If split_by_colorset_runs == true, also splits the unitigs to maximal runs of nodes that have
     // the same colorset, and writes the color sets to colorsets_out. If split_by_colorset_runs == false,
     // then colorsets_out is unused.
+    // If min_colors > 0, extracts maximal unitigs where each node has at least >=min_colors colors.
     // The unitigs are written in fasta-format.
     // The colorsets are written one per line, in the same order as unitigs, in a space-separated format "id c1 c2 ..",
     // where id is the fasta header of the colorset, and c1 c2... are the colors.
-    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out){
+    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out, LL min_colors = 0){
         BOSS<sdsl::bit_vector>& boss = themisto.boss;
 
         gfa_out << "H" << "\t" << "VN:Z:1.0" << "\n"; // Header
@@ -158,8 +198,13 @@ public:
             if(!visited[v]){
                 Unitig U = get_node_unitig_containing(v, boss, visited);
                 for(LL i = 0; i < U.nodes.size(); i++) pp.job_done(); // Record progress
-                if(split_by_colorset_runs){
-                    for(Colored_Unitig& CU : split_to_colorset_runs(U, themisto)){
+		if (min_colors > 0) {
+		    for(Colored_Unitig& CU : split_by_colorset_size(min_colors, U, themisto)){
+                        write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
+                        write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
+		    }
+		} else if(split_by_colorset_runs){
+		    for(Colored_Unitig& CU : split_to_colorset_runs(U, themisto)){
                         write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
                         write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
                         write_colorset(CU.id, CU.colorset, colorsets_out);

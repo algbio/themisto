@@ -216,6 +216,22 @@ public:
         
     }
 
+    // Returns number of colors for the node
+    LL get_colorset_size(LL node, BOSS<sdsl::bit_vector>& boss) {
+	LL colorset_id = get_colorset_id(node, boss);
+        if(colorset_id == -1) return 0;
+
+        LL start = color_set_starts_ss.select(colorset_id+1);
+        LL pos = start; // Position in internal color array
+        LL idx = 0; // Position in outpuf buffer
+        while(true){
+            idx++;
+            if(pos == color_sets.size()-1 || color_set_starts[pos+1] == 1) break;
+            pos++;
+        }
+        return idx;
+    }
+
     // Returns -1 if the colorset is empty. Otherwise returns the id of the colorset.
     LL get_colorset_id(LL node, BOSS<sdsl::bit_vector>& boss){
         if(node == 0) return -1; // Root
