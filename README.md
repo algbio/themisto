@@ -150,7 +150,7 @@ Usage:
 
 This command aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
 
-The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
+The query can be given as one file, or as a file with a list of files. In the former case, one output file can be specified with the option --out-file. If --out-file is not given, the results will be print to cout. In the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
 
 The query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq
 
@@ -162,7 +162,8 @@ Usage:
                              "")
       --query-file-list arg  A list of query filenames, one line per 
                              filename (default: "")
-  -o, --out-file arg         Output filename. (default: "")
+  -o, --out-file arg         Output filename. Print results
+                             if no output filename is given. (default: "")
       --out-file-list arg    A file containing a list of output filenames, 
                              one per line. (default: "")
   -i, --index-prefix arg     The index prefix that was given to the build 
@@ -180,7 +181,12 @@ Usage:
 
 Examples:
 
-Pseudoalign reads.fna against an index:
+Pseudoalign reads.fna against an index and print results:
+```
+./build/bin/themisto pseudoalign --query-file reads.fna --index-prefix my_index --temp-dir temp
+```
+
+Pseudoalign reads.fna against an index and write results to out.txt:
 ```
 ./build/bin/themisto pseudoalign --query-file reads.fna --index-prefix my_index --temp-dir temp --out-file out.txt
 ```

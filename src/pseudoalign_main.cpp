@@ -37,9 +37,17 @@ struct Pseudoalign_Config{
             check_writable(outfile);
         }
 
-        check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
-        
-        check_true(temp_dir != "", "Temp directory not set");
+	if (outfiles.size() == 0 && query_files.size() > 1) {
+	    check_true(query_files.size() == 1, "Can't print results when aligning multiple files; supply " + to_string(query_files.size()) + " outfiles with --out-file-list.");
+	}
+	if (outfiles.size() > 0) {
+	    check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
+	}
+
+	if (sort_output) {
+	    check_true(outfiles.size() > 0, "Can't sort output when printing results");
+	}
+	check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
     }
 };
@@ -80,7 +88,7 @@ int pseudoalign_main(int argc, char** argv){
     options.add_options()
         ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value("")) 
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
-        ("o,out-file", "Output filename.", cxxopts::value<string>()->default_value(""))
+        ("o,out-file", "Output filename. Print results if no output filename is given.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
@@ -149,7 +157,11 @@ int pseudoalign_main(int argc, char** argv){
     themisto.load_colors(C.index_color_file);
 
     for(LL i = 0; i < C.query_files.size(); i++){
-        write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
+	if (C.outfiles.size() > 0) {
+	    write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
+	} else {
+	    write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
+	}
 
         string inputfile = C.query_files[i];
         string file_format = figure_out_file_format(inputfile);
@@ -161,7 +173,7 @@ int pseudoalign_main(int argc, char** argv){
         }
 
         Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-        themisto.pseudoalign_parallel(C.n_threads, sr, C.outfiles[i], C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);
