@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory> // std::unique_ptr
+
 #include "globals.hh"
 
 // The c++ ifstream and ofstream classes are buffered. But each read involves a virtual function
@@ -109,10 +111,11 @@ private:
     vector<char> buf;
     LL buf_size = 0;
     LL buf_cap = 1 << 20;
-    ofstream stream;
+    bool own_stream; // Track if the internal stream was created by this object mainly to avoid trying to free cout.
+    unique_ptr<ostream> stream;
 
     void empty_internal_buffer_to_stream(){
-        stream.write(buf.data(), buf_size);
+        stream->write(buf.data(), buf_size);
         buf_size = 0;
     }
 
@@ -122,9 +125,16 @@ public:
     Buffered_ofstream& operator = (Buffered_ofstream&&) = default;  // Movable
 
     Buffered_ofstream(){}
-    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out) : stream(filename, mode){
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
-        buf.resize(buf_cap);
+    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out) {
+	open(filename, mode);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
+	buf.resize(buf_cap);
+    }
+    Buffered_ofstream(ostream &outstream) {
+	own_stream = false;
+	stream.reset(&outstream);
+        if(!stream->good()) throw std::runtime_error("Error opening output stream");
+	buf.resize(buf_cap);
     }
 
     void set_buffer_capacity(LL cap){
@@ -140,25 +150,55 @@ public:
     }
 
     void open(string filename, ios_base::openmode mode = ios_base::out){
+	if (stream.get()) {
+	    // Flush and release ownership of previous stream if reusing object
+	    close();
+	    stream.reset(new ofstream(filename, mode));
+	} else {
+	    stream = unique_ptr<ostream>(new ofstream(filename, mode));
+	}
+	own_stream = true;
+
         buf.resize(buf_cap);
-        stream.open(filename, mode);
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
+        buf_size = 0;
+    }
+
+    void open(ostream &outstream) {
+	if (stream.get()) {
+	    // Flush and release ownership of previous stream if reusing object
+	    close();
+	    stream.reset(&outstream);
+	} else {
+	    stream = unique_ptr<ostream>(&outstream);
+	}
+	own_stream = false;
+
+        buf.resize(buf_cap);
+        if(!stream->good()) throw std::runtime_error("Error opening output stream");
         buf_size = 0;
     }
 
     void close(){
-        empty_internal_buffer_to_stream();
-        stream.close();
+	if (stream.get()) {
+	    empty_internal_buffer_to_stream();
+	    stream->flush();
+	    if (own_stream) {
+		stream.reset();
+	    } else if (stream.get()) {
+		stream.release();
+	    }
+	}
     }
 
     // Flush the internal buffer AND the file stream
     void flush(){
         empty_internal_buffer_to_stream();
-        stream.flush();
+        stream->flush();
     }
 
     ~Buffered_ofstream(){
-        empty_internal_buffer_to_stream();
+	close();
     }
 
 };
