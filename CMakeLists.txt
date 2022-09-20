@@ -154,7 +154,8 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_dependencies(themisto_tests kmc_wrapper)
   
   add_dependencies(sdsl divsufsort64)
-  find_library(GTEST NAMES gtest PATHS googletest/build/lib/)
+  find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
+  target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests kmc_wrapper ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
   
 else()
