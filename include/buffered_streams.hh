@@ -108,11 +108,17 @@ private:
 
     vector<char> buf;
     LL buf_size = 0;
-    LL buf_cap = 1 << 20;
+    LL buf_cap = 1 << 23;
     ofstream stream;
 
     void empty_internal_buffer_to_stream(){
-        stream.write(buf.data(), buf_size);
+        try{
+            stream.write(buf.data(), buf_size);
+        } catch(const std::ios_base::failure& e){
+            cerr << "Error writing to disk (perhaps the disk is full?)" << endl;
+            cerr << e.what() << endl;
+            cerr << e.code() << endl;
+        }
         buf_size = 0;
     }
 
@@ -124,6 +130,7 @@ public:
     Buffered_ofstream(){}
     Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out) : stream(filename, mode){
         if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
+        stream.exceptions(stream.failbit | stream.badbit);
         buf.resize(buf_cap);
     }
 
