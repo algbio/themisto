@@ -149,7 +149,7 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     boss_t boss_maps = build_BOSS_with_maps(tcase.reads, tcase.k, reverse_complements);
 
     // Build from KMC
-    string fastafile = get_temp_file_manager().create_filename();
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
     throwing_ofstream out(fastafile);
     for(string S : tcase.reads) out << ">\n" << S << "\n";
     out.flush();
