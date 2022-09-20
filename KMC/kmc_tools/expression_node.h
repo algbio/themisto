@@ -4,8 +4,8 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 #ifndef _EXPRESSION_NODE_H
@@ -16,8 +16,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
-#include "kmc1_db_reader.h"
-#include "kmc2_db_reader.h"
+#include "db_reader_factory.h"
 
 //************************************************************************************************************
 // CExpressionNode - Base abstract class representing expression node. In first stage of algorithm from
@@ -204,11 +203,7 @@ public:
 	CBundle<SIZE>* GetExecutionRoot() override
 	{		
 		CConfig& config = CConfig::GetInstance();
-		CInput<SIZE>* db = nullptr;
-		if (!config.headers[desc_pos].IsKMC2())
-			db = new CKMC1DbReader<SIZE>(config.headers[desc_pos], config.input_desc[desc_pos], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-		else		
-			db = new CKMC2DbReader<SIZE>(config.headers[desc_pos], config.input_desc[desc_pos], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
+		CInput<SIZE>* db = db_reader_factory<SIZE>(config.headers[desc_pos], config.input_desc[desc_pos], KmerDBOpenMode::sorted);		
 		return new CBundle<SIZE>(db);
 	}
 

@@ -4,8 +4,8 @@
 
   Authors: Sebastian Deorowicz, Agnieszka Debudaj-Grabysz, Marek Kokot
 
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
  */
 
 #ifndef _KMC_FILE_H
@@ -15,6 +15,8 @@
 #include "kmer_api.h"
 #include <string>
 #include <vector>
+#include <memory>
+#include <cassert>
 
 struct CKMCFileInfo
 {
@@ -31,6 +33,68 @@ struct CKMCFileInfo
 
 class CKMCFile
 {
+	class CPrefixFileBufferForListingMode
+	{
+		const uint64_t buffCapacity = 1 << 22;
+		uint64_t* buff{};
+		uint64_t buffPosInFile{};
+		uint64_t buffSize{};
+		uint64_t posInBuf{};
+		uint64_t leftToRead{};
+		uint64 prefixMask; //for kmc2 db
+		FILE* file;
+		bool isKMC1 = false;
+		uint64_t totalKmers; //for
+
+		void reload()
+		{
+			assert(leftToRead);
+			buffPosInFile += buffSize;
+			buffSize = (std::min)(buffCapacity, leftToRead);
+			auto readed = fread(buff, 1, 8 * buffSize, file);
+			assert(readed == 8 * buffSize);
+
+			if (isKMC1 && buffSize == leftToRead) //last read, in case of KMC1 guard must be added, fread will read `k` from db instead of guard, fixes #180
+				buff[buffSize - 1] = totalKmers;
+
+			leftToRead -= buffSize;
+			posInBuf = 0;
+		}
+	public:
+		CPrefixFileBufferForListingMode(FILE* file, uint64_t wholeLutSize, uint64_t lutPrefixLen, bool isKMC1, uint64_t totalKmers)
+			:
+			buff(new uint64_t[buffCapacity]),
+			leftToRead(wholeLutSize),
+			prefixMask((1ull << (2 * lutPrefixLen)) - 1),
+			file(file),
+			isKMC1(isKMC1),
+			totalKmers(totalKmers)
+		{
+			my_fseek(file, 4 + 8, SEEK_SET); //	skip KMCP and LUT[0] (always = 0)
+		}
+
+		//no control if next prefix exists here, responsibility to the caller
+		uint64_t GetPrefix(uint64_t suffix_number)
+		{
+			while(true)
+			{
+				if (posInBuf >= buffSize)
+					reload();
+
+				if (suffix_number != buff[posInBuf])
+					break;
+				else
+					++posInBuf;
+			}
+			return (buffPosInFile + posInBuf) & prefixMask;
+		}
+
+		~CPrefixFileBufferForListingMode()
+		{
+			delete[] buff;
+		}
+	};
+protected:
 	enum open_mode {closed, opened_for_RA, opened_for_listing};
 	open_mode is_opened;
 	uint64 suf_file_left_to_read = 0; // number of bytes that are yet to read in a listing mode
@@ -40,8 +104,10 @@ class CKMCFile
 	FILE *file_pre;
 	FILE *file_suf;
 
-	uint64* prefix_file_buf;
-	uint64 prefix_file_buf_size;
+	uint64* prefix_file_buf; //only for random access mode
+	uint64 prefix_file_buf_size; //only for random access mode
+	std::unique_ptr<CPrefixFileBufferForListingMode> prefixFileBufferForListingMode;
+
 	uint64 prefix_index;			// The current prefix's index in an array "prefix_file_buf", readed from *.kmc_pre
 	uint32 single_LUT_size;			// The size of a single LUT (in no. of elements)
 
@@ -77,7 +143,7 @@ class CKMCFile
 	bool OpenASingleFile(const std::string &file_name, FILE *&file_handler, uint64 &size, char marker[]);	
 
 	// Recognize current parameters. Auxiliary function.
-	bool ReadParamsFrom_prefix_file_buf(uint64 &size);	
+	bool ReadParamsFrom_prefix_file_buf(uint64 &size, open_mode _open_mode);
 
 	// Reload a contents of an array "sufix_file_buf" for listing mode. Auxiliary function. 
 	void Reload_sufix_file_buf();
@@ -107,9 +173,10 @@ public:
 	// Open files *kmc_pre & *.kmc_suf, read *.kmc_pre to RAM, *.kmc_suf is buffered
 	bool OpenForListing(const std::string& file_name);
 
-	// Return next kmer in CKmerAPI &kmer. Return its counter in float &count. Return true if not EOF
-	bool ReadNextKmer(CKmerAPI &kmer, float &count);
+	// Return true if kmc is in KMC2 compatiblie format
+	bool IsKMC2() const noexcept { return kmc_version == 0x200; }
 
+	// Return next kmer in CKmerAPI &kmer. Return its counter in uint64 &count. Return true if not EOF
 	bool ReadNextKmer(CKmerAPI &kmer, uint64 &count); //for small k-values when counter may be longer than 4bytes
 	
 	bool ReadNextKmer(CKmerAPI &kmer, uint32 &count);
@@ -144,8 +211,6 @@ public:
 	bool Eof(void);
 
 	// Return true if kmer exists. In this case return kmer's counter in count
-	bool CheckKmer(CKmerAPI &kmer, float &count);
-
 	bool CheckKmer(CKmerAPI &kmer, uint32 &count);
 
 	bool CheckKmer(CKmerAPI &kmer, uint64 &count);
@@ -164,7 +229,6 @@ public:
 
 	// Get counters for all k-mers in read
 	bool GetCountersForRead(const std::string& read, std::vector<uint32>& counters);
-	bool GetCountersForRead(const std::string& read, std::vector<float>& counters);
 	private:
 		uint32 count_for_kmer_kmc1(CKmerAPI& kmer);
 		uint32 count_for_kmer_kmc2(CKmerAPI& kmer, uint32 bin_start_pos);

@@ -4,8 +4,8 @@ The homepage of the KMC project is http://sun.aei.polsl.pl/kmc
 
 Authors: Marek Kokot
 
-Version: 3.1.1
-Date   : 2019-05-19
+Version: 3.2.1
+Date   : 2022-01-04
 */
 
 #ifndef _KMC1_DB_WRITER_H
@@ -14,6 +14,7 @@ Date   : 2019-05-19
 #include "defs.h"
 #include "config.h"
 #include "queues.h"
+#include "db_writer.h"
 
 #include <string>
 #include <vector>
@@ -51,12 +52,12 @@ private:
 //************************************************************************************************************
 // CKMC1DbWriter - writer of KMC1 database
 //************************************************************************************************************
-template<unsigned SIZE> class CKMC1DbWriter
+template<unsigned SIZE> class CKMC1DbWriter : public CDbWriter<SIZE>
 {
 public:
 	CKMC1DbWriter(CBundle<SIZE>* bundle, COutputDesc& output_desc);
 	~CKMC1DbWriter();
-	bool Process();
+	bool Process() override;
 
 private:
 	static const uint32 PRE_BUFF_SIZE_BYTES = KMC1_DB_WRITER_PREFIX_BUFF_BYTES;
@@ -97,10 +98,10 @@ private:
 	CKMC1SuffixFileWriter* suffix_writer = nullptr;
 	std::thread suf_buf_writing_thread;
 public:
-	void MultiOptputInit();
-	void MultiOptputAddResultPart(COutputBundle<SIZE>& bundle);
-	void MultiOptputAddResultPart(CBundle<SIZE>& bundle);
-	void MultiOptputFinish();
+	void MultiOptputInit() override;
+	void MultiOptputAddResultPart(COutputBundle<SIZE>& bundle) override;
+	void MultiOptputAddResultPart(CBundle<SIZE>& bundle) override;
+	void MultiOptputFinish() override;
 
 };
 
@@ -176,7 +177,6 @@ bundles_queue(DEFAULT_CIRCULAL_QUEUE_CAPACITY)
 /*****************************************************************************************************************************/
 template<unsigned SIZE> bool CKMC1DbWriter<SIZE>::Process()
 {
-
 	start_writing();
 
 	//Converts bundles to output buffers, suffix buffer is placed to another queue and write in separate thread (suffix_writer)
@@ -321,23 +321,37 @@ template<unsigned SIZE> void CKMC1DbWriter<SIZE>::finish_writing()
 	store_pre_buf();
 	send_suf_buf_to_queue();
 
+	uint32_t cutoff_max_lo = output_desc.cutoff_max;
+	uint32_t cutoff_max_hi = output_desc.cutoff_max >> 32;
 	//store header
 	write_header_part(config.kmer_len);
 	write_header_part(config.headers.front().mode);
 	write_header_part(counter_size);
 	write_header_part(lut_prefix_len);
 	write_header_part(output_desc.cutoff_min);
-	write_header_part(output_desc.cutoff_max);
+	write_header_part(cutoff_max_lo);
 	write_header_part(added_kmers);
 
-	bool both_stands = false;
+	bool both_stands = true;
+
 	for (auto& input : config.headers)
-		both_stands = both_stands || input.both_strands; //if any input database is in both strands, output is also in both strands
+		both_stands = both_stands && input.both_strands; //if any input database is in not canonical, output is also not canonical
 
 	write_header_part(!both_stands);
 
+	//uchar tmp[3];
+	for (uint32 i = 0; i < 3; ++i)
+		write_header_part(uchar(0));
 
-	for (uint32 i = 0; i < 31; ++i)
+	//uint32_t max_counter_hi
+	write_header_part(cutoff_max_hi);
+
+	//uint32_t tmp[5]
+	for (uint32 i = 0; i < 20; ++i)
+		write_header_part(uchar(0));
+
+	//KMC_VER -> KMC 1 (value 0)
+	for (uint32 i = 0; i < 4; ++i)
 		write_header_part(uchar(0));
 
 	write_header_part((uint32)64);

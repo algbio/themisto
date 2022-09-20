@@ -4,8 +4,8 @@ The homepage of the KMC project is http://sun.aei.polsl.pl/kmc
 
 Authors: Marek Kokot
 
-Version: 3.1.1
-Date   : 2019-05-19
+Version: 3.2.1
+Date   : 2022-01-04
 */
 
 #ifndef _KMC1_DB_READER_H
@@ -14,14 +14,14 @@ Date   : 2019-05-19
 #include "defs.h"
 #include "config.h"
 #include "bundle.h"
-#include "kmc_header.h"
+#include "kmer_file_header.h"
 #include "queues.h"
 #include <iostream>
 #include <cstring>
 #include <thread>
 #include <tuple>
 
-enum class KMCDBOpenMode { sequential, sorted, counters_only };
+
 
 class CSuffBufQueue
 {
@@ -168,7 +168,7 @@ template<unsigned SIZE>
 class CKMC1DbReader : public CInput<SIZE>
 {
 public:
-	CKMC1DbReader(const CKMC_header& header, const CInputDesc& desc, CPercentProgress& percent_progress, KMCDBOpenMode open_mode);
+	CKMC1DbReader(const CKmerFileHeader& header, const CInputDesc& desc, CPercentProgress& percent_progress, KmerDBOpenMode open_mode);
 
 	void NextBundle(CBundle<SIZE>& bundle) override
 	{
@@ -236,7 +236,7 @@ public:
 private:
 	static const uint32 PREFIX_BUFF_BYTES = KMC1_DB_READER_PREFIX_BUFF_BYTES;
 	static const uint32 SUFFIX_BUFF_BYTES = KMC1_DB_READER_SUFFIX_BUFF_BYTES;
-	const CKMC_header& header;
+	const CKmerFileHeader& header;
 	uint32 counter_size;
 	uint64 total_kmers;
 
@@ -246,7 +246,7 @@ private:
 	const CInputDesc& desc;
 
 	CPercentProgress& percent_progress;
-	KMCDBOpenMode open_mode;
+	KmerDBOpenMode open_mode;
 
 	uint32 progress_id;
 
@@ -312,7 +312,7 @@ private:
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
 
-template<unsigned SIZE> CKMC1DbReader<SIZE>::CKMC1DbReader(const CKMC_header& header, const CInputDesc& desc, CPercentProgress& percent_progress, KMCDBOpenMode open_mode) :
+template<unsigned SIZE> CKMC1DbReader<SIZE>::CKMC1DbReader(const CKmerFileHeader& header, const CInputDesc& desc, CPercentProgress& percent_progress, KmerDBOpenMode open_mode) :
 	header(header),
 	counter_size(header.counter_size),
 	total_kmers(header.total_kmers),
@@ -570,8 +570,8 @@ template<unsigned SIZE> bool CKMC1DbReader<SIZE>::fill_bundle()
 	uint32 counter;
 
 	uint32 cutoff_min = desc.cutoff_min;
-	uint32 cutoff_max = desc.cutoff_max;
-	uint32 cutoff_range = cutoff_max - cutoff_min;
+	uint64 cutoff_max = desc.cutoff_max;
+	uint64 cutoff_range = cutoff_max - cutoff_min;
 
 	uint64 local_kmers_left_for_current_prefix = kmers_left_for_current_prefix;
 	uint64 local_total_kmers_left = total_kmers_left;
@@ -613,7 +613,6 @@ template<unsigned SIZE> bool CKMC1DbReader<SIZE>::fill_bundle()
 																							\
 	counter = suffix_bundle_get.kmers_with_counters[suffix_bundle_pos++].counter;			\
 	--local_kmers_left_for_current_prefix;													\
-																							\
 	if (counter - cutoff_min <= cutoff_range)												\
 	{																						\
 	kmer = suffix_bundle_get.kmers_with_counters[suffix_bundle_pos - 1].kmer;				\
@@ -621,7 +620,7 @@ template<unsigned SIZE> bool CKMC1DbReader<SIZE>::fill_bundle()
 	bundle_data.kmers_with_counters[bundle_pos].kmer = kmer;								\
 	bundle_data.kmers_with_counters[bundle_pos++].counter = counter;						\
 	}
-#ifdef WIN32 //VS is better if unroll by hand
+#ifdef _WIN32 //VS is better if unroll by hand
 	for (uint32 ii = 0; ii < iter; ++ii)
 	{
 		FILL_BUNDLE_LOOP_UNROLL_CODE

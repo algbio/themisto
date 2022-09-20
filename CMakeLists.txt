@@ -120,14 +120,14 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
                  ${CMAKE_BINARY_DIR}/external/KMC/build)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/KMC/kmc_core)
 
 ## Libraries & executables to build
 add_library(kmc_wrapper src/KMC_wrapper.cpp)
 add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
 ## Fix compilation order
-add_dependencies(kmc_wrapper kmc)
+add_dependencies(kmc_wrapper kmc_tools)
 add_dependencies(sdsl divsufsort64)
 add_dependencies(themisto kmc_wrapper)
 

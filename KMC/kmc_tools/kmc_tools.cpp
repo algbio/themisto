@@ -4,11 +4,10 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -17,8 +16,6 @@
 #include "check_kmer.h"
 #include "parser.h"
 #include "timer.h"
-#include "kmc1_db_reader.h"
-#include "kmc2_db_reader.h"
 #include "kmc1_db_writer.h"
 #include "parameters_parser.h"
 #include "histogram_writer.h"
@@ -26,6 +23,9 @@
 #include "fastq_reader.h"
 #include "fastq_filter.h"
 #include "fastq_writer.h"
+#include "db_reader_factory.h"
+#include "db_writer_factory.h"
+#include "kff_random_access.h"
 #ifdef ENABLE_LOGGER
 #include "develop.h"
 #endif
@@ -38,11 +38,11 @@ template<unsigned SIZE> class CTools
 	CConfig& config;
 
 	template<typename KMCDB>
-	void ProcessTransformOper(KMCDBOpenMode open_mode)
+	void ProcessTransformOper(KmerDBOpenMode open_mode)
 	{
 		KMCDB* db = new KMCDB(config.headers.front(), config.input_desc.front(), config.percent_progress, open_mode);
 
-		vector<CKMC1DbWriter<SIZE>*> kmc_db_writers;
+		vector<CDbWriter<SIZE>*> kmc_db_writers;
 		vector<CBundle<SIZE>*> bundles;
 		vector<CDumpWriterForTransform<SIZE>> dump_writers;
 		vector<CHistogramWriterForTransform> histogram_writers;
@@ -55,7 +55,7 @@ template<unsigned SIZE> class CTools
 			case CTransformOutputDesc::OpType::REDUCE:
 			case CTransformOutputDesc::OpType::SORT:
 			case CTransformOutputDesc::OpType::SET_COUNTS:
-				kmc_db_writers.push_back(new CKMC1DbWriter<SIZE>(nullptr, desc));
+				kmc_db_writers.push_back(db_writer_factory<SIZE>(desc));
 				kmc_db_writers.back()->MultiOptputInit();
 				bundles.push_back(new CBundle<SIZE>(nullptr));
 				break;
@@ -72,7 +72,7 @@ template<unsigned SIZE> class CTools
 		CKmer<SIZE> kmer;
 		uint32 counter;
 		
-		if (open_mode == KMCDBOpenMode::counters_only) // only histogram oper
+		if (open_mode == KmerDBOpenMode::counters_only) // only histogram oper
 		{
 			while (db->NextCounter(counter))
 			{
@@ -80,7 +80,7 @@ template<unsigned SIZE> class CTools
 					out.PutCounter(counter);
 			}
 		}
-		else if (open_mode == KMCDBOpenMode::sequential) //historam or dump only
+		else if (open_mode == KmerDBOpenMode::sequential) //historam or dump only
 		{
 			while (db->NextKmerSequential(kmer, counter))
 			{
@@ -140,17 +140,86 @@ template<unsigned SIZE> class CTools
 	{
 		auto header = CConfig::GetInstance().headers.front();
 
-		std::cout << "k                 :  " << header.kmer_len <<"\n"
-				  << "total k-mers      :  " << header.total_kmers<< "\n"
-				  << "cutoff max        :  " << header.max_count << "\n"
-				  << "cutoff min        :  " << header.min_count << "\n"
-				  << "counter size      :  " << header.counter_size << " bytes\n"
-				  << "mode              :  " << (header.mode ? "quality-aware counters" : "occurrence counters") << "\n"
-				  << "both strands      :  " << (header.both_strands ? "yes" : "no") << "\n"
-				  << "database format   :  " << (header.IsKMC2() ? "KMC2.x" : "KMC1.x") << "\n"
-				  << "signature length  :  " << header.signature_len << "\n"
-				  << "number of bins    :  " << header.no_of_bins << "\n"
-				  << "lut_prefix_len    :  " << header.lut_prefix_len << "\n";
+		if (header.kmer_file_type == KmerFileType::KMC1 || header.kmer_file_type == KmerFileType::KMC2)
+		{
+	  std::cout << "k                 :  " << header.kmer_len << "\n"
+				<< "total k-mers      :  " << header.total_kmers << "\n"
+				<< "cutoff max        :  " << header.max_count << "\n"
+				<< "cutoff min        :  " << header.min_count << "\n"
+				<< "counter size      :  " << header.counter_size << " bytes\n"
+				<< "mode              :  " << (header.mode ? "quality-aware counters" : "occurrence counters") << "\n"
+				<< "both strands      :  " << (header.both_strands ? "yes" : "no") << "\n"
+				<< "database format   :  " << (header.kmer_file_type == KmerFileType::KMC2 ? "KMC2.x" : "KMC1.x") << "\n"
+				<< "signature length  :  " << header.signature_len << "\n"
+				<< "number of bins    :  " << header.no_of_bins << "\n"
+				<< "lut_prefix_len    :  " << header.lut_prefix_len << "\n";
+		}
+		else if (header.kmer_file_type == KmerFileType::KFF1)
+		{
+			std::cout << "This is KFF file, summary:\n";
+			std::cout << "canonical         :  " << (header.kff_file_struct.both_strands ? "yes" : "no") << "\n";
+			std::cout << "all k-mers unique :  " << (header.kff_file_struct.all_unique ? "yes" : "no") << "\n";
+			std::cout << "symbols encoding:\n";
+			std::cout << "\tA: " << ((header.kff_file_struct.encoding >> 6) & 3) << "\n";
+			std::cout << "\tC: " << ((header.kff_file_struct.encoding >> 4) & 3) << "\n";
+			std::cout << "\tG: " << ((header.kff_file_struct.encoding >> 2) & 3) << "\n";
+			std::cout << "\tT: " << (header.kff_file_struct.encoding        & 3) << "\n";
+
+			std::set<uint64_t> k_values;
+			for (auto& e : header.kff_file_struct.scopes)
+			{
+				std::cout << "k             :  " << e.kmer_size << "\n";
+				std::cout << "data_size     :  " << e.data_size << "\n";
+				std::cout << "max           :  " << e.max_in_block << "\n";
+				if(e.minimizer_size != (std::numeric_limits<uint64_t>::max)())
+					std::cout << "m             :  " << e.minimizer_size << "\n";
+
+				std::cerr << "footer values:\n";
+				for (const auto& e : header.kff_file_struct.footer)
+				{
+					std::cerr << "\t" << e.first << "      :  " << e.second << "\n";
+				}
+				std::cout << "Data sections:\n";
+				uint64_t tot_nb_blocks{};
+				for (auto& s : e.data_sections)
+				{
+					std::string type;
+					switch (s.type)
+					{
+						case KFFDataSectionType::RAW:
+							type = "raw";
+							break;
+						case KFFDataSectionType::MINIMIZER:
+							type = "minimizer";
+							break;
+						default:
+						{
+							std::cerr << "Error: this should never happen, please contact authors: " << __FILE__ << "\t" << __LINE__ << "\n";
+							exit(1); 
+						}					
+					}
+
+					std::cout << "\t" << "type            :  " << type << "\n";
+					std::cout << "\t" << "data_start      :  " << s.data_start_pos << "\n";
+					std::cout << "\t" << "nb_blocks       :  " << s.nb_blocks << "\n";
+
+					tot_nb_blocks += s.nb_blocks;
+					
+					std::cout << "\t" << "minimizer (HEX) :  ";
+					for (auto x : s.minimizer)
+						std::cout << std::hex << (int)x << " ";
+					std::cout << "\n";
+				}				
+
+				std::cout << "tot_nb_blocks :  " << tot_nb_blocks << "\n";
+			}
+
+		}
+		else
+		{
+			std::cerr << "Error: this should never happen, please contact authors: " << __FILE__ << "\t" << __LINE__ << "\n";
+			exit(1);
+		}
 		return true;
 	}
 
@@ -203,7 +272,7 @@ template<unsigned SIZE> class CTools
 		
 		filtering_params.fastq_buffer_size = 1 << 25; 
 
-		filtering_params.mem_part_pmm_fastq_reader = filtering_params.fastq_buffer_size + CFastqReader::OVERHEAD_SIZE;
+		filtering_params.mem_part_pmm_fastq_reader = filtering_params.fastq_buffer_size + CFastqReaderKMCTools::OVERHEAD_SIZE;
 		filtering_params.mem_tot_pmm_fastq_reader = filtering_params.mem_part_pmm_fastq_reader * (filtering_params.n_readers + 48);
 
 		filtering_params.mem_part_pmm_fastq_filter = filtering_params.mem_part_pmm_fastq_reader;
@@ -222,13 +291,18 @@ template<unsigned SIZE> class CTools
 		vector<thread> readers_ths;
 		vector<thread> filters_ths;
 		vector<unique_ptr<CWFastqFilter>> filters;
-		vector<unique_ptr<CWFastqReader>> readers;
+		vector<unique_ptr<CWFastqReaderKMCTools>> readers;
 
-		CKMCFile kmc_api;
-		if (!kmc_api.OpenForRA(config.input_desc.front().file_src))
+		CKffAndKMCRandomAccess kmc_api;
+		if (config.headers.front().GetType() == KmerFileType::KFF1)
+			kmc_api.OpenKFF<SIZE>(config.headers.front(), config.input_desc.front());
+		else
 		{
-			cerr << "Error: cannot open: " << config.input_desc.front().file_src << " by KMC API\n";
-			exit(1);
+			if (!kmc_api.OpenKMC(config.input_desc.front().file_src))
+			{
+				cerr << "Error: cannot open: " << config.input_desc.front().file_src << " by KMC API\n";
+				exit(1);
+			}
 		}
 		kmc_api.SetMinCount(config.input_desc.front().cutoff_min);
 		kmc_api.SetMaxCount(config.input_desc.front().cutoff_max);
@@ -244,7 +318,7 @@ template<unsigned SIZE> class CTools
 
 		for (uint32 i = 0; i < filtering_params.n_readers; ++i)
 		{
-			readers.push_back(make_unique<CWFastqReader>(filtering_params, filtering_queues));
+			readers.push_back(make_unique<CWFastqReaderKMCTools>(filtering_params, filtering_queues));
 			readers_ths.emplace_back(ref(*readers.back()));
 		}
 
@@ -254,12 +328,11 @@ template<unsigned SIZE> class CTools
 
 		filters.clear();
 
-
 		for (auto& thread : readers_ths)
 			thread.join();
 
 		readers.clear();
-				
+
 		delete filtering_queues.input_part_queue;
 		delete filtering_queues.pmm_fastq_reader;
 		delete filtering_queues.pmm_fastq_filter;
@@ -272,30 +345,22 @@ template<unsigned SIZE> class CTools
 	bool simple_set()
 	{
 		CInput<SIZE> *db1, *db2;
-		if (!config.headers[0].IsKMC2())
-			db1 = new CKMC1DbReader<SIZE>(config.headers[0], config.input_desc[0], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-		else
-			db1 = new CKMC2DbReader<SIZE>(config.headers[0], config.input_desc[0], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
 
-		if (!config.headers[1].IsKMC2())
-			db2 = new CKMC1DbReader<SIZE>(config.headers[1], config.input_desc[1], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-		else
-			db2 = new CKMC2DbReader<SIZE>(config.headers[1], config.input_desc[1], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-
-
+		db1 = db_reader_factory<SIZE>(config.headers[0], config.input_desc[0], KmerDBOpenMode::sorted);
+		db2 = db_reader_factory<SIZE>(config.headers[1], config.input_desc[1], KmerDBOpenMode::sorted);
+		
 		CBundle<SIZE> input1(db1), input2(db2);
 
-
 		vector<COutputBundle<SIZE>*> output_bundles;
-		vector<CKMC1DbWriter<SIZE>*> writers;
+		
+		vector<CDbWriter<SIZE>*> writers;
 
 		for (uint32 i = 0; i < config.simple_output_desc.size(); ++i)
 		{
-			writers.push_back(new CKMC1DbWriter<SIZE>(nullptr, config.simple_output_desc[i]));
+			writers.push_back(db_writer_factory<SIZE>(config.simple_output_desc[i]));
 			writers.back()->MultiOptputInit();
 			output_bundles.push_back(new COutputBundle<SIZE>(config.simple_output_desc[i].op_type, config.simple_output_desc[i].counter_op, *writers.back()));
 		}
-
 
 		CSimpleOperation<SIZE> op(&input1, &input2, output_bundles);
 		op.Process();
@@ -312,11 +377,39 @@ template<unsigned SIZE> class CTools
 		return true;
 	}
 
+	bool complex()
+	{
+		CExpressionNode<SIZE>* expression_root = parameters_parser.GetExpressionRoot<SIZE>();
+		auto t = expression_root->GetExecutionRoot();
+		delete expression_root;
+		auto writer = db_writer_factory<SIZE>(config.output_desc, t);
+		writer->Process();
+		delete t;
+		delete writer;
+		return true;
+	}
+
 	bool check()
 	{
-		CKmerCheck<SIZE> checker(config.headers.front(), config.input_desc.front());
-		return checker.CheckKmer();
-
+		switch (config.headers.front().GetType())
+		{
+			case KmerFileType::KMC1:
+			case KmerFileType::KMC2:
+			{
+				CKmerCheck<SIZE> checker(config.headers.front(), config.input_desc.front());
+				return checker.CheckKmer();
+			}
+			case KmerFileType::KFF1:
+			{
+				CKmerCheckKFF<SIZE> checker(config.headers.front(), config.input_desc.front());
+				return checker.CheckKmer();
+			}
+			default:
+			{
+				std::cerr << "Error: this should never happen, please contact authors: " << __FILE__ << "\t" << __LINE__ << "\n";
+				exit(1);
+			}
+		}
 	}
 
 	bool transform()
@@ -325,7 +418,7 @@ template<unsigned SIZE> class CTools
 		bool sort_needed = false;
 
 		//remove not valid
-		if (!config.headers.front().IsKMC2())
+		if (config.headers.front().kmer_file_type == KmerFileType::KMC1)
 		{
 			auto it = config.transform_output_desc.begin();
 			while (it != config.transform_output_desc.end())
@@ -363,18 +456,31 @@ template<unsigned SIZE> class CTools
 			}
 		}
 
-		KMCDBOpenMode open_mode;
+		KmerDBOpenMode open_mode;
 		if (!kmers_needed)
-			open_mode = KMCDBOpenMode::counters_only;
+			open_mode = KmerDBOpenMode::counters_only;
 		else if (sort_needed)
-			open_mode = KMCDBOpenMode::sorted;
+			open_mode = KmerDBOpenMode::sorted;
 		else
-			open_mode = KMCDBOpenMode::sequential;
-		if (config.headers.front().IsKMC2())
-			ProcessTransformOper<CKMC2DbReader<SIZE>>(open_mode);
-		else
-			ProcessTransformOper<CKMC1DbReader<SIZE>>(open_mode);
+			open_mode = KmerDBOpenMode::sequential;
 
+		switch (config.headers.front().kmer_file_type)
+		{
+		case KmerFileType::KMC1:
+			ProcessTransformOper<CKMC1DbReader<SIZE>>(open_mode);
+			break;
+		case KmerFileType::KMC2:
+			ProcessTransformOper<CKMC2DbReader<SIZE>>(open_mode);
+			break;
+		case KmerFileType::KFF1:
+			ProcessTransformOper<CKFFDbReader<SIZE>>(open_mode);
+			break;
+		default:
+			{
+				std::cerr << "Error: this should never happen, please contact authors: " << __FILE__ << "\t" << __LINE__ << "\n";
+				exit(1);
+			}		
+		}		
 		return true;
 	}
 
@@ -397,16 +503,10 @@ public:
 		else if (config.mode == CConfig::Mode::COMPARE)
 		{
 			CInput<SIZE> *db1, *db2;
-			if (!config.headers[0].IsKMC2())
-				db1 = new CKMC1DbReader<SIZE>(config.headers[0], config.input_desc[0], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-			else
-				db1 = new CKMC2DbReader<SIZE>(config.headers[0], config.input_desc[0], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
 
-			if (!config.headers[1].IsKMC2())
-				db2 = new CKMC1DbReader<SIZE>(config.headers[1], config.input_desc[1], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-			else
-				db2 = new CKMC2DbReader<SIZE>(config.headers[1], config.input_desc[1], CConfig::GetInstance().percent_progress, KMCDBOpenMode::sorted);
-
+			db1 = db_reader_factory<SIZE>(config.headers[0], config.input_desc[0], KmerDBOpenMode::sorted);
+			db2 = db_reader_factory<SIZE>(config.headers[1], config.input_desc[1], KmerDBOpenMode::sorted);
+			
 			CBundle<SIZE> input1(db1), input2(db2);
 			CComparer<SIZE> comparer(&input1, &input2);
 
@@ -440,13 +540,7 @@ public:
 		}
 		else if(config.mode == CConfig::Mode::COMPLEX)
 		{
-			CExpressionNode<SIZE>* expression_root = parameters_parser.GetExpressionRoot<SIZE>();
-			auto t = expression_root->GetExecutionRoot();
-			delete expression_root;
-			CKMC1DbWriter<SIZE> writer(t, config.output_desc);
-			writer.Process();
-			delete t;
-			return true;
+			return complex();
 		}
 		else
 		{

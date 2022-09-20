@@ -4,8 +4,8 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 #ifndef _FASTQ_READER_H
@@ -27,7 +27,7 @@ using namespace std;
 //************************************************************************************************************
 // FASTA/FASTQ reader class
 //************************************************************************************************************
-class CFastqReader {
+class CFastqReaderKMCTools { // Jarno Alanko 12.5.2022: Appended KMCTools to name to avoid name collision with CFastqReader in KMC core
 	typedef enum {m_plain, m_gzip, m_bzip2} t_mode;
 
 	CMemoryPool *pmm_fastq;
@@ -59,8 +59,8 @@ class CFastqReader {
 	bool IsEof();
 
 public:
-	CFastqReader(CMemoryPool *_pmm_fastq, CFilteringParams::file_type _file_type, uint32 _gzip_buffer_size, uint32 _bzip2_buffer_size, int _kmer_len);
-	~CFastqReader();
+	CFastqReaderKMCTools(CMemoryPool *_pmm_fastq, CFilteringParams::file_type _file_type, uint32 _gzip_buffer_size, uint32 _bzip2_buffer_size, int _kmer_len);
+	~CFastqReaderKMCTools();
 
 	static uint64 OVERHEAD_SIZE;
 
@@ -74,10 +74,10 @@ public:
 //************************************************************************************************************
 // Wrapper for FASTA/FASTQ reader class - for multithreading purposes
 //************************************************************************************************************
-class CWFastqReader {
+class CWFastqReaderKMCTools { // Jarno Alanko 12.5.2022: Appended KMCTools to name to avoid name collision with CWFastqReader in KMC core
 	CMemoryPool *pmm_fastq;
 
-	CFastqReader *fqr;
+	CFastqReaderKMCTools *fqr;
 	string file_name;
 	uint64 part_size;
 	CInputFilesQueue *input_files_queue;
@@ -88,8 +88,8 @@ class CWFastqReader {
 	int kmer_len;
 
 public:
-	CWFastqReader(CFilteringParams &Params, CFilteringQueues &Queues);
-	~CWFastqReader();
+	CWFastqReaderKMCTools(CFilteringParams &Params, CFilteringQueues &Queues);
+	~CWFastqReaderKMCTools();
 
 	void operator()();
 };
