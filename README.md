@@ -62,10 +62,10 @@ ulimit -n 2048
 
 Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built without colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
 
-There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 1GB of memory.
+There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory.
 
 ```
-./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt --index-prefix my_index --temp-dir temp --mem-megas 1000 --n-threads 4
+./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4
 ```
 
 We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take less than one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
