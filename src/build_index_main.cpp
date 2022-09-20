@@ -187,7 +187,7 @@ int build_index_main(int argc, char** argv){
         themisto.load_boss(C.index_dbg_file);
     } else{
         write_log("Building de Bruijn Graph", LogLevel::MAJOR);
-        themisto.construct_boss(C.inputfile, C.k, C.memory_megas * 1e6, C.n_threads, false);
+        themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
         themisto.save_boss(C.index_dbg_file);
         write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", LogLevel::MAJOR);
     }

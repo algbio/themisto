@@ -3,9 +3,10 @@
 #include "Kmer.hh"
 #include "BOSS.hh"
 #include "EM_sort.hh"
-#include "stdafx.h"
 #include "kmc_file.h"
 #include "test_tools.hh"
+#include "KMC/include/kmc_runner.h"
+#include "KMC/kmc_api/kmc_file.h"
 #include <unordered_map>
 #include <stdexcept>
 
@@ -132,14 +133,8 @@ public:
             return Kmer<KMER_MAX_LENGTH>(str_revcomp);
         }
 
-        float counter_f;
-        uint32 counter_i;
-		if(_mode){ //quake compatible mode
-			kmer_database.ReadNextKmer(kmer_object, counter_f);
-		}
-		else {			
-			kmer_database.ReadNextKmer(kmer_object, counter_i);
-		}
+        uint32 counter_i;	
+		kmer_database.ReadNextKmer(kmer_object, counter_i);
 
         kmer_object.to_string(str);
         if(add_revcomps){
@@ -167,8 +162,8 @@ bool is_sorted = false;
 bool all_read = false;
 string unsorted_filename;
 string sorted_filename;
-Buffered_ofstream unsorted;
-Buffered_ifstream sorted;
+Buffered_ofstream<std::ofstream> unsorted;
+Buffered_ifstream<std::ifstream> sorted;
 LL mem_budget_bytes = 1e9;
 LL n_threads;
 char* out_buffer;

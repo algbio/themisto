@@ -44,16 +44,6 @@ struct Pseudoalign_Config{
     }
 };
 
-char get_rc(char c){
-    switch(c){
-        case 'A': return 'T';
-        case 'T': return 'A';
-        case 'C': return 'G';
-        case 'G': return 'C';
-        default: return c;
-    }
-}
-
 vector<string> read_lines(string filename){
     check_readable(filename);
     vector<string> lines;

@@ -22,7 +22,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     public:
 
     string outfile;
-    Buffered_ofstream outstream;
+    Buffered_ofstream<std::ofstream> outstream;
     std::mutex mutex;
 
     ParallelOutputWriter(string outfile) : outfile(outfile){
@@ -70,7 +70,7 @@ class ParallelBinaryOutputWriter{
     public:
 
     string outfile;
-    Buffered_ofstream outstream;
+    Buffered_ofstream<std::ofstream> outstream;
     std::mutex mutex;
 
     ParallelBinaryOutputWriter(string outfile) : outfile(outfile, ios::binary){
