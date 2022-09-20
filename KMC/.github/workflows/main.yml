@@ -1,0 +1,58 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches: [ master ]      
+  workflow_dispatch:
+
+jobs:
+
+  
+  linux-remote:
+    name: Linux test (remote)
+    runs-on: ubuntu-latest
+    env: 
+      EXE: ./bin/kmc
+      EXE_DUMP: ./bin/kmc_dump
+      KMC_SINGLE_READ: ./tests/kmc_CLI/data/single_read.fq
+      DATA_DIR: ./tests/kmc_CLI/data/
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      run: |
+        g++ -v
+        make -j12 kmc kmc_tools kmc_dump
+
+    - name: KMC single read, k=28, ci=1
+      run: |
+        $EXE -k28 -ci1 -jstats.json $KMC_SINGLE_READ 28mers .        
+        cmp <(cat stats.json | grep '#Total no. of k-mers' | cut -f 2 -d ':' | cut -f 2 -d ' ' | cut -f 1 -d ',') <(echo "70")
+    
+    - name: small k, no counters
+      run: |
+        $EXE -k4 -cs1 -v $KMC_SINGLE_READ 4mers .
+        
+    - name: count k-mers from KMC1 database when small-k-opt may be applied
+      run: |
+        $EXE -k10 -v  $KMC_SINGLE_READ 10mers .
+        $EXE -k9 -v -fkmc 10mers 9mers .
+    - name: issue 180
+      run: |
+        $EXE -v -k5 -fa -ci1 -t1 $DATA_DIR/issue-180/input.fa bug-report.kmc .
+        $EXE_DUMP bug-report.kmc issue-180.kmers
+        cmp issue-180.kmers $DATA_DIR/issue-180/pattern.dump
+        
+  macos-remote:
+    name: macOS build (remote)
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      run: make -j12 kmc
+
+ 
