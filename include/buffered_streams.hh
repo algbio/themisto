@@ -2,6 +2,8 @@
 
 #include "globals.hh"
 
+Temp_File_Manager& get_temp_file_manager();
+
 // The c++ ifstream and ofstream classes are buffered. But each read involves a virtual function
 // call, which can be slow if the reads or writes are in small chunks. The buffer is also pretty
 // small by default. These classes store the input/output in a large buffer and call the stream 
@@ -118,6 +120,8 @@ private:
             cerr << "Error writing to disk (perhaps the disk is full?)" << endl;
             cerr << e.what() << endl;
             cerr << e.code() << endl;
+            get_temp_file_manager().delete_all_files();
+            exit(1);
         }
         buf_size = 0;
     }
