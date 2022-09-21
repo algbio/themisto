@@ -7,11 +7,10 @@
 
   Authors: Sebastian Deorowicz, Agnieszka Debudaj-Grabysz, Marek Kokot
 
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include <iostream>
 #include "../kmc_api/kmc_file.h"
 
@@ -31,7 +30,7 @@ bool help_or_version(int argc, char** argv)
 	return false;
 }
 
-int _tmain(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	if (argc == 1 || help_or_version(argc, argv))
 	{
@@ -117,28 +116,13 @@ int _tmain(int argc, char* argv[])
 		if (!(kmer_data_base.SetMaxCount(max_count_to_set)))
 				return EXIT_FAILURE;	
 
-		
 		std::string str;
-		if (_mode) //quake compatible mode
+		uint32 counter;
+		while (kmer_data_base.ReadNextKmer(kmer_object, counter))
 		{
-			float counter;			
-			while (kmer_data_base.ReadNextKmer(kmer_object, counter))
-			{
-				kmer_object.to_string(str);	
-				fprintf(out_file, "%s\t%f\n", str.c_str(), counter);			
-			}
+			kmer_object.to_string(str);
+			fprintf(out_file, "%s\t%u\n", str.c_str(), counter);
 		}
-		else 
-		{
-			uint32 counter;			
-			while (kmer_data_base.ReadNextKmer(kmer_object, counter))
-			{
-				kmer_object.to_string(str);
-				fprintf(out_file, "%s\t%u\n", str.c_str(), counter);
-			}
-		}
-		
-	
 		fclose(out_file);
 		kmer_data_base.Close();
 	}

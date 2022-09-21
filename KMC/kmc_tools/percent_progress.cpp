@@ -4,11 +4,10 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include "percent_progress.h"
 #include <iostream>
 #include <string>

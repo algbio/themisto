@@ -149,12 +149,14 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     boss_t boss_maps = build_BOSS_with_maps(tcase.reads, tcase.k, reverse_complements);
 
     // Build from KMC
-    string fastafile = get_temp_file_manager().create_filename();
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
     throwing_ofstream out(fastafile);
     for(string S : tcase.reads) out << ">\n" << S << "\n";
     out.flush();
-    string KMC_db_path_prefix = get_temp_file_manager().create_filename("KMC");
-    KMC_wrapper(tcase.k+1, 1, 2, fastafile, get_temp_file_manager().get_dir(), KMC_db_path_prefix, reverse_complements, get_log_level() == LogLevel::OFF);
+//    string KMC_db_path_prefix = get_temp_file_manager().create_filename("KMC");
+    string KMC_db_path_prefix; LL n_kmers;
+    std::tie(KMC_db_path_prefix, n_kmers) = run_kmc({fastafile}, tcase.k+1, 2, 2, 1, 1000000000);
+    //KMC_wrapper(tcase.k+1, 1, 2, fastafile, get_temp_file_manager().get_dir(), KMC_db_path_prefix, reverse_complements, get_log_level() == LogLevel::OFF);
     Kmer_stream_from_KMC_DB kmer_stream(KMC_db_path_prefix, reverse_complements);
     BOSS_builder<boss_t, Kmer_stream_from_KMC_DB> bb;
     boss_t boss_KMC = bb.build(kmer_stream, 1e9, 2);

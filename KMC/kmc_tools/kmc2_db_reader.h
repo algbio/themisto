@@ -4,8 +4,8 @@ The homepage of the KMC project is http://sun.aei.polsl.pl/kmc
 
 Authors: Marek Kokot
 
-Version: 3.1.1
-Date   : 2019-05-19
+Version: 3.2.1
+Date   : 2022-01-04
 */
 
 #ifndef _KMC2_DB_READER_H
@@ -23,6 +23,7 @@ Date   : 2019-05-19
 
 #include <algorithm>
 #include <condition_variable>
+#include "kff_kmc2_reader_utils.h"
 
 //Forward declaration
 template<unsigned SIZE> class CKMC2DbReaderSorted;
@@ -46,7 +47,7 @@ struct CBinBuff //must be moveble
 
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
 	CBinBuff& operator=(CBinBuff&& rhs) throw()
 #else
 	CBinBuff& operator=(CBinBuff&& rhs) noexcept
@@ -62,7 +63,7 @@ struct CBinBuff //must be moveble
 		return *this;
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
 	CBinBuff(CBinBuff&& rhs) throw()
 #else
 	CBinBuff(CBinBuff&& rhs) noexcept
@@ -228,15 +229,14 @@ public:
 	}
 
 
-#ifdef WIN32
+#ifdef _WIN32
 	//Because VS2013 does generate default move ctor here
 	CBin(CBin&& o) throw() :
 		bin_id(o.bin_id),
 		bin_buff(std::move(o.bin_buff)),
 		LUT(o.LUT),
 		pos(o.pos),
-		bin_provider(o.bin_provider),
-		kmc2_db(o.kmc2_db),
+		bin_provider(o.bin_provider),		
 		kmer_number_start(o.kmer_number_start), kmer_number_end(o.kmer_number_end),
 		kmers_left(o.kmers_left),
 		kmers_left_for_current_prefix(o.kmers_left_for_current_prefix),
@@ -263,7 +263,6 @@ private:
 	uint64* LUT;
 	uint32 pos = 0;
 	CBinBufProvider<SIZE>& bin_provider;
-	CKMC2DbReaderSorted<SIZE>& kmc2_db;
 	void reload_suf_buf();
 	uint64 kmer_number_start, kmer_number_end;
 	uint64 kmers_left;
@@ -401,7 +400,7 @@ private:
 template<unsigned SIZE> class CKMC2DbReaderSorted
 {
 public:
-	CKMC2DbReaderSorted(const CKMC_header& header, const CInputDesc& desc);
+	CKMC2DbReaderSorted(const CKmerFileHeader& header, const CInputDesc& desc);
 
 	void NextBundle(CBundle<SIZE>& bundle, bool& finished);
 
@@ -412,7 +411,7 @@ public:
 private:
 	//void get_suf_buf_part(uchar* &buf, uint64 start, uint32 size);
 
-	const CKMC_header& header;
+	const CKmerFileHeader& header;
 	const CInputDesc& desc;
 	uint64* LUTS = nullptr;
 	uint32 lut_size = 0;
@@ -451,7 +450,7 @@ template <unsigned SIZE>
 class CKCM2DbReaderSeqCounter_Base
 {
 protected:
-	CKCM2DbReaderSeqCounter_Base(const CKMC_header& header, const CInputDesc& desc);
+	CKCM2DbReaderSeqCounter_Base(const CKmerFileHeader& header, const CInputDesc& desc);
 	~CKCM2DbReaderSeqCounter_Base();
 
 	void open_files();
@@ -460,7 +459,7 @@ protected:
 	static const uint32 PREFIX_BUFF_BYTES = KMC2_DB_READER_PREFIX_BUFF_BYTES;
 	static const uint32 SUFFIX_BUFF_BYTES = KMC2_DB_READER_SUFFIX_BUFF_BYTES;
 
-	const CKMC_header& header;
+	const CKmerFileHeader& header;
 	const CInputDesc& desc;
 
 	uint32 suffix_bytes;
@@ -485,7 +484,7 @@ template<unsigned SIZE>
 class CKMC2DbReaderSequential : public CKCM2DbReaderSeqCounter_Base<SIZE>
 {
 public:
-	CKMC2DbReaderSequential(const CKMC_header& header, const CInputDesc& desc);
+	CKMC2DbReaderSequential(const CKmerFileHeader& header, const CInputDesc& desc);
 	bool NextKmerSequential(CKmer<SIZE>& kmer, uint32& counter);
 	~CKMC2DbReaderSequential();
 
@@ -510,7 +509,7 @@ template<unsigned SIZE>
 class CKMC2DbReaderCountersOnly : CKCM2DbReaderSeqCounter_Base<SIZE>
 {
 public:
-	CKMC2DbReaderCountersOnly(const CKMC_header& header, const CInputDesc& desc);
+	CKMC2DbReaderCountersOnly(const CKmerFileHeader& header, const CInputDesc& desc);
 	bool NextCounter(uint32& counter);
 
 private:
@@ -524,7 +523,7 @@ template<unsigned SIZE>
 class CKMC2DbReader : public CInput<SIZE>
 {
 public:
-	CKMC2DbReader(const CKMC_header& header, const CInputDesc& desc, CPercentProgress& percent_progress, KMCDBOpenMode open_mode);
+	CKMC2DbReader(const CKmerFileHeader& header, const CInputDesc& desc, CPercentProgress& percent_progress, KmerDBOpenMode open_mode);
 
 	void NextBundle(CBundle<SIZE>& bundle) override;
 
@@ -556,7 +555,6 @@ template<unsigned SIZE> CBin<SIZE>::CBin(uint32 bin_id, uint64* LUT, CKMC2DbRead
 bin_id(bin_id),
 LUT(LUT),
 bin_provider(kmc2_db.bin_provider),
-kmc2_db(kmc2_db),
 suffix_bytes(kmc2_db.suffix_bytes),
 counter_size(kmc2_db.header.counter_size),
 max_prefix(kmc2_db.lut_size - 1)
@@ -610,7 +608,7 @@ template<unsigned SIZE> bool CBin<SIZE>::NextKmer(CKmer<SIZE>& kmer, uint32& cou
 
 		--kmers_left;
 		--kmers_left_for_current_prefix;
-		if (counter - cutoff_min <= cutoff_range)
+		if (counter_size == 0 || counter - cutoff_min <= cutoff_range) //do not applay filtering if counter_size == 0 as it does not make sence
 			return true;
 	}
 	return false;
@@ -717,7 +715,7 @@ template<unsigned SIZE> void CKmerPQ<SIZE>::Process(CCircularQueue<SIZE>& output
 
 			--bin->kmers_left;
 			--bin->kmers_left_for_current_prefix;
-			if (counter - cutoff_min <= cutoff_range)
+			if (counter_size == 0 || counter - cutoff_min <= cutoff_range) //do not applay filtering if counter_size == 0 as it does not make sence
 			{
 				exists = true;
 				break;
@@ -823,103 +821,7 @@ template<unsigned SIZE> void CMergerParent<SIZE>::operator()()
 	}
 }
 
-//************************************************************************************************************
-// CParentSubthreadPartDesc - Contains current state of buffers
-//************************************************************************************************************
-struct CParentSubthreadPartDesc
-{
-	uint32 start, end, part_end;
-	uint32 left()
-	{
-		return end - part_end;
-	};
-};
 
-//************************************************************************************************************
-// CParentSubthreadSynchronizer - Synchronize subthreads created by CMergerParent
-//************************************************************************************************************
-class CParentSubthreadSynchronizer
-{
-	uint32 n_tasks = 0;
-	std::mutex mtx;
-	std::condition_variable cv;
-public:
-	void decrement()
-	{
-		std::lock_guard<std::mutex> lck(mtx);
-		--n_tasks;
-	}
-	void increment()
-	{
-		std::lock_guard<std::mutex> lck(mtx);
-		++n_tasks;
-	}
-
-	void wait()
-	{
-		std::unique_lock<std::mutex> lck(mtx);
-		cv.wait(lck, [this]{return !n_tasks; });
-	}
-
-	void notify_task_finished()
-	{
-		std::lock_guard<std::mutex> lck(mtx);
-		--n_tasks;
-		if (!n_tasks)
-			cv.notify_all();
-	}
-};
-
-//************************************************************************************************************
-// CParentSubthreadDesc - Input data of subthreads of CMergerParent
-//************************************************************************************************************
-template<unsigned SIZE>
-struct CParentSubthreadDesc
-{
-	std::vector<CBundleData<SIZE>>* inputs;
-	CBundleData<SIZE>* out;
-	std::vector<CParentSubthreadPartDesc> desc;
-	uint32 o_start;
-};
-
-//************************************************************************************************************
-// CParentSubthreadDescQueue - Passes data to subthreads from CMergerParent
-//************************************************************************************************************
-template<unsigned SIZE>
-class CParentSubthreadDescQueue
-{
-	mutable std::mutex mtx;
-	std::condition_variable cv;
-	bool empty = true;
-	bool completed = false;
-public:
-	CParentSubthreadDesc<SIZE> desc;
-	void start()
-	{
-		std::unique_lock<std::mutex> lck(mtx);
-		cv.wait(lck, [this]{return empty; });
-		empty = false;
-		cv.notify_all();
-	}
-
-	bool pop(CParentSubthreadDesc<SIZE> &_desc)
-	{
-		std::unique_lock<std::mutex> lck(mtx);
-		cv.wait(lck, [this]{return !empty || completed; });
-		if (completed)
-			return false;
-		_desc = desc;
-		empty = true;
-		cv.notify_all();
-		return true;
-	}
-	void mark_completed()
-	{
-		std::lock_guard<std::mutex> lck(mtx);
-		completed = true;
-		cv.notify_all();
-	}
-};
 
 //************************************************************************************************************
 // CMergerParentSubthread - Merge data described in CParentSubthreadDescQueue
@@ -1477,8 +1379,8 @@ template<unsigned SIZE> uint32 CMergerParent<SIZE>::LastLowerPlus1(CBundleData<S
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
 template<unsigned SIZE> CMergerChild<SIZE>::CMergerChild(bin_iter begin, bin_iter end, CCircularQueue<SIZE>& output_queue) :
-bins(begin, end),
-output_queue(output_queue)
+	bins(begin, end),
+	output_queue(output_queue)
 {
 
 }
@@ -1505,9 +1407,9 @@ template<unsigned SIZE> void CMergerChild<SIZE>::operator()()
 /*****************************************************************************************************************************/
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
-template<unsigned SIZE> CKMC2DbReaderSorted<SIZE>::CKMC2DbReaderSorted(const CKMC_header& header, const CInputDesc& desc) :
-header(header),
-desc(desc)
+template<unsigned SIZE> CKMC2DbReaderSorted<SIZE>::CKMC2DbReaderSorted(const CKmerFileHeader& header, const CInputDesc& desc) :
+	header(header),
+	desc(desc)
 {
 	LUTS = nullptr;
 	lut_size = 1 << 2 * header.lut_prefix_len;
@@ -1711,7 +1613,7 @@ template<unsigned SIZE> CKMC2DbReaderSorted<SIZE>::~CKMC2DbReaderSorted()
 /*****************************************************************************************************************************/
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
-template<unsigned SIZE> CKCM2DbReaderSeqCounter_Base<SIZE>::CKCM2DbReaderSeqCounter_Base(const CKMC_header& header, const CInputDesc& desc) :
+template<unsigned SIZE> CKCM2DbReaderSeqCounter_Base<SIZE>::CKCM2DbReaderSeqCounter_Base(const CKmerFileHeader& header, const CInputDesc& desc) :
 header(header),
 desc(desc)
 {
@@ -1812,7 +1714,7 @@ template<unsigned SIZE> bool CKCM2DbReaderSeqCounter_Base<SIZE>::reload_suf_buff
 /*****************************************************************************************************************************/
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
-template<unsigned SIZE> CKMC2DbReaderSequential<SIZE>::CKMC2DbReaderSequential(const CKMC_header& header, const CInputDesc& desc) :
+template<unsigned SIZE> CKMC2DbReaderSequential<SIZE>::CKMC2DbReaderSequential(const CKmerFileHeader& header, const CInputDesc& desc) :
 CKCM2DbReaderSeqCounter_Base<SIZE>(header, desc)
 {
 	this->open_files();
@@ -1888,11 +1790,16 @@ template<unsigned SIZE> bool CKMC2DbReaderSequential<SIZE>::NextKmerSequential(C
 		for (int32 i = this->prefix_bytes - 1; i >= 0; --i)
 			kmer.set_byte(pos--, current_prefix >> (i << 3));
 
-		counter = 0;
-		for (int32 i = this->header.counter_size - 1; i >= 0; --i)
+		if (this->header.counter_size == 0)
+			counter = 1;
+		else
 		{
-			counter <<= 8;
-			counter += record[i];
+			counter = 0;
+			for (int32 i = this->header.counter_size - 1; i >= 0; --i)
+			{
+				counter <<= 8;
+				counter += record[i];
+			}
 		}
 
 		++this->suffix_number;
@@ -1901,7 +1808,8 @@ template<unsigned SIZE> bool CKMC2DbReaderSequential<SIZE>::NextKmerSequential(C
 		if (this->suffix_buff_pos >= this->suffix_buff_size)
 			this->reload_suf_buff();
 
-		if (counter >= this->desc.cutoff_min && counter <= this->desc.cutoff_max)
+		//do not applay filtering if counter_size == 0 as it does not make sence
+		if ((this->header.counter_size == 0) || (counter >= this->desc.cutoff_min && counter <= this->desc.cutoff_max))
 			return true;
 	}
 }
@@ -1950,7 +1858,7 @@ template<unsigned SIZE> void CKMC2DbReaderSequential<SIZE>::reload_pref_buff()
 /*****************************************************************************************************************************/
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
-template<unsigned SIZE> CKMC2DbReaderCountersOnly<SIZE>::CKMC2DbReaderCountersOnly(const CKMC_header& header, const CInputDesc& desc) :
+template<unsigned SIZE> CKMC2DbReaderCountersOnly<SIZE>::CKMC2DbReaderCountersOnly(const CKmerFileHeader& header, const CInputDesc& desc) :
 CKCM2DbReaderSeqCounter_Base<SIZE>(header, desc)
 {
 	this->open_files();
@@ -1986,7 +1894,7 @@ template<unsigned SIZE> bool CKMC2DbReaderCountersOnly<SIZE>::NextCounter(uint32
 		if (this->suffix_buff_pos >= this->suffix_buff_size)
 			this->reload_suf_buff();
 
-		if (counter >= this->desc.cutoff_min && counter <= this->desc.cutoff_max)
+		if (this->header.counter_size == 0 || (counter >= this->desc.cutoff_min && counter <= this->desc.cutoff_max)) //do not applay filtering if counter_size == 0 as it does not make sence
 			return true;
 	}
 }
@@ -2010,19 +1918,19 @@ template<unsigned SIZE> void CKMC2DbReaderCountersOnly<SIZE>::allocate_buffers()
 /*****************************************************************************************************************************/
 /******************************************************** CONSTRUCTOR ********************************************************/
 /*****************************************************************************************************************************/
-template<unsigned SIZE> CKMC2DbReader<SIZE>::CKMC2DbReader(const CKMC_header& header, const CInputDesc& desc, CPercentProgress& percent_progress, KMCDBOpenMode open_mode) :
+template<unsigned SIZE> CKMC2DbReader<SIZE>::CKMC2DbReader(const CKmerFileHeader& header, const CInputDesc& desc, CPercentProgress& percent_progress, KmerDBOpenMode open_mode) :
 	percent_progress(percent_progress)
 {
 	progress_id = percent_progress.RegisterItem(header.total_kmers);
 	switch (open_mode)
 	{
-	case KMCDBOpenMode::sorted:
+	case KmerDBOpenMode::sorted:
 		db_reader_sorted = std::make_unique <CKMC2DbReaderSorted<SIZE>>(header, desc);
 		break;
-	case KMCDBOpenMode::sequential:
+	case KmerDBOpenMode::sequential:
 		db_reader_sequential = std::make_unique<CKMC2DbReaderSequential<SIZE>>(header, desc);
 		break;
-	case KMCDBOpenMode::counters_only:
+	case KmerDBOpenMode::counters_only:
 		db_reader_counters_only = std::make_unique<CKMC2DbReaderCountersOnly<SIZE>>(header, desc);
 		break;
 	default: //should never be here

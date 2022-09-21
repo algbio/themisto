@@ -4,8 +4,8 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 #ifndef _PARAMETERS_PARSER_H
@@ -34,7 +34,7 @@ class CParametersParser
 	bool read_output_for_transform();
 
 	uint32 get_max_counter_max();
-	uint32 get_max_cutoff_max();
+	uint64 get_max_cutoff_max();
 	uint32 get_min_cutoff_min();
 public:
 	

@@ -4,30 +4,29 @@
 
   Authors: Sebastian Deorowicz and Agnieszka Debudaj-Grabysz
 
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 
 #ifndef _KMER_DEFS_H
 #define _KMER_DEFS_H
 
-#define KMC_VER		"3.1.1"
-#define KMC_DATE	"2019-05-19"
+#include <cinttypes>
+
+#define KMC_VER		"3.2.1"
+#define KMC_DATE	"2022-01-04"
 
 #ifndef MIN
 #define MIN(x,y)	((x) < (y) ? (x) : (y))
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 	#include <stdint.h>
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <cmath>
 	#include <string.h>
-
-	#define _TCHAR	char
-	#define _tmain	main
 
 	#define my_fopen    fopen
 	#define my_fseek    fseek
@@ -43,13 +42,13 @@
 	#define my_fseek    _fseeki64
 	#define my_ftell    _ftelli64
 #endif
-	//typedef unsigned char uchar;
-
-	typedef int int32;
-	typedef unsigned int uint32;
-	typedef long long int64;
-	typedef unsigned long long uint64;
+	using int32 = int32_t;
+	using uint32 = uint32_t;
+	using int64 = int64_t;
+	using uint64 = uint64_t;
+#ifndef DONT_DEFINE_UCHAR
 	typedef unsigned char uchar;
+#endif
 #endif
 
 // ***** EOF

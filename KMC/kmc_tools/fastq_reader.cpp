@@ -4,11 +4,9 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
-
-#include "stdafx.h"
 
 #include <algorithm>
 #include <cstring>
@@ -20,13 +18,13 @@
 // CFastqReader	- reader class
 //************************************************************************************************************
 
-uint64 CFastqReader::OVERHEAD_SIZE = 1 << 16;
+uint64 CFastqReaderKMCTools::OVERHEAD_SIZE = 1 << 16;
 
 //----------------------------------------------------------------------------------
 // Constructor of FASTA/FASTQ reader
 // Parameters:
 //    * _mm - pointer to memory monitor (to check the memory limits)
-CFastqReader::CFastqReader(CMemoryPool *_pmm_fastq, CFilteringParams::file_type _file_type, uint32 _gzip_buffer_size, uint32 _bzip2_buffer_size, int _kmer_len)
+CFastqReaderKMCTools::CFastqReaderKMCTools(CMemoryPool *_pmm_fastq, CFilteringParams::file_type _file_type, uint32 _gzip_buffer_size, uint32 _bzip2_buffer_size, int _kmer_len)
 {
 	pmm_fastq = _pmm_fastq;
 
@@ -53,7 +51,7 @@ CFastqReader::CFastqReader(CMemoryPool *_pmm_fastq, CFilteringParams::file_type 
 
 //----------------------------------------------------------------------------------
 // Destructor - close the files
-CFastqReader::~CFastqReader()
+CFastqReaderKMCTools::~CFastqReaderKMCTools()
 {
 	if(mode == m_plain)
 	{
@@ -80,7 +78,7 @@ CFastqReader::~CFastqReader()
 
 //----------------------------------------------------------------------------------
 // Set the name of the file to process
-bool CFastqReader::SetNames(string _input_file_name)
+bool CFastqReaderKMCTools::SetNames(string _input_file_name)
 {
 	input_file_name = _input_file_name;
 
@@ -97,7 +95,7 @@ bool CFastqReader::SetNames(string _input_file_name)
 
 //----------------------------------------------------------------------------------
 // Set part size of the buffer
-bool CFastqReader::SetPartSize(uint64 _part_size)
+bool CFastqReaderKMCTools::SetPartSize(uint64 _part_size)
 {
 	if(in || in_gzip || in_bzip2)
 		return false;
@@ -112,7 +110,7 @@ bool CFastqReader::SetPartSize(uint64 _part_size)
 
 //----------------------------------------------------------------------------------
 // Open the file
-bool CFastqReader::OpenFiles()
+bool CFastqReaderKMCTools::OpenFiles()
 {
 	if(in || in_gzip || in_bzip2)
 		return false;
@@ -154,7 +152,7 @@ bool CFastqReader::OpenFiles()
 
 //----------------------------------------------------------------------------------
 // Read a part of the file
-bool CFastqReader::GetPart(uchar *&_part, uint64 &_size)
+bool CFastqReaderKMCTools::GetPart(uchar *&_part, uint64 &_size)
 {	
 	if(!in && !in_gzip && !in_bzip2)
 		return false;
@@ -279,7 +277,7 @@ bool CFastqReader::GetPart(uchar *&_part, uint64 &_size)
 
 //----------------------------------------------------------------------------------
 // Skip to next EOL from the current position in a buffer
-bool CFastqReader::SkipNextEOL(uchar *part, int64 &pos, int64 max_pos)
+bool CFastqReaderKMCTools::SkipNextEOL(uchar *part, int64 &pos, int64 max_pos)
 {
 	int64 i;
 	for(i = pos; i < max_pos-2; ++i)
@@ -294,7 +292,7 @@ bool CFastqReader::SkipNextEOL(uchar *part, int64 &pos, int64 max_pos)
 	return true;
 }
 
-void CFastqReader::GetFullLineFromEnd(int64& line_sart, int64& line_end, uchar* buff, int64& pos)
+void CFastqReaderKMCTools::GetFullLineFromEnd(int64& line_sart, int64& line_end, uchar* buff, int64& pos)
 {
 	while (pos >= 0 && buff[pos] != '\n' && buff[pos] != '\r')
 		--pos;
@@ -307,7 +305,7 @@ void CFastqReader::GetFullLineFromEnd(int64& line_sart, int64& line_end, uchar* 
 };
 //----------------------------------------------------------------------------------
 // Check whether there is an EOF
-bool CFastqReader::IsEof()
+bool CFastqReaderKMCTools::IsEof()
 {
 	if(mode == m_plain)
 		return feof(in) != 0;
@@ -324,7 +322,7 @@ bool CFastqReader::IsEof()
 //************************************************************************************************************
 // CWFastqReader - wrapper for multithreading purposes
 //************************************************************************************************************
-CWFastqReader::CWFastqReader(CFilteringParams &Params, CFilteringQueues &Queues)
+CWFastqReaderKMCTools::CWFastqReaderKMCTools(CFilteringParams &Params, CFilteringQueues &Queues)
 {	
 	pmm_fastq = Queues.pmm_fastq_reader;
 
@@ -341,19 +339,19 @@ CWFastqReader::CWFastqReader(CFilteringParams &Params, CFilteringQueues &Queues)
 }
 
 //----------------------------------------------------------------------------------
-CWFastqReader::~CWFastqReader()
+CWFastqReaderKMCTools::~CWFastqReaderKMCTools()
 {
 }
 
 //----------------------------------------------------------------------------------
-void CWFastqReader::operator()()
+void CWFastqReaderKMCTools::operator()()
 {
 	uchar *part;
 	uint64 part_filled;
 	
 	while(input_files_queue->pop(file_name))
 	{
-		fqr = new CFastqReader(pmm_fastq, file_type, gzip_buffer_size, bzip2_buffer_size, kmer_len);
+		fqr = new CFastqReaderKMCTools(pmm_fastq, file_type, gzip_buffer_size, bzip2_buffer_size, kmer_len);
 		fqr->SetNames(file_name);
 		fqr->SetPartSize(part_size);
 

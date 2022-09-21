@@ -50,7 +50,7 @@ private:
 Sequence_Reader_Buffered(const Sequence_Reader_Buffered& temp_obj) = delete; // No copying
 Sequence_Reader_Buffered& operator=(const Sequence_Reader_Buffered& temp_obj) = delete;  // No copying
 
-Buffered_ifstream stream;
+Buffered_ifstream<std::ifstream> stream;
 LL mode;
 LL read_buf_cap;
 

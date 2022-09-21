@@ -4,8 +4,8 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 #ifndef _CONFIG_H
@@ -16,16 +16,23 @@
 #include <vector>
 #include <memory>
 #include <cstring>
-#include "kmc_header.h"
+#include "kmer_file_header.h"
 #include "percent_progress.h"
 
 enum class CounterOpType { MIN, MAX, SUM, DIFF, FROM_DB1, FROM_DB2, NONE };
+enum class OutputType { KMC1, KFF1 };
+enum class KmerDBOpenMode { sequential, sorted, counters_only };
 
 class CCounterBuilder
 {
 public:
 	static void build_counter(uint32& counter, uchar *&buffer, uint32 counter_bytes, uint32 counter_mask, bool little_endian)
 	{
+		if (counter_bytes == 0)
+		{
+			counter = 1;
+			return;
+		}
 		memcpy(&counter, buffer, sizeof(counter));
 		if (!little_endian)
 			counter = _bswap_uint32(counter);
@@ -38,7 +45,7 @@ struct CDescBase
 {
 	std::string file_src;
 	uint32 cutoff_min = 0; //0 means it is not set yet
-	uint32 cutoff_max = 0; //0 means it is not set yet
+	uint64 cutoff_max = 0; //0 means it is not set yet
 	CDescBase(const std::string& file_src) :
 		file_src(file_src)
 	{
@@ -67,6 +74,8 @@ struct COutputDesc : public CDescBase
 {
 	uint32 counter_max = 0; //0 means it is not set yet
 	uint64 counter_value = 0; //only for SET_COUNTER operation, 0 means not set yet
+	uint8_t encoding = 0b00011011; //for KFF writers
+	OutputType output_type = OutputType::KMC1;
 	COutputDesc(const std::string& file_src) :
 		CDescBase(file_src)		
 	{
@@ -160,7 +169,7 @@ public:
 	Mode mode = Mode::UNDEFINED;
 	bool verbose = false;	
 	std::vector<CInputDesc> input_desc;
-	std::vector<CKMC_header> headers;
+	std::vector<CKmerFileHeader> headers;
 		
 	COutputDesc output_desc; //complex only?
 
@@ -312,6 +321,7 @@ public:
 				  << "  -ci<value>  - exclude k-mers occurring less than <value> times \n"
 				  << "  -cx<value>  - exclude k-mers occurring more of than <value> times\n"
 				  << "  -cs<value>  - maximal value of a counter\n"
+				  << "  -o<kmc|kff> - output in KMC or KFF format (default: kmc) \n"
 				  << "  -oc<value>  - redefine counter calculation mode for equal k-mers\n"
 				  << "    Available values : \n"
 				  << "      min   - get lower value of a k-mer counter (default value for intersect operation)\n"
@@ -355,6 +365,9 @@ public:
 				  << "  -ci<value> - exclude k-mers occurring less than <value> times \n"
 				  << "  -cx<value> - exclude k-mers occurring more of than <value> times\n"
 				  << "  -cs<value> - maximal value of a counter\n"
+
+				  << " For compact, reduce, set_counts and sort operations is an additional output_params:\n"
+				  << "  -o<kmc|kff> - output in KMC or KFF format (default: kmc) \n"				  
 			
 				  << " For histogram operation there are additional output_params:\n"
 				  << "  -ci<value> - minimum value of counter to be stored in the otput file\n"

@@ -149,7 +149,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         queries_out.close();
 
         stringstream build_argstring;
-        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 1 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << get_temp_file_manager().get_dir();
+        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << get_temp_file_manager().get_dir();
         Argv build_argv(split(build_argstring.str()));
 
         ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);

@@ -4,11 +4,10 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include "parameters_parser.h"
 #include <iostream>
 using namespace std;
@@ -358,7 +357,7 @@ bool CParametersParser::read_output_for_transform()
 				Usage();
 				exit(1);
 			}
-		}
+		}		
 		else
 		{
 			cerr << "Error: unknown operation parameter: " << argv[pos] <<"\n";
@@ -399,6 +398,34 @@ bool CParametersParser::read_output_for_transform()
 		else if (strncmp(argv[pos], "-cs", 3) == 0)
 		{
 			config.transform_output_desc.back().counter_max = replace_zero(atoi(argv[pos++] + 3), "-cs", 1);
+		}
+		else if (strncmp(argv[pos], "-o", 2) == 0)
+		{
+			auto& op_type = config.transform_output_desc.back().op_type;
+
+			if (op_type == CTransformOutputDesc::OpType::COMPACT ||
+				op_type == CTransformOutputDesc::OpType::REDUCE ||
+				op_type == CTransformOutputDesc::OpType::SET_COUNTS ||
+				op_type == CTransformOutputDesc::OpType::SORT)
+			{
+				if (strncmp(argv[pos] + 2, "kff", 3) == 0)
+					config.transform_output_desc.back().output_type = OutputType::KFF1;
+				else if (strncmp(argv[pos] + 2, "kmc", 3) == 0)
+					config.transform_output_desc.back().output_type = OutputType::KMC1;
+				else
+				{
+					cerr << "Error: Unknown output type\n";
+					Usage();
+					exit(1);
+				}
+				++pos;
+			}
+			else
+			{
+				cerr << "Error: -o parameter allowed only for compact, reduce, set_counts and sort operations\n";
+				Usage();
+				exit(1);
+			}
 		}
 		else
 		{
@@ -528,6 +555,20 @@ bool CParametersParser::read_output_desc_for_simple()
 			else
 			{
 				cerr << "Error: unknown counter calculation mode: " << mode << ". Allowed values: min, max, sum, diff, left, right\n";
+				exit(1);
+			}
+			++pos;
+		}
+		else if (strncmp(argv[pos], "-o", 2) == 0)
+		{			
+			if (strncmp(argv[pos] + 2, "kff", 3) == 0)
+				config.simple_output_desc.back().output_type = OutputType::KFF1;
+			else if (strncmp(argv[pos] + 2, "kmc", 3) == 0)
+				config.simple_output_desc.back().output_type = OutputType::KMC1;
+			else
+			{
+				cerr << "Error: Unknown output type\n";
+				Usage();
 				exit(1);
 			}
 			++pos;
@@ -683,9 +724,9 @@ uint32 CParametersParser::get_min_cutoff_min()
 	return min_cutoff_min;
 }
 
-uint32 CParametersParser::get_max_cutoff_max()
+uint64 CParametersParser::get_max_cutoff_max()
 {
-	uint32 max_cutoff_max = config.input_desc.front().cutoff_max;
+	uint64 max_cutoff_max = config.input_desc.front().cutoff_max;
 	for (uint32 i = 0; i < config.input_desc.size(); ++i)
 	{
 		if (config.input_desc[i].cutoff_max > max_cutoff_max)
@@ -703,12 +744,14 @@ uint32 CParametersParser::get_max_counter_max()
 			max_counter_max = config.headers[i].counter_size;
 	}
 	max_counter_max = (uint32)((1ull << (max_counter_max << 3)) - 1);
+	if (max_counter_max == 0)
+		max_counter_max = 1;
 	return max_counter_max;
 }
 
 bool CParametersParser::validate_input_dbs()
 {
-	config.headers.push_back(CKMC_header(config.input_desc.front().file_src));
+	config.headers.push_back(CKmerFileHeader(config.input_desc.front().file_src));
 
 	uint32 kmer_len = config.headers.front().kmer_len;
 	uint32 mode = config.headers.front().mode;
@@ -717,10 +760,13 @@ bool CParametersParser::validate_input_dbs()
 		cerr << "Error: quality counters are not supported in kmc tools\n"; 
 		return false;
 	}
+
+	uint8_t encoding = config.headers.front().GetEncoding();
+
 	for (uint32 i = 1; i < config.input_desc.size(); ++i)
 	{
-		config.headers.push_back(CKMC_header(config.input_desc[i].file_src));
-		CKMC_header& h = config.headers.back();
+		config.headers.push_back(CKmerFileHeader(config.input_desc[i].file_src));
+		CKmerFileHeader& h = config.headers.back();
 		if (h.mode != mode)
 		{
 			cerr << "Error: quality/direct based counters conflict!\n";
@@ -731,9 +777,66 @@ bool CParametersParser::validate_input_dbs()
 			cerr << "Database " << config.input_desc.front().file_src << " contains " << kmer_len << "-mers, but database " << config.input_desc[i].file_src << " contains " << h.kmer_len << "-mers\n";
 			return false;
 		}
+
+		if (h.GetEncoding() != encoding)
+		{
+			cerr << "Error: different k-mers encodings across input databases\n";
+			return false;
+		}
 	}
+
+	for(auto& header : config.headers)
+		if (header.counter_size == 0)
+		{
+			std::cerr << "Error: kmc_tools currently does not support k-mer sets without counters. It will be implemented soon. If needed faster please contact authors or post an issue at https://github.com/refresh-bio/KMC/issues.\n";
+			exit(1);
+		}
+
 	config.kmer_len = kmer_len;
 
+	//KMC output file format cannot be used if encoding is different than 00011011
+	if (encoding != 0b00011011)
+	{
+		bool was_output_format_overridden = false;
+		if (config.mode == CConfig::Mode::COMPLEX)
+		{
+			config.output_desc.encoding = encoding;
+			if (config.output_desc.output_type == OutputType::KMC1)
+			{
+				was_output_format_overridden = true;
+				config.output_desc.output_type = OutputType::KFF1;
+			}
+		}
+
+		for (auto& c : config.simple_output_desc)
+		{
+			c.encoding = encoding;
+			if (c.output_type == OutputType::KMC1)
+			{
+				was_output_format_overridden = true;
+				c.output_type = OutputType::KFF1;
+			}
+		}
+		for (auto& c : config.transform_output_desc)
+		{
+			c.encoding = encoding;
+			//dump and histogram writes in text format
+			if (c.op_type == CTransformOutputDesc::OpType::DUMP ||
+				c.op_type == CTransformOutputDesc::OpType::HISTOGRAM)
+				continue;
+
+			if (c.output_type == OutputType::KMC1)
+			{
+				was_output_format_overridden = true;
+				c.output_type = OutputType::KFF1;
+			}
+		}
+
+		if (was_output_format_overridden)
+		{
+			std::cerr << "Warning: only A -> 0, C -> 1, G -> 2, T -> 3 encoding is supported by KMC format. Because different encoding was used for input database(s) KKF file format is enforced for each output\n";
+		}
+	}
 
 	//update cutoff_min and coutoff_max if it was not set with parameters
 	for (uint32 i = 0; i < config.input_desc.size(); ++i)
@@ -748,7 +851,7 @@ bool CParametersParser::validate_input_dbs()
 	if (config.mode == CConfig::Mode::SIMPLE_SET)
 	{
 		uint32 min_cutoff_min = get_min_cutoff_min();
-		uint32 max_cutoff_max = get_max_cutoff_max();
+		uint64 max_cutoff_max = get_max_cutoff_max();
 		uint32 max_counter_max = get_max_counter_max();
 		
 		for (auto& desc : config.simple_output_desc)
@@ -764,7 +867,7 @@ bool CParametersParser::validate_input_dbs()
 	else if (config.mode == CConfig::Mode::TRANSFORM)
 	{
 		uint32 min_cutoff_min = get_min_cutoff_min();
-		uint32 max_cutoff_max = get_max_cutoff_max();
+		uint64 max_cutoff_max = get_max_cutoff_max();
 		uint32 max_counter_max = get_max_counter_max();
 
 		for (auto& desc : config.transform_output_desc)
@@ -798,7 +901,7 @@ bool CParametersParser::validate_input_dbs()
 		}
 		if (config.output_desc.cutoff_max == 0)
 		{
-			uint32 max_cutoff_max = get_max_cutoff_max();
+			uint64 max_cutoff_max = get_max_cutoff_max();
 			config.output_desc.cutoff_max = max_cutoff_max;
 			if (config.verbose)
 				cerr << "Warning: -cx was not specified for output. It will be set to " << config.output_desc.cutoff_max << "\n";
@@ -817,17 +920,17 @@ bool CParametersParser::validate_input_dbs()
 void CParametersParser::SetThreads()
 {
 	uint32 threads_left = config.avaiable_threads;
-	//threads distribution: as many as possible for kmc2 database input, 1 thread for main thread which make operations calculation
-	vector<reference_wrapper<CInputDesc>> kmc2_desc;
+	//threads distribution: as many as possible for kmc2 of kff database input, 1 thread for main thread which make operations calculation
+	vector<reference_wrapper<CInputDesc>> kmc2_or_kff_desc;
 
 	if (config.IsSeparateThreadForMainProcessingNeeded())
 		threads_left = MAX(1, threads_left - 1);
 	
 	for (uint32 i = 0; i < config.headers.size(); ++i)
 	{
-		if (config.headers[i].IsKMC2())
+		if (config.headers[i].kmer_file_type == KmerFileType::KMC2 || config.headers[i].kmer_file_type == KmerFileType::KFF1)
 		{
-			kmc2_desc.push_back(ref(config.input_desc[i]));
+			kmc2_or_kff_desc.push_back(ref(config.input_desc[i]));
 		}
 		else
 		{
@@ -837,15 +940,15 @@ void CParametersParser::SetThreads()
 				threads_left = 1;
 		}
 	}
-	if (kmc2_desc.size())
+	if (kmc2_or_kff_desc.size())
 	{
-		uint32 per_signle_kmc2_input = MAX(1, (uint32)(threads_left / kmc2_desc.size()));
-		uint32 per_last_kmc2_input = MAX(1, (uint32)((threads_left + kmc2_desc.size() - 1) / kmc2_desc.size()));
+		uint32 per_signle_kmc2_input = MAX(1, (uint32)(threads_left / kmc2_or_kff_desc.size()));
+		uint32 per_last_kmc2_input = MAX(1, (uint32)((threads_left + kmc2_or_kff_desc.size() - 1) / kmc2_or_kff_desc.size()));
 
-		for (uint32 i = 0; i < kmc2_desc.size() - 1; ++i)
-			kmc2_desc[i].get().threads = per_signle_kmc2_input;
+		for (uint32 i = 0; i < kmc2_or_kff_desc.size() - 1; ++i)
+			kmc2_or_kff_desc[i].get().threads = per_signle_kmc2_input;
 
-		kmc2_desc.back().get().threads = per_last_kmc2_input;
+		kmc2_or_kff_desc.back().get().threads = per_last_kmc2_input;
 	}
 }
 

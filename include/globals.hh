@@ -70,6 +70,7 @@ void sigabrt_handler(int sig);
 vector<string> get_first_and_last_kmers(string fastafile, LL k);
 
 string get_rc(string S);
+char get_rc(char S);
 
 // true if S is colexicographically-smaller than T
 bool colex_compare(const string& S, const string& T);

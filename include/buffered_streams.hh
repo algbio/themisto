@@ -1,6 +1,8 @@
 #pragma once
 
 #include "globals.hh"
+#include <fstream>
+#include "zstr/zstr.hpp"
 
 Temp_File_Manager& get_temp_file_manager();
 
@@ -8,7 +10,10 @@ Temp_File_Manager& get_temp_file_manager();
 // call, which can be slow if the reads or writes are in small chunks. The buffer is also pretty
 // small by default. These classes store the input/output in a large buffer and call the stream 
 // only when the buffer is full, which results in far less virtual function calls and better performance.
+// These classes take as template parameter the underlying ifstream or ofstream, so you can use any
+// stream that has the same interface as the std streams.
 
+template<class ifstream_t = std::ifstream> // The underlying ifstream
 class Buffered_ifstream{
 
 private:
@@ -18,12 +23,12 @@ private:
 
     
     vector<char> buf;
-    LL buf_cap = 1 << 20;
+    LL buf_cap = 1 << 23;
 
     LL buf_pos = 0;
     LL buf_size = 0;
     bool is_eof = false;
-    ifstream stream;
+    ifstream_t* stream = nullptr;
 
 public:
 
@@ -31,9 +36,13 @@ public:
     Buffered_ifstream& operator = (Buffered_ifstream&&) = default;  // Movable
 
     Buffered_ifstream() {}
+    ~Buffered_ifstream() {
+        delete stream;
+    }
 
-    Buffered_ifstream(string filename, ios_base::openmode mode = ios_base::in) : stream(filename, mode) {
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
+    Buffered_ifstream(string filename, ios_base::openmode mode = ios_base::in) {
+        stream = new ifstream_t(filename, mode);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
     }
 
@@ -42,8 +51,8 @@ public:
     bool get(char* c){
         if(is_eof) return false;
         if(buf_pos == buf_size){
-            stream.read(buf.data(), buf_cap);
-            buf_size = stream.gcount();
+            stream->read(buf.data(), buf_cap);
+            buf_size = stream->gcount();
             buf_pos = 0;
             if(buf_size == 0){
                 is_eof = true;
@@ -80,16 +89,18 @@ public:
     }
 
     void open(string filename, ios_base::openmode mode = ios_base::in){
+        delete stream;
+        stream = new ifstream_t(filename, mode);
         buf.resize(buf_cap);
-        stream.open(filename, mode);
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
         buf_size = 0;
         buf_pos = 0;
         is_eof = false;
     }
 
     void close(){
-        stream.close();
+        delete stream;
+        stream = nullptr;
     }
 
 
@@ -100,7 +111,7 @@ public:
 
 };
 
-
+template<class ofstream_t = std::ofstream> // The underlying ifstream
 class Buffered_ofstream{
 
 private:
@@ -111,19 +122,21 @@ private:
     vector<char> buf;
     LL buf_size = 0;
     LL buf_cap = 1 << 23;
-    ofstream stream;
+    ofstream_t* stream = nullptr;
 
     void empty_internal_buffer_to_stream(){
-        try{
-            stream.write(buf.data(), buf_size);
-        } catch(const std::ios_base::failure& e){
-            cerr << "Error writing to disk (perhaps the disk is full?)" << endl;
-            cerr << e.what() << endl;
-            cerr << e.code() << endl;
-            get_temp_file_manager().delete_all_files();
-            exit(1);
+        if(stream){
+            try{
+                stream->write(buf.data(), buf_size);
+            } catch(const std::ios_base::failure& e){
+                cerr << "Error writing to disk (perhaps the disk is full?)" << endl;
+                cerr << e.what() << endl;
+                cerr << e.code() << endl;
+                get_temp_file_manager().delete_all_files();
+                exit(1);
+            }
+            buf_size = 0;
         }
-        buf_size = 0;
     }
 
 public:
@@ -132,9 +145,11 @@ public:
     Buffered_ofstream& operator = (Buffered_ofstream&&) = default;  // Movable
 
     Buffered_ofstream(){}
-    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out) : stream(filename, mode){
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
-        stream.exceptions(stream.failbit | stream.badbit);
+
+    Buffered_ofstream(string filename, ios_base::openmode mode = ios_base::out){
+        stream = new ofstream_t(filename, mode);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
+        stream->exceptions(stream->failbit | stream->badbit);
         buf.resize(buf_cap);
     }
 
@@ -151,25 +166,28 @@ public:
     }
 
     void open(string filename, ios_base::openmode mode = ios_base::out){
+        delete stream;
+        stream = new ofstream_t(filename, mode);
+        if(!stream->good()) throw std::runtime_error("Error opening file " + filename);
         buf.resize(buf_cap);
-        stream.open(filename, mode);
-        if(!stream.good()) throw std::runtime_error("Error opening file " + filename);
         buf_size = 0;
     }
 
     void close(){
         empty_internal_buffer_to_stream();
-        stream.close();
+        delete stream; // Flushes also
+        stream = nullptr;
     }
 
     // Flush the internal buffer AND the file stream
     void flush(){
         empty_internal_buffer_to_stream();
-        stream.flush();
+        stream->flush();
     }
 
     ~Buffered_ofstream(){
         empty_internal_buffer_to_stream();
+        delete stream;
     }
 
 };

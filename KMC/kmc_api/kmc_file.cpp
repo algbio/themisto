@@ -4,14 +4,12 @@
 
   Authors: Sebastian Deorowicz, Agnieszka Debudaj-Grabysz, Marek Kokot
 
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include "mmer.h"
 #include "kmc_file.h"
-#include <iostream>
 #include <tuple>
 
 
@@ -35,11 +33,8 @@ bool CKMCFile::OpenForRA(const std::string &file_name)
 	if (!OpenASingleFile(file_name + ".kmc_pre", file_pre, size, (char *)"KMCP"))
 		return false;
 
-	ReadParamsFrom_prefix_file_buf(size);
+	ReadParamsFrom_prefix_file_buf(size, open_mode::opened_for_RA);
 
-	fclose(file_pre);
-	file_pre = NULL;
-		
 	if (!OpenASingleFile(file_name + ".kmc_suf", file_suf, size, (char *)"KMCS"))
 		return false;
 
@@ -76,9 +71,7 @@ bool CKMCFile::OpenForListing(const std::string &file_name)
 	if (!OpenASingleFile(file_name + ".kmc_pre", file_pre, size, (char *)"KMCP"))
 		return false;
 
-	ReadParamsFrom_prefix_file_buf(size);
-	fclose(file_pre);
-	file_pre = NULL;
+	ReadParamsFrom_prefix_file_buf(size, open_mode::opened_for_listing);
 
 	end_of_file = total_kmers == 0;
 
@@ -182,7 +175,7 @@ bool CKMCFile::OpenASingleFile(const std::string &file_name, FILE *&file_handler
 // IN	: the size of the file *.kmc_pre, without initial and terminal markers 
 // RET	: true - if succesfull
 //----------------------------------------------------------------------------------
-bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
+bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size, open_mode _open_mode)
 {
 	size_t prev_pos = my_ftell(file_pre);
 	my_fseek(file_pre, -12, SEEK_END);
@@ -205,6 +198,11 @@ bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
 		my_fseek(file_pre, (0LL - (header_offset + 8)), SEEK_END);
 		result = fread(&kmer_length, 1, sizeof(uint32), file_pre);
 		result = fread(&mode, 1, sizeof(uint32), file_pre);
+		if (mode != 0)
+		{
+			std::cerr << "Error: Quake quake compatible counters are not supported anymore\n";
+			return false;
+		}
 		result = fread(&counter_size, 1, sizeof(uint32), file_pre);
 		result = fread(&lut_prefix_length, 1, sizeof(uint32), file_pre);
 		result = fread(&signature_len, 1, sizeof(uint32), file_pre);
@@ -223,21 +221,38 @@ bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
 		single_LUT_size = 1 << (2 * lut_prefix_length);
 		uint64 last_data_index = lut_area_size_in_bytes / sizeof(uint64);
 
-		rewind(file_pre);
-		my_fseek(file_pre, +4, SEEK_CUR);
-		prefix_file_buf_size = (lut_area_size_in_bytes + 8) / sizeof(uint64);		//reads without 4 bytes of a header_offset (and without markers)		
-		prefix_file_buf = new uint64[prefix_file_buf_size];
-		result = fread(prefix_file_buf, 1, (size_t)(lut_area_size_in_bytes + 8), file_pre);
-		if (result == 0)
-			return false;
-		prefix_file_buf[last_data_index] = total_kmers + 1;
-
 		signature_map = new uint32[signature_map_size];
+
+		fseek(file_pre, 4 + lut_area_size_in_bytes + 8, SEEK_SET);
 		result = fread(signature_map, 1, signature_map_size * sizeof(uint32), file_pre);
 		if (result == 0)
 			return false;
 
-		sufix_size = (kmer_length - lut_prefix_length) / 4;		 
+		if(_open_mode == opened_for_RA)
+		{
+			rewind(file_pre);
+			my_fseek(file_pre, +4, SEEK_CUR);
+			prefix_file_buf_size = (lut_area_size_in_bytes + 8) / sizeof(uint64);		//reads without 4 bytes of a header_offset (and without markers)
+			prefix_file_buf = new uint64[prefix_file_buf_size];
+			result = fread(prefix_file_buf, 1, (size_t)(lut_area_size_in_bytes + 8), file_pre);
+			if (result == 0)
+				return false;
+
+			prefix_file_buf[last_data_index] = total_kmers + 1; //I think + 1 if wrong, but due to the implementation of binary search it does not matter, it was here in kmc 0.3 and I leave it this way just in case...
+
+			result = fread(signature_map, 1, signature_map_size * sizeof(uint32), file_pre);
+			if (result == 0)
+				return false;
+
+			fclose(file_pre);
+			file_pre = nullptr;
+		}
+		else
+		{
+			prefixFileBufferForListingMode = std::make_unique<CPrefixFileBufferForListingMode>(file_pre, last_data_index, lut_prefix_length, false, total_kmers);
+		}
+
+		sufix_size = (kmer_length - lut_prefix_length) / 4;
 	
 		sufix_rec_size = sufix_size + counter_size;	
 
@@ -245,12 +260,6 @@ bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
 	}
 	else if (kmc_version == 0)
 	{
-		prefix_file_buf_size = (size - 4) / sizeof(uint64);		//reads without 4 bytes of a header_offset (and without markers)		
-		prefix_file_buf = new uint64[prefix_file_buf_size];
-		result = fread(prefix_file_buf, 1, (size_t)(size - 4), file_pre);
-		if (result == 0)
-			return false;
-
 		my_fseek(file_pre, -8, SEEK_END);
 
 		uint64 header_offset;
@@ -258,38 +267,52 @@ bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
 
 		size = size - 4;
 
-		uint64 header_index = (size - header_offset) / sizeof(uint64);
-		uint64 last_data_index = header_index;
+		my_fseek(file_pre, (0LL - (header_offset + 8)), SEEK_END);
+		result = fread(&kmer_length, 1, sizeof(uint32), file_pre);
+		result = fread(&mode, 1, sizeof(uint32), file_pre);
+		if (mode != 0)
+		{
+			std::cerr << "Error: Quake quake compatible counters are not supported anymore\n";
+			return false;
+		}
+		result = fread(&counter_size, 1, sizeof(uint32), file_pre);
+		result = fread(&lut_prefix_length, 1, sizeof(uint32), file_pre);
+		result = fread(&min_count, 1, sizeof(uint32), file_pre);
+		original_min_count = min_count;
 
-		uint64 d = prefix_file_buf[header_index];
-
-		kmer_length = (uint32)d;			//- kmer's length
-		mode = d >> 32;				//- mode: 0 or 1
-
-		header_index++;
-		counter_size = (uint32)prefix_file_buf[header_index];	//- the size of a counter in bytes; 
-		//- for mode 0 counter_size is 1, 2, 3, or 4 (or 5, 6, 7, 8 for small k values)
-		//- for mode = 1 counter_size is 4;
-		lut_prefix_length = prefix_file_buf[header_index] >> 32;		//- the number of prefix's symbols cut frm kmers; 
-		//- (kmer_length - lut_prefix_length) is divisible by 4
-
-		header_index++;
-		original_min_count = (uint32)prefix_file_buf[header_index];    //- the minimal number of kmer's appearances 
-		min_count = original_min_count;
-		original_max_count = prefix_file_buf[header_index] >> 32;      //- the maximal number of kmer's appearances
-		//max_count = original_max_count;
-
-		header_index++;
-		total_kmers = prefix_file_buf[header_index];					//- the total number of kmers 
-
-		header_index++;
-		both_strands = (prefix_file_buf[header_index] & 0x000000000000000F) == 1;
+		uint32 max_count_lo;
+		result = fread(&max_count_lo, 1, sizeof(uint32), file_pre);
+		max_count = max_count_lo;
+		original_max_count = max_count;
+		result = fread(&total_kmers, 1, sizeof(uint64), file_pre);
+		result = fread(&both_strands, 1, 1, file_pre);
 		both_strands = !both_strands;
 
-		original_max_count += prefix_file_buf[header_index] & 0xFFFFFFFF00000000;
-		max_count = original_max_count;
+		uint32 max_count_hi;
+		result = fread(&max_count_hi, 1, sizeof(uint32), file_pre);
+		max_count += (uint64)max_count_hi << 32;
+		original_max_count = max_count;
 
-		prefix_file_buf[last_data_index] = total_kmers + 1;
+		prefix_file_buf_size = (1ull << (2 * lut_prefix_length)) + 1;
+		uint64 last_data_index = prefix_file_buf_size - 1;
+
+		if (_open_mode == opened_for_RA)
+		{
+			prefix_file_buf = new uint64[prefix_file_buf_size];
+			fseek(file_pre, 4, SEEK_SET);
+			result = fread(prefix_file_buf, 1, (size_t)(prefix_file_buf_size * sizeof(uint64)), file_pre);
+			if (result == 0)
+				return false;
+
+			prefix_file_buf[last_data_index] = total_kmers + 1; //I think + 1 if wrong, but due to the implementation of binary search it does not matter, it was here in kmc 0.3 and I leave it this way just in case...
+
+			fclose(file_pre);
+			file_pre = nullptr;
+		}
+		else
+		{
+			prefixFileBufferForListingMode = std::make_unique<CPrefixFileBufferForListingMode>(file_pre, last_data_index, lut_prefix_length, true, total_kmers);
+		}
 
 		sufix_size = (kmer_length - lut_prefix_length) / 4;
 
@@ -297,26 +320,6 @@ bool CKMCFile::ReadParamsFrom_prefix_file_buf(uint64 &size)
 
 		return true;
 
-	}
-	return false;
-}
-
-//------------------------------------------------------------------------------------------
-// Check if kmer exists. 
-// IN : kmer  - kmer
-// OUT: count - kmer's counter if kmer exists
-// RET: true  - if kmer exists
-//------------------------------------------------------------------------------------------
-bool CKMCFile::CheckKmer(CKmerAPI &kmer, float &count)
-{
-	uint32 int_counter;
-	if (CheckKmer(kmer, int_counter))
-	{
-		if (mode == 0)
-			count = (float)int_counter;
-		else
-			memcpy(&count, &int_counter, counter_size);
-		return true;
 	}
 	return false;
 }
@@ -415,20 +418,6 @@ bool CKMCFile::Eof(void)
 	return end_of_file;	
 }
 
-bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, float &count)
-{
-	uint32 int_counter;
-	if (ReadNextKmer(kmer, int_counter))
-	{
-		if (mode == 0)
-			count = (float)int_counter;
-		else
-			memcpy(&count, &int_counter, counter_size);
-		return true;
-	}
-	return false;
-
-}
 //-----------------------------------------------------------------------------------------------
 // Read next kmer
 // OUT: kmer - next kmer
@@ -437,26 +426,17 @@ bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, float &count)
 //-----------------------------------------------------------------------------------------------
 bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint32 &count)
 {
-	uint64 prefix_mask = (1 << 2 * lut_prefix_length) - 1; //for kmc2 db
-
 	if(is_opened != opened_for_listing)
 		return false;
 	do
 	{
 		if(end_of_file)
 			return false;
-		
-		if(sufix_number == prefix_file_buf[prefix_index + 1]) 
-		{
-			prefix_index++;
-						
-			while (prefix_file_buf[prefix_index] == prefix_file_buf[prefix_index + 1])
-				prefix_index++;
-		}
 	
 		uint32 off = (sizeof(prefix_index) * 8) - (lut_prefix_length * 2) - kmer.byte_alignment * 2;
-			
-		uint64 temp_prefix = (prefix_index & prefix_mask) << off;	// shift prefix towards MSD. "& prefix_mask" necessary for kmc2 db format
+		uint64 prefix = prefixFileBufferForListingMode->GetPrefix(sufix_number);
+
+		uint64 temp_prefix = prefix << off;	// shift prefix towards MSD. "& prefix_mask" necessary for kmc2 db format
 		
 		kmer.kmer_data[0] = temp_prefix;			// store prefix in an object CKmerAPI
 
@@ -486,44 +466,37 @@ bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint32 &count)
 			else
 					off -=8;
 		}
-	
-		//read counter:
-		if(index_in_partial_buf == part_size)
-			Reload_sufix_file_buf();
 		
-		count = sufix_file_buf[index_in_partial_buf++];
-
-		for(uint32 b = 1; b < counter_size; b++)
+		//read counter:
+		if (counter_size == 0)
+			count = 1;
+		else
 		{
-			if(index_in_partial_buf == part_size)
+			
+			if (index_in_partial_buf == part_size)
 				Reload_sufix_file_buf();
-			
-			uint32 aux = 0x000000ff & sufix_file_buf[index_in_partial_buf++];
-			aux = aux << 8 * ( b);
-			count = aux | count;
+
+			count = sufix_file_buf[index_in_partial_buf++];
+
+			for (uint32 b = 1; b < counter_size; b++)
+			{
+				if (index_in_partial_buf == part_size)
+					Reload_sufix_file_buf();
+
+				uint32 aux = 0x000000ff & sufix_file_buf[index_in_partial_buf++];
+				aux = aux << 8 * (b);
+				count = aux | count;
+			}
 		}
-			
 		sufix_number++;
 	
 		if(sufix_number == total_kmers)
 			end_of_file = true;
-
-		if (mode != 0)
-		{
-			float float_counter;
-			memcpy(&float_counter, &count, counter_size);
-			if ((float_counter < min_count) || (float_counter > max_count))
-				continue;
-			else
-				break;
-		}
-
 	}
-	while((count < min_count) || (count > max_count));
+	while ((counter_size != 0) && ((count < min_count) || (count > max_count))); //do not applay filtering if counter_size == 0 as it does not make sense
 
 	return true;
 }
-
 
 //-----------------------------------------------------------------------------------------------
 // Read next kmer
@@ -533,8 +506,6 @@ bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint32 &count)
 //-----------------------------------------------------------------------------------------------
 bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint64 &count)
 {
-	uint64 prefix_mask = (1 << 2 * lut_prefix_length) - 1; //for kmc2 db
-
 	if (is_opened != opened_for_listing)
 		return false;
 	do
@@ -542,17 +513,10 @@ bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint64 &count)
 		if (end_of_file)
 			return false;
 
-		if (sufix_number == prefix_file_buf[prefix_index + 1])
-		{
-			prefix_index++;
-
-			while (prefix_file_buf[prefix_index] == prefix_file_buf[prefix_index + 1])
-				prefix_index++;
-		}
-
 		uint32 off = (sizeof(prefix_index)* 8) - (lut_prefix_length * 2) - kmer.byte_alignment * 2;
 
-		uint64 temp_prefix = (prefix_index & prefix_mask) << off;	// shift prefix towards MSD. "& prefix_mask" necessary for kmc2 db format
+		uint64_t prefix = prefixFileBufferForListingMode->GetPrefix(sufix_number);
+		uint64 temp_prefix = prefix << off;	// shift prefix towards MSD. "& prefix_mask" necessary for kmc2 db format
 
 		kmer.kmer_data[0] = temp_prefix;			// store prefix in an object CKmerAPI
 
@@ -584,27 +548,31 @@ bool CKMCFile::ReadNextKmer(CKmerAPI &kmer, uint64 &count)
 		}
 
 		//read counter:
-		if (index_in_partial_buf == part_size)
-			Reload_sufix_file_buf();
-
-		count = sufix_file_buf[index_in_partial_buf++];
-
-		for (uint32 b = 1; b < counter_size; b++)
+		if (counter_size == 0)
+			count = 1;
+		else
 		{
 			if (index_in_partial_buf == part_size)
 				Reload_sufix_file_buf();
 
-			uint64 aux = 0x000000ff & sufix_file_buf[index_in_partial_buf++];
-			aux = aux << 8 * (b);
-			count = aux | count;
-		}
+			count = sufix_file_buf[index_in_partial_buf++];
 
+			for (uint32 b = 1; b < counter_size; b++)
+			{
+				if (index_in_partial_buf == part_size)
+					Reload_sufix_file_buf();
+
+				uint64 aux = 0x000000ff & sufix_file_buf[index_in_partial_buf++];
+				aux = aux << 8 * (b);
+				count = aux | count;
+			}
+		}
 		sufix_number++;
 
 		if (sufix_number == total_kmers)
 			end_of_file = true;
 
-	} while ((count < min_count) || (count > max_count));
+	} while ((counter_size != 0) && ((count < min_count) || (count > max_count))); //do not applay filtering if counter_size == 0 as it does not make sense
 
 	return true;
 }
@@ -619,6 +587,7 @@ void CKMCFile::Reload_sufix_file_buf()
 	suf_file_left_to_read -= readed;
 	if (readed != to_read)
 	{
+		//TODO: what about this exit? maybe turn into exception
 		std::cerr << "Error: some error while reading suffix file\n";
 		exit(1);
 	}
@@ -793,7 +762,6 @@ uint64 CKMCFile::KmerCount(void)
 		else
 		{
 			uint32 count;
-			uint32 int_counter;
 			uint64 aux_kmerCount = 0;
 
 			if(is_opened == opened_for_RA)
@@ -803,30 +771,31 @@ uint64 CKMCFile::KmerCount(void)
 				for(uint64 i = 0; i < total_kmers; i++)		
 				{
 					ptr += sufix_size;
-					int_counter = *ptr;
-					ptr++;
 
-					for(uint32 b = 1; b < counter_size; b ++)
-					{
-						uint32 aux = 0x000000ff & *(ptr);
-						aux = aux << 8 * ( b);
-						int_counter = aux | int_counter;
-						ptr++;
-					}
-					
-					if(mode == 0)
-						count = int_counter;
+					if (counter_size == 0)
+						count = 1;
 					else
-						memcpy(&count, &int_counter, counter_size);
-	
-					if((count >= min_count) && (count <= max_count))
+					{
+						count = *ptr;
+						ptr++;
+
+						for(uint32 b = 1; b < counter_size; b ++)
+						{
+							uint32 aux = 0x000000ff & *(ptr);
+							aux = aux << 8 * ( b);
+							count = aux | count;
+							ptr++;
+						}
+					}
+					//applay filtering only if counter_size != 0
+					if((counter_size == 0) || ((count >= min_count) && (count <= max_count)))
 						aux_kmerCount++;
 				}
 			}
 			else //opened_for_listing
 			{
 				CKmerAPI kmer(kmer_length);
-				float count;
+				uint32 count;
 				RestartListing();
 				for(uint64 i = 0; i < total_kmers; i++)		
 				{
@@ -928,37 +897,6 @@ bool CKMCFile::GetCountersForRead(const std::string& read, std::vector<uint32>& 
 	}
 	else
 		return false; //never should be here
-}
-
-//---------------------------------------------------------------------------------
-// Get counters from read
-// OUT	:	counters    	- vector of counters of each k-mer in read (of size read_len - kmer_len + 1), if some k-mer is invalid (i.e. contains 'N') the counter is equal to 0
-// IN   :   read			- 
-// RET	: true if success
-//---------------------------------------------------------------------------------
-bool CKMCFile::GetCountersForRead(const std::string& read, std::vector<float>& counters)
-{
-	if (is_opened != opened_for_RA)
-		return false;
-	std::vector<uint32> uint32_v;
-	if (GetCountersForRead(read, uint32_v))
-	{
-		counters.clear();
-		counters.resize(uint32_v.size());
-		if (mode == 0)
-		{
-			for (uint32 i = 0; i < uint32_v.size(); ++i)
-				counters[i] = static_cast<float>(uint32_v[i]);
-		}
-		else
-		{
-			for (uint32 i = 0; i < uint32_v.size(); ++i)
-				memcpy(&counters[i], &uint32_v[i], counter_size);
-		}
-
-		return true;
-	}
-	return false;
 }
 
 //---------------------------------------------------------------------------------
@@ -1439,24 +1377,23 @@ bool CKMCFile::BinarySearch(int64 index_start, int64 index_stop, const CKmerAPI&
 
 	if (found)
 	{
-		sufix_byte_ptr += sufix_size;
-
-		counter = *sufix_byte_ptr;
-
-		for (uint32 b = 1; b < counter_size; b++)
+		if (counter_size == 0)
+			counter = 1;
+		else
 		{
-			uint64 aux = 0x000000ff & *(sufix_byte_ptr + b);
+			sufix_byte_ptr += sufix_size;
+			counter = *sufix_byte_ptr;
 
-			aux = aux << 8 * (b);
-			counter = aux | counter;
+			for (uint32 b = 1; b < counter_size; b++)
+			{
+				uint64 aux = 0x000000ff & *(sufix_byte_ptr + b);
+
+				aux = aux << 8 * (b);
+				counter = aux | counter;
+			}
 		}
-		if (mode != 0)
-		{
-			float float_counter;
-			memcpy(&float_counter, &counter, counter_size);
-			return (float_counter >= min_count) && (float_counter <= max_count);
-		}
-		return (counter >= min_count) && (counter <= max_count);
+		//applay filtering only if counter_size != 0
+		return (counter_size == 0) || ((counter >= min_count) && (counter <= max_count));
 	}
 	return false;
 }

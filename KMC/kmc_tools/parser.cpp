@@ -4,11 +4,10 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include "parser.h"
 #include "tokenizer.h"
 #include "output_parser.h"
@@ -218,6 +217,19 @@ void CParser::parseOtuputParamsLine()
 			else if ((strncmp(tmp.c_str(), "-cs", 3) == 0))
 			{
 				config.output_desc.counter_max = atoi(tmp.c_str() + 3);
+				continue;
+			}
+			else if ((strncmp(tmp.c_str(), "-o", 2) == 0))
+			{
+				if (strncmp(tmp.c_str() + 2, "kff", 3) == 0)
+					config.output_desc.output_type = OutputType::KFF1;
+				else if (strncmp(tmp.c_str() + 2, "kmc", 3) == 0)
+					config.output_desc.output_type = OutputType::KMC1;
+				else
+				{
+					std::cerr << "Error: Unknown output type: " << tmp.c_str() + 2 << "\n";
+					exit(1);
+				}
 				continue;
 			}
 			std::cerr << "Error: Unknow parameter " << tmp << " for variable " << tmp << ", line: " << line_no << "\n";

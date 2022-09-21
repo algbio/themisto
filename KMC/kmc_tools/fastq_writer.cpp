@@ -4,11 +4,10 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-#include "stdafx.h"
 #include "fastq_writer.h"
 #include <iostream>
 using namespace std;

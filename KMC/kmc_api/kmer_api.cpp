@@ -4,12 +4,10 @@
 
   Authors: Sebastian Deorowicz and Agnieszka Debudaj-Grabysz
 
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
-
-#include "stdafx.h"
 #include "kmer_api.h"
 #include <vector>
 #include <math.h>

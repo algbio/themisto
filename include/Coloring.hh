@@ -561,7 +561,7 @@ private:
 
 
     // Returns the number of new marks
-    LL propagate_colorset_pointers(sdsl::bit_vector& redundancy_marks_temp, LL from_node, LL class_id, LL colorset_sampling_distance, BOSS<sdsl::bit_vector>& boss, Buffered_ofstream& out){
+    LL propagate_colorset_pointers(sdsl::bit_vector& redundancy_marks_temp, LL from_node, LL class_id, LL colorset_sampling_distance, BOSS<sdsl::bit_vector>& boss, Buffered_ofstream<std::ofstream>& out){
 
         LL n_new_marks = 0;
         

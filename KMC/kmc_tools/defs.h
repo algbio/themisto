@@ -4,8 +4,8 @@
   
   Authors: Marek Kokot
   
-  Version: 3.1.1
-  Date   : 2019-05-19
+  Version: 3.2.1
+  Date   : 2022-01-04
 */
 
 #ifndef _DEFS_H
@@ -14,10 +14,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using uint32 = unsigned int;
-using uint64 = unsigned long long;
-using int32 = int;
-using int64 = long long;
+#include <cinttypes>
+
+using uint32 = uint32_t;
+using uint64 = uint64_t;
+using int32 = int32_t;
+using int64 = int64_t;
 using uchar = unsigned char;
 
 #define MIN(x,y)	((x) < (y) ? (x) : (y))
@@ -30,8 +32,8 @@ using uchar = unsigned char;
 //#define ENABLE_DEBUG
 //#define ENABLE_LOGGER
 
-#define KMC_VER		"3.1.1"
-#define KMC_DATE	"2019-05-19"
+#define KMC_VER		"3.2.1"
+#define KMC_DATE	"2022-01-04"
 
 #define DEFAULT_CIRCULAL_QUEUE_CAPACITY (4)
 
@@ -44,8 +46,12 @@ using uchar = unsigned char;
 #define KMC2_DB_READER_PREFIX_BUFF_BYTES (1 << 24)
 #define KMC2_DB_READER_SUFFIX_BUFF_BYTES  (1 << 24)
 
+#define KFF_DB_READER_BUFF_BYTES (1 << 24)
+
 #define KMC1_DB_WRITER_PREFIX_BUFF_BYTES (1 << 24)
 #define KMC1_DB_WRITER_SUFFIX_BUFF_BYTES  (1 << 24)
+
+#define KFF_DB_WRITER_BUFF_BYTES (1 << 24)
 
 #define HISTOGRAM_MAX_COUNTER_DEFAULT 10000
 
@@ -55,10 +61,12 @@ using uchar = unsigned char;
 #define BUNDLE_CAPACITY (1 << 12) //in kmers, for kmers and counters. 
 
 #define KMC2_DB_READER_BUNDLE_CAPACITY (1 << 22)
+#define KFF_DB_READER_BUNDLE_CAPACITY (1 << 22)
 
 //this value has high impact to used memory, max value of memory is = 2 * SINGLE_BIN_BUFF_SIZE_FOR_DB2_READER * number_of_kmc2_input_dbs * number_of_bins_per_in_db
 //increasing this value can have positive performance impact when running on HDD
 #define SINGLE_BIN_BUFF_SIZE_FOR_DB2_READER (1 << 21) //if less is needed less will be allocated
+#define SINGLE_SECTION_BUFF_SIZE_FOR_KFF_READER (1 << 21) //if less is needed less will be allocated
 
 //default values
 #define CUTOFF_MIN 2 
@@ -71,7 +79,7 @@ using uchar = unsigned char;
 
 #define USE_META_PROG
 
-#ifdef WIN32
+#ifdef _WIN32
 #define my_fopen	fopen
 #define my_fseek	_fseeki64
 #define my_ftell	_ftelli64
