@@ -181,14 +181,14 @@ Usage:
 
 Examples:
 
-Pseudoalign reads.fna against an index and print results:
+Pseudoalign example_input/queries.fna against an index and print results:
 ```
-./build/bin/themisto pseudoalign --query-file reads.fna --index-prefix my_index --temp-dir temp
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp
 ```
 
-Pseudoalign reads.fna against an index and write results to out.txt:
+Pseudoalign example_input/queries.fna against an index and write results to out.txt:
 ```
-./build/bin/themisto pseudoalign --query-file reads.fna --index-prefix my_index --temp-dir temp --out-file out.txt
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt
 ```
 
 Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
@@ -196,9 +196,9 @@ Pseudoalign a list of fasta files in input_list.txt into output filenames in out
 ./build/bin/themisto pseudoalign --query-file-list input_list.txt --index-prefix my_index --temp-dir temp --out-file-list output_list.txt
 ```
 
-Pseudoalign reads.fna against an index using also reverse complements:
+Pseudoalign example_input/queries.fna against an index using also reverse complements:
 ```
-./build/bin/themisto pseudoalign --rc --query-file reads.fna --index-prefix my_index --temp-dir temp --outfile out.txt
+./build/bin/themisto pseudoalign --rc --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --outfile out.txt
 ```
 
 ## Extracting unitigs with `extract-unitigs`
