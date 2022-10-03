@@ -30,24 +30,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Our sources, excluding the file with the main function
 set(THEMISTO_SOURCES src/pseudoalign_main.cpp src/globals.cpp src/EM_sort.cpp src/Block.cpp src/EM_algorithms.cpp src/test_tools.cpp src/Themisto.cpp src/WorkDispatcher.cpp src/zpipe.cpp src/build_index_main.cpp src/pseudoalign_main.cpp src/extract_unitigs_main.cpp src/stats_main.cpp src/KMC_wrapper.cpp src/SeqIO.cpp)
 
-# KMC tools object files
-set(KMC_TOOLS
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/fastq_filter.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/fastq_reader.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/fastq_writer.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/kff_info_reader.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/kmer_file_header.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/nc_utils.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/parameters_parser.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/parser.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/percent_progress.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/tokenizer.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_core/kff_writer.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_api/mmer.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_api/kmc_file.o
-  ${CMAKE_SOURCE_DIR}/KMC/kmc_api/kmer_api.o
-)
-
 ## Check if we should compile zlib or bzip2
 if(CMAKE_BUILD_ZLIB)
   configure_file(CMakeLists_zlib.txt.in ${CMAKE_BINARY_DIR}/external/zlib-download/CMakeLists.txt)
@@ -114,6 +96,16 @@ find_package(OpenMP REQUIRED)
 ## Get version number from git tags
 find_package(Git)
 if(GIT_FOUND)
+  option(GIT_SUBMODULE "Check submodules during build" ON)
+  if(GIT_SUBMODULE)
+    message(STATUS "Submodule update")
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+    endif()
+  endif()
   execute_process(
     COMMAND ${GIT_EXECUTABLE} describe --tags
     WORKING_DIRECTORY "${local_dir}"
@@ -142,7 +134,7 @@ include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOUR
 
 ## Libraries & executables to build
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
-add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES} ${KMC_TOOLS} ${CMAKE_SOURCE_DIR}/KMC/bin/libkmc_core.a)
+add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
 ## Fix compilation order
 add_dependencies(sdsl divsufsort64)
@@ -158,16 +150,16 @@ if(CMAKE_BUILD_BZIP2)
 endif()
 
 ## Link
-target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} ${CMAKE_SOURCE_DIR}/KMC/bin/libkmc_core.a)
+target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-  add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES} ${KMC_TOOLS} ${CMAKE_SOURCE_DIR}/KMC/bin/libkmc_core.a)
+  add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
     
   add_dependencies(sdsl divsufsort64)
   find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} ${CMAKE_SOURCE_DIR}/KMC/bin/libkmc_core.a)
+  target_link_libraries(themisto_tests ${GTEST} sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
   
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
@@ -178,6 +170,6 @@ if(BUILD_IO_BENCHMARK)
 
   message("Setting up IO benchmark.")
   add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
-  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES})
+  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
 
 endif()
