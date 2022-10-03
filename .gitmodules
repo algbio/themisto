@@ -4,3 +4,6 @@
 [submodule "googletest"]
 	path = googletest
 	url = https://github.com/google/googletest
+[submodule "KMC"]
+	path = KMC
+	url = https://github.com/jnalanko/KMC/
