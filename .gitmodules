@@ -4,3 +4,6 @@
 [submodule "KMC"]
 	path = KMC
 	url = https://github.com/jnalanko/KMC/
+[submodule "sdsl-lite"]
+	path = sdsl-lite
+	url = https://github.com/algbio/sdsl-lite
