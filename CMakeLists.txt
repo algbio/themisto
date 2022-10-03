@@ -154,6 +154,8 @@ target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2}
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/googletest
+    ${CMAKE_BINARY_DIR}/external/googletest/build)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
     
   add_dependencies(sdsl divsufsort64)
