@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <memory>
 #include "ParallelBoundedQueue.hh"
 #include "input_reading.hh"
 #include "globals.hh"
@@ -29,6 +30,8 @@ class ParallelOutputWriter : public ParallelBaseWriter{
         outstream.open(outfile);
     }
 
+    ParallelOutputWriter(ostream &ostream) : outstream(ostream) {}
+
     virtual void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
         outstream.write(result.data(), result.size());
@@ -44,17 +47,21 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
     public:
 
     string outfile;
-    zstr::ofstream* gzip_outstream;
+    unique_ptr<zstr::ostream> gzip_outstream;
     std::mutex mutex;
 
     ParallelGzipWriter(string outfile) : outfile(outfile){
         check_writable(outfile);
-        gzip_outstream = new zstr::ofstream(outfile); 
+	gzip_outstream = unique_ptr<zstr::ostream>(reinterpret_cast<zstr::ostream*>(new zstr::ofstream(outfile)));
+    }
+
+    ParallelGzipWriter(ostream &ostream) {
+	gzip_outstream = unique_ptr<zstr::ostream>(new zstr::ostream(ostream.rdbuf()));
     }
 
     virtual void write(const string& result){
         std::lock_guard<std::mutex> lg(mutex);
-        *gzip_outstream << result;
+        *gzip_outstream.get() << result;
     }
 
     virtual void flush(){
@@ -62,7 +69,7 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
     }
 
     virtual ~ParallelGzipWriter(){
-        delete gzip_outstream;
+        gzip_outstream.reset();
     }
 };
 

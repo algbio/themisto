@@ -405,8 +405,13 @@ public:
 
     void pseudoalign_parallel(LL n_threads, Sequence_Reader_Buffered& sr, string outfile, bool reverse_complements, LL buffer_size, bool gzipped_output, bool sort_after){
         ParallelBaseWriter* out = nullptr;
-        if(gzipped_output) out = new ParallelGzipWriter(outfile);
-        else out = new ParallelOutputWriter(outfile);
+	if (!outfile.empty()) {
+	    if(gzipped_output) out = new ParallelGzipWriter(outfile);
+	    else out = new ParallelOutputWriter(outfile);
+	} else {
+	    if(gzipped_output) out = new ParallelGzipWriter(cout);
+	    else out = new ParallelOutputWriter(cout);
+	}
 
         vector<DispatcherConsumerCallback*> threads;
         for(LL i = 0; i < n_threads; i++){
@@ -432,7 +437,7 @@ public:
                 throwing_ifstream instream(outfile);
                 throwing_ofstream outstream(tempfile);
                 sort_parallel_output_file(instream, outstream);
-            }
+	    }
             std::filesystem::rename(tempfile, outfile);
         }
     }
