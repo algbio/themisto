@@ -4,6 +4,8 @@
 
 #include "globals.hh"
 
+Temp_File_Manager& get_temp_file_manager(); // Forward declare to fix cyclic include with globals.hh
+
 // The c++ ifstream and ofstream classes are buffered. But each read involves a
 // virtual function call, which can be slow if the reads or writes are in small
 // chunks. The buffer is also pretty small by default. These classes store the
@@ -107,7 +109,7 @@ class Buffered_ofstream {
 
     vector<char> buf;
     LL buf_size = 0;
-    LL buf_cap = 1 << 20;
+    LL buf_cap = 1 << 23;
     bool own_stream;  // Track if the internal stream was created by this object
                       // mainly to avoid trying to free cout.
     unique_ptr<ostream> stream;
@@ -129,7 +131,7 @@ class Buffered_ofstream {
     }
 
    public:
-   
+
     Buffered_ofstream(Buffered_ofstream&&) = default;             // Movable
     Buffered_ofstream& operator=(Buffered_ofstream&&) = default;  // Movable
 

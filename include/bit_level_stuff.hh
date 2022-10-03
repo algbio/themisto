@@ -38,7 +38,7 @@ inline char get_byte(LL x, LL byte_idx){
     return *reinterpret_cast<char*>(&c);
 }
 
-inline void write_big_endian_LL(Buffered_ofstream<std::ofstream>& out, LL x){
+inline void write_big_endian_LL(Buffered_ofstream& out, LL x){
     char c;
 
     c = get_byte(x,0); out.write(&c,1);

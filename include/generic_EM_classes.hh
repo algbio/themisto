@@ -67,7 +67,7 @@ public:
 class Constant_Block_Producer : public Generic_Block_Producer{
     public:
 
-    Buffered_ifstream<std::ifstream> in;
+    Buffered_ifstream in;
     LL record_size;
 
     Constant_Block_Producer(string infile, LL record_size) : in(infile, ios::binary), record_size(record_size) {}
@@ -87,7 +87,7 @@ class Constant_Block_Producer : public Generic_Block_Producer{
 class Constant_Record_Reader{
 public:
 
-    vector<Buffered_ifstream<std::ifstream>> inputs;
+    vector<Buffered_ifstream> inputs;
     LL record_size;
 
     Constant_Record_Reader(LL record_size) : record_size(record_size){}
@@ -101,7 +101,7 @@ public:
     }
 
     void close_files(){
-        for(Buffered_ifstream<std::ifstream>& in : inputs) in.close();
+        for(Buffered_ifstream& in : inputs) in.close();
     }
 
     LL get_num_files(){
@@ -120,7 +120,7 @@ public:
 
 class Constant_Record_Writer{
 public:
-    Buffered_ofstream<std::ofstream> out;
+    Buffered_ofstream out;
     LL record_size;
 
     Constant_Record_Writer(LL record_size) : record_size(record_size){}
@@ -146,7 +146,7 @@ public:
 class Variable_Block_Producer : public Generic_Block_Producer{
     public:
 
-    Buffered_ifstream<std::ifstream> in;
+    Buffered_ifstream in;
 
     Variable_Block_Producer(string infile) : in(infile, ios::binary) {}
 
@@ -165,7 +165,7 @@ class Variable_Block_Producer : public Generic_Block_Producer{
 class Variable_Record_Reader{
 public:
 
-    vector<Buffered_ifstream<std::ifstream>> inputs;
+    vector<Buffered_ifstream> inputs;
 
     Variable_Record_Reader() {}
 
@@ -178,7 +178,7 @@ public:
     }
 
     void close_files(){
-        for(Buffered_ifstream<std::ifstream>& in : inputs) in.close();
+        for(Buffered_ifstream& in : inputs) in.close();
     }
 
     LL get_num_files(){
@@ -193,7 +193,7 @@ public:
 
 class Variable_Record_Writer{
 public:
-    Buffered_ofstream<std::ofstream> out;
+    Buffered_ofstream out;
 
     Variable_Record_Writer() {}
 

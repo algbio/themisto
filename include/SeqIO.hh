@@ -67,7 +67,7 @@ vector<string> create_reverse_complement_files(const vector<string>& files){
     return newfiles;
 }
 
-template<typename ifstream_t = Buffered_ifstream<std::ifstream>> // The underlying file stream.
+template<typename ifstream_t = Buffered_ifstream> // The underlying file stream.
 class Reader {
 
 // The class is used like this:
@@ -218,7 +218,7 @@ public:
 
 };
 
-template<typename ofstream_t = Buffered_ofstream<std::ofstream>> // The underlying file stream.
+template<typename ofstream_t = Buffered_ofstream> // The underlying file stream.
 class Writer{
 
     string fasta_header = ">\n";
