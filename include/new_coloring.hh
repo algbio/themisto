@@ -77,6 +77,30 @@ public:
     color_set intersection(const color_set& c) const {
         return color_set(roaring & c.roaring);
     }
+
+    std::size_t serialize(std::ostream& os) const {
+        std::size_t expected_size = roaring.getSizeInBytes();
+        char* serialized_bytes = new char[expected_size];
+
+        roaring.write(serialized_bytes);
+        os.write(reinterpret_cast<char*>(&expected_size), sizeof(std::size_t));
+        os.write(serialized_bytes, expected_size);
+        delete[] serialized_bytes;
+
+        return sizeof(std::size_t) + expected_size;
+    }
+
+    std::size_t load(std::ifstream& is) {
+        std::size_t n;
+        is.read(reinterpret_cast<char*>(&n), sizeof(std::size_t));
+
+        char* serialized_bytes = new char[n];
+        is.read(serialized_bytes, n);
+        roaring = Roaring::readSafe(serialized_bytes, n);
+        delete[] serialized_bytes;
+
+        return sizeof(std::size_t) + n;
+    }
 };
 
 
@@ -104,6 +128,59 @@ public:
         this->cores = c.cores;
         sdsl::util::init_support(cores_rs, &this->cores);
         this->index_ptr = c.index_ptr;
+    }
+
+    std::size_t serialize(std::ostream& os) const {
+        std::size_t bytes_written = 0;
+
+        std::size_t n_sets = sets.size();
+        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+        bytes_written += sizeof(std::size_t);
+
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            bytes_written += sets[i].serialize(os);
+        }
+
+        std::size_t nts_size = node_to_set.size();
+        os.write(reinterpret_cast<char*>(&nts_size), sizeof(std::size_t));
+        bytes_written += sizeof(std::size_t);
+
+        for (std::size_t i = 0; i < nts_size; ++i) {
+            std::int64_t val = node_to_set[i];
+            os.write(reinterpret_cast<char*>(&val), sizeof(std::int64_t));
+        }
+        bytes_written += sizeof(std::int64_t) * nts_size;
+
+        bytes_written += cores.serialize(os);
+        bytes_written += cores_rs.serialize(os);
+
+        return bytes_written;
+    }
+
+    void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
+        index_ptr = &index;
+
+        std::size_t n_sets = 0;
+        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            color_set cs;
+            cs.load(is);
+            sets.push_back(cs);
+        }
+
+        std::size_t nts_size = 0;
+        is.read(reinterpret_cast<char*>(&nts_size), sizeof(std::size_t));
+
+        for (std::size_t i = 0; i < nts_size; ++i) {
+            std::int64_t val = 0;
+            is.read(reinterpret_cast<char*>(&val), sizeof(std::int64_t));
+            node_to_set.push_back(val);
+        }
+
+        cores.load(is);
+        cores_rs.load(is);
+        cores_rs.set_vector(&cores);
     }
 
     inline std::int64_t get_mapping(std::int64_t node) const {
