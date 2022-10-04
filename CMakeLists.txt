@@ -172,6 +172,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/SBWT
   ${CMAKE_SOURCE_DIR}/SBWT/KMC 
   ${CMAKE_SOURCE_DIR}/SBWT/include 
+  ${CMAKE_SOURCE_DIR}/SBWT/include/sbwt
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api 
   ${CMAKE_BINARY_DIR}/include 
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core 

@@ -4,6 +4,7 @@
 #include <cstring>
 #include "version.h"
 #include "sbwt/globals.hh"
+#include "sbwt/variants.hh"
 #include "globals.hh"
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
@@ -158,34 +159,28 @@ int build_index_main(int argc, char** argv){
     write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
     write_log("Starting", sbwt::LogLevel::MAJOR);
 
-    if(C.input_format.gzipped){
-        write_log("Decompressing the input file", sbwt::LogLevel::MAJOR);
-        string new_name = sbwt::get_temp_file_manager().create_filename("input");
-        sbwt::check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-        C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
-        C.inputfile = new_name;
-    }
-
     if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
         sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
         C.colorfile = generate_default_colorfile(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq");
     }
 
-    // Deal with non-ACGT characters
-    if(C.del_non_ACGT){
-        sbwt::write_log("Splitting sequences at non-ACGT characters", sbwt::LogLevel::MAJOR);
-        std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq", C.colorfile); // Turns the file into fasta format also
-    } else {
-        sbwt::write_log("Replacing non-ACGT characters with random nucleotides", sbwt::LogLevel::MAJOR);
-        C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
-    }
-    
     if(C.load_dbg){
         sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
         //themisto.load_boss(C.index_dbg_file);
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
+        sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
+        sbwt_config.add_reverse_complements = false;
+        sbwt_config.build_streaming_support = true;
+        sbwt_config.input_files = {C.inputfile};
+        sbwt_config.k = C.k;
+        sbwt_config.max_abundance = 1e9;
+        sbwt_config.min_abundance = 1;
+        sbwt_config.n_threads = C.n_threads;
+        sbwt_config.ram_gigas = C.memory_megas * (1 << 10);
+        sbwt_config.temp_dir = C.temp_dir;
+        sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
         //themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
         //themisto.save_boss(C.index_dbg_file);
         //sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", sbwt::LogLevel::MAJOR);
