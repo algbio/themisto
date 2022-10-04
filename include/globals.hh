@@ -48,7 +48,7 @@ string figure_out_file_format(string filename);
 char fix_char(char c);
 
 // Returns number of chars replaced
-LL fix_alphabet_of_string(string& S);
+int64_t fix_alphabet_of_string(string& S);
 
 // Makes a copy of the file and replaces bad characters. Returns the new filename
 // The new file is in fasta format
@@ -57,9 +57,9 @@ std::string fix_alphabet(const std::string& input_file, const int mode);
 // We need this function because the standard library stoll function accepts all kinds of crap,
 // such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid
 // number and returns that number, or throws an error otherwise.
-LL string_to_integer_safe(const string& S);
+int64_t string_to_integer_safe(const string& S);
 
-vector<LL> read_colorfile(string filename);
+vector<int64_t> read_colorfile(string filename);
 
 // Returns new inputfile and new colorfile
 pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile);
@@ -67,7 +67,7 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
 void sigint_handler(int sig);
 void sigabrt_handler(int sig);
 
-vector<string> get_first_and_last_kmers(string fastafile, LL k);
+vector<string> get_first_and_last_kmers(string fastafile, int64_t k);
 
 string get_rc(string S);
 char get_rc(char S);
@@ -129,16 +129,16 @@ class Progress_printer{
 
     public:
 
-    LL n_jobs;
-    LL processed;
-    LL total_prints;
-    LL next_print;
+    int64_t n_jobs;
+    int64_t processed;
+    int64_t total_prints;
+    int64_t next_print;
 
-    Progress_printer(LL n_jobs, LL total_prints) : n_jobs(n_jobs), processed(0), total_prints(total_prints), next_print(0) {}
+    Progress_printer(int64_t n_jobs, int64_t total_prints) : n_jobs(n_jobs), processed(0), total_prints(total_prints), next_print(0) {}
 
     void job_done(){
         if(next_print == processed){
-            LL progress_percent = round(100 * ((double)processed / n_jobs));
+            int64_t progress_percent = round(100 * ((double)processed / n_jobs));
             write_log("Progress: " + to_string(progress_percent) + "%", MINOR);
             next_print += n_jobs / total_prints;
         }
