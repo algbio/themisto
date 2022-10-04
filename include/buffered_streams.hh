@@ -2,7 +2,7 @@
 
 #include <memory>  // std::unique_ptr
 
-#include "globals.hh"
+typedef long long LL;
 
 Temp_File_Manager& get_temp_file_manager(); // Forward declare to fix cyclic include with globals.hh
 

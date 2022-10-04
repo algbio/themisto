@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -14,16 +13,17 @@
 #include <string>
 #include <map>
 
-typedef int64_t LL;
 static const char read_separator = '$';
 #ifndef KMER_MAX_LENGTH
 #define KMER_MAX_LENGTH 64
 #endif
 
+#include "SBWT/include/globals.hh"
 #include "TempFileManager.hh"
 #include <signal.h>
 #include "input_reading.hh"
 #include "throwing_streams.hh"
+
 #include <chrono>
 #include <iomanip>
 #include <random>

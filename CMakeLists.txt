@@ -145,7 +145,7 @@ SET(CPP_ROARING_HEADERS ${roaring_SOURCE_DIR}/cpp/roaring64map.hh  ${roaring_SOU
 file(COPY  ${CPP_ROARING_HEADERS} DESTINATION ${roaring_SOURCE_DIR}/include/roaring)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core ${CMAKE_SOURCE_DIR}/SBWT ${CMAKE_SOURCE_DIR}/SBWT/include ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/)
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/)
 
 ## Libraries & executables to build
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)

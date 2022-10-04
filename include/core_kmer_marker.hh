@@ -5,10 +5,12 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include "SBWT.hh"
+#include "SBWT/include/SBWT.hh"
 #include "SeqIO.hh"
 #include "variants.hh"
 #include "globals.hh"
+
+using namespace sbwt;
 
 class core_kmer_marker {
     static constexpr char int_to_dna[] = { 'A', 'C', 'G', 'T' };
