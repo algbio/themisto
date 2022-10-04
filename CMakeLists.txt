@@ -127,6 +127,23 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/vers
 add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
                  ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
+include(FetchContent)
+
+FetchContent_Declare(
+  roaring
+  GIT_REPOSITORY https://github.com/RoaringBitmap/CRoaring.git
+  GIT_TAG v0.2.66
+  GIT_SHALLOW TRUE)
+
+set(ENABLE_ROARING_TESTS OFF CACHE INTERNAL "")
+
+set(ROARING_BUILD_STATIC ON CACHE INTERNAL "")
+FetchContent_MakeAvailable(roaring)
+
+FetchContent_GetProperties(roaring)
+SET(CPP_ROARING_HEADERS ${roaring_SOURCE_DIR}/cpp/roaring64map.hh  ${roaring_SOURCE_DIR}/cpp/roaring.hh)
+file(COPY  ${CPP_ROARING_HEADERS} DESTINATION ${roaring_SOURCE_DIR}/include/roaring)
+
 ## Set includes
 include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core ${CMAKE_SOURCE_DIR}/SBWT ${CMAKE_SOURCE_DIR}/SBWT/include)
 
