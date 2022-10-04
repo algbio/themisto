@@ -145,6 +145,7 @@ TEST_F(BOSS_TEST, walk){
     }
 }
 
+/*
 void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     boss_t boss_maps = build_BOSS_with_maps(tcase.reads, tcase.k, reverse_complements);
 
@@ -165,14 +166,16 @@ void test_construction(BOSS_TestCase& tcase, bool reverse_complements){
     set<string> B = boss_KMC.get_all_edgemers();
     ASSERT_TRUE(A == B);
 }
+*/
 
-
+/*
 TEST_F(BOSS_TEST, construction){
     for(BOSS_TestCase& tcase : testcases){
         test_construction(tcase, false); // No reverse complements
         test_construction(tcase, true); // Reverse complements
     }
 }
+*/
 
 TEST_F(BOSS_TEST, node_label){
     for(BOSS_TestCase& tcase : testcases){
