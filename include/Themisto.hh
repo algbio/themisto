@@ -234,7 +234,7 @@ public:
     vector<string> colors; // sequence id -> color name
 
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){
-
+/*
         write_log("Building KMC database", LogLevel::MAJOR);
         //string KMC_db_path_prefix = get_temp_file_manager().create_filename("KMC-");
         string KMC_db_path_prefix; LL n_kmers;
@@ -252,7 +252,7 @@ public:
         
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_pre");
         std::filesystem::remove(KMC_db_path_prefix + ".kmc_suf");
-
+*/
     }
 
     // Assumes boss has been built
