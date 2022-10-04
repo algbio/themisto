@@ -178,7 +178,7 @@ int build_index_main(int argc, char** argv){
         sbwt_config.max_abundance = 1e9;
         sbwt_config.min_abundance = 1;
         sbwt_config.n_threads = C.n_threads;
-        sbwt_config.ram_gigas = C.memory_megas * (1 << 10);
+        sbwt_config.ram_gigas = min(2LL, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
         sbwt_config.temp_dir = C.temp_dir;
         sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
         //themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
