@@ -124,13 +124,11 @@ string(TIMESTAMP THEMISTO_BUILD_TIMESTAMP)
 configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/version.h @ONLY)
 
 ## Add local dependencies as targets
-add_subdirectory(${CMAKE_SOURCE_DIR}/sdsl-lite
-                 ${CMAKE_BINARY_DIR}/external/sdsl-lite/build)
-add_subdirectory(${CMAKE_SOURCE_DIR}/KMC
-                 ${CMAKE_BINARY_DIR}/external/KMC/build)
+add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
+                 ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/KMC ${CMAKE_SOURCE_DIR}/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/KMC/kmc_core)
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core)
 
 ## Libraries & executables to build
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
