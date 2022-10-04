@@ -3,10 +3,12 @@
 #include <vector>
 #include <algorithm>
 #include "commands.hh"
-#include "globals.hh"
+#include "sbwt/globals.hh"
 #include "version.h"
 
 using namespace std;
+
+typedef long long LL;
 
 static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "stats"};
 
@@ -25,8 +27,8 @@ int main(int argc, char** argv){
             silent_in_argv = true;
 
     if(!silent_in_argv){
-        write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), LogLevel::MAJOR);
-        write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1), LogLevel::MAJOR);
+        sbwt::write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), sbwt::LogLevel::MAJOR);
+        sbwt::write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH-1), sbwt::LogLevel::MAJOR);
     }
 
     if(argc == 1){
@@ -46,11 +48,11 @@ int main(int argc, char** argv){
 
     try{
         if(command == "build") return build_index_main(argc, argv);
-        else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
-        else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
-        else if(command == "stats") return stats_main(argc, argv);
-        else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");
-        else if(command == "lookup-color") throw std::runtime_error("Error: not implemented.");
+        //else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
+        //else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
+        //else if(command == "stats") return stats_main(argc, argv);
+        //else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");
+        //else if(command == "lookup-color") throw std::runtime_error("Error: not implemented.");
         else{
             throw std::runtime_error("Invalid command: " + command);
             return 1;

@@ -28,7 +28,23 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Our sources, excluding the file with the main function
-set(THEMISTO_SOURCES src/pseudoalign_main.cpp src/globals.cpp src/EM_sort.cpp src/Block.cpp src/EM_algorithms.cpp src/test_tools.cpp src/Themisto.cpp src/WorkDispatcher.cpp src/zpipe.cpp src/build_index_main.cpp src/pseudoalign_main.cpp src/extract_unitigs_main.cpp src/stats_main.cpp src/KMC_wrapper.cpp src/SeqIO.cpp)
+set(THEMISTO_SOURCES 
+  #src/pseudoalign_main.cpp 
+  src/globals.cpp 
+  #src/EM_sort.cpp 
+  #src/Block.cpp 
+  #src/EM_algorithms.cpp 
+  #src/test_tools.cpp 
+  #src/Themisto.cpp 
+  #src/WorkDispatcher.cpp 
+  #src/zpipe.cpp 
+  src/build_index_main.cpp 
+  #src/pseudoalign_main.cpp 
+  #src/extract_unitigs_main.cpp 
+  #src/stats_main.cpp 
+  #src/KMC_wrapper.cpp 
+  #src/SeqIO.cpp
+  )
 
 ## Check if we should compile zlib or bzip2
 if(CMAKE_BUILD_ZLIB)

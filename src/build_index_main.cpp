@@ -1,12 +1,15 @@
-#include "Themisto.hh"
-#include "globals.hh"
+//#include "Themisto.hh"
 #include "zpipe.hh"
 #include <string>
 #include <cstring>
 #include "version.h"
-#include "cxxopts.hpp"
+#include "sbwt/globals.hh"
+#include "globals.hh"
+#include "sbwt/SeqIO.hh"
+#include "sbwt/cxxopts.hpp"
 
 using namespace std;
+typedef long long LL;
 
 struct Build_Config{
     LL k = 0;
@@ -16,7 +19,7 @@ struct Build_Config{
     string index_dbg_file;
     string index_color_file;
     string temp_dir;
-    string input_format;
+    sbwt::SeqIO::FileFormat input_format;
     bool load_dbg = false;
     LL memory_megas = 1000;
     bool no_colors = false;
@@ -26,40 +29,39 @@ struct Build_Config{
     bool silent = false;
     
     void check_valid(){
-        check_true(inputfile != "", "Input file not set");
+        sbwt::check_true(inputfile != "", "Input file not set");
 
-        check_readable(inputfile);
-        check_true(input_format != "", "Problem detecting input format");
+        sbwt::check_readable(inputfile);
 
         if(!load_dbg){
-            check_true(k != 0, "Parameter k not set");
-            check_true(k+1 <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH - 1) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
+            sbwt::check_true(k != 0, "Parameter k not set");
+            sbwt::check_true(k+1 <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH - 1) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
         } else{
             if(k != 0){
-                write_log("Warning: value of parameter k is ignored because the DBG is not built, but loaded from disk instead", LogLevel::MAJOR);
+                sbwt::write_log("Warning: value of parameter k is ignored because the DBG is not built, but loaded from disk instead", sbwt::LogLevel::MAJOR);
             }
         }
 
-        check_writable(index_dbg_file);
-        check_writable(index_color_file);
+        sbwt::check_writable(index_dbg_file);
+        sbwt::check_writable(index_color_file);
 
         if(colorfile != ""){
-            check_true(!no_colors, "Must not give both --no-colors and --colorfile");
-            check_readable(colorfile);
+            sbwt::check_true(!no_colors, "Must not give both --no-colors and --colorfile");
+            sbwt::check_readable(colorfile);
         }
 
-        check_true(temp_dir != "", "Temp directory not set");
+        sbwt::check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
 
-        check_true(memory_megas > 0, "Memory budget must be positive");
-        check_true(colorset_sampling_distance >= 1, "Colorset sampling distance must be positive");
+        sbwt::check_true(memory_megas > 0, "Memory budget must be positive");
+        sbwt::check_true(colorset_sampling_distance >= 1, "Colorset sampling distance must be positive");
 
     }
 
     string to_string(){
         stringstream ss;
         ss << "Input file = " << inputfile << "\n";
-        ss << "Input format = " << input_format << "\n";
+        ss << "Input format = " << input_format.extension << "\n";
         if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
         ss << "Index de Bruijn graph output file = " << index_dbg_file << "\n";
         ss << "Index coloring output file = " << index_color_file << "\n";
@@ -128,10 +130,9 @@ int build_index_main(int argc, char** argv){
     }    
 
     Build_Config C;
-    Themisto themisto;
     C.k = opts["k"].as<LL>();
     C.inputfile = opts["input-file"].as<string>();
-    C.input_format = figure_out_file_format(C.inputfile);
+    C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<LL>();
     C.colorfile = opts["color-file"].as<string>();
     C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
@@ -146,61 +147,59 @@ int build_index_main(int argc, char** argv){
     C.silent = opts["silent"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
-    if(C.verbose) set_log_level(LogLevel::MINOR);
-    if(C.silent) set_log_level(LogLevel::OFF);
+    if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
+    if(C.silent) set_log_level(sbwt::LogLevel::OFF);
 
     create_directory_if_does_not_exist(C.temp_dir);
 
     C.check_valid();
-    get_temp_file_manager().set_dir(C.temp_dir);
+    sbwt::get_temp_file_manager().set_dir(C.temp_dir);
 
-    write_log("Build configuration:\n" + C.to_string(), LogLevel::MAJOR);
-    write_log("Starting", LogLevel::MAJOR);
+    write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
+    write_log("Starting", sbwt::LogLevel::MAJOR);
 
-    if(C.input_format == "gzip"){
-        write_log("Decompressing the input file", LogLevel::MAJOR);
-        string new_name = get_temp_file_manager().create_filename("input");
-        check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-        C.input_format = figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
+    if(C.input_format.gzipped){
+        write_log("Decompressing the input file", sbwt::LogLevel::MAJOR);
+        string new_name = sbwt::get_temp_file_manager().create_filename("input");
+        sbwt::check_true(gz_decompress(C.inputfile, new_name) == Z_OK, "Problem with zlib decompression");
+        C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile.substr(0,C.inputfile.size() - 3));
         C.inputfile = new_name;
     }
 
     if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
-        write_log("Assigning colors", LogLevel::MAJOR);
-        C.colorfile = generate_default_colorfile(C.inputfile, C.input_format);
+        sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
+        C.colorfile = generate_default_colorfile(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq");
     }
 
     // Deal with non-ACGT characters
     if(C.del_non_ACGT){
-        write_log("Splitting sequences at non-ACGT characters", LogLevel::MAJOR);
-        std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format, C.colorfile); // Turns the file into fasta format also
-        C.input_format = "fasta"; // split_all_seqs_at_non_ACGT returns a fasta file
+        sbwt::write_log("Splitting sequences at non-ACGT characters", sbwt::LogLevel::MAJOR);
+        std::tie(C.inputfile, C.colorfile) = split_all_seqs_at_non_ACGT(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq", C.colorfile); // Turns the file into fasta format also
     } else {
-        write_log("Replacing non-ACGT characters with random nucleotides", LogLevel::MAJOR);
-        C.inputfile = fix_alphabet(C.inputfile, C.input_format == "fasta" ? FASTA_MODE : FASTQ_MODE); // Turns the file into fasta format also
-        C.input_format = "fasta"; // fix_alphabet returns a fasta file
+        sbwt::write_log("Replacing non-ACGT characters with random nucleotides", sbwt::LogLevel::MAJOR);
+        C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
     }
     
     if(C.load_dbg){
-        write_log("Loading de Bruijn Graph", LogLevel::MAJOR);
-        themisto.load_boss(C.index_dbg_file);
+        sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
+        //themisto.load_boss(C.index_dbg_file);
     } else{
-        write_log("Building de Bruijn Graph", LogLevel::MAJOR);
-        themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
-        themisto.save_boss(C.index_dbg_file);
-        write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", LogLevel::MAJOR);
+        sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
+        //themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
+        //themisto.save_boss(C.index_dbg_file);
+        //sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", sbwt::LogLevel::MAJOR);
     }
 
     if(!C.no_colors){
-        write_log("Building colors", LogLevel::MAJOR);
-        themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
-        themisto.save_colors(C.index_color_file);
+        sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
+        //themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
+        //themisto.save_colors(C.index_color_file);
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
 
-    write_log("Finished", LogLevel::MAJOR);
+    sbwt::write_log("Finished", sbwt::LogLevel::MAJOR);
 
     return 0;
 }

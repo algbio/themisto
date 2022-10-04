@@ -1,149 +1,21 @@
 #pragma once
 
-#include <iostream>
 #include <string>
-#include <chrono>
-#include <fstream>
-#include <sstream>
-#include <iterator>
-#include <cmath>
-#include <cassert>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <string>
-#include <map>
-
-static const char read_separator = '$';
-#ifndef KMER_MAX_LENGTH
-#define KMER_MAX_LENGTH 64
-#endif
-
-#include "sbwt/globals.hh"
-#include "TempFileManager.hh"
-#include <signal.h>
-#include "input_reading.hh"
-#include "throwing_streams.hh"
-
-#include <chrono>
-#include <iomanip>
-#include <random>
-#include <filesystem>
+#include <vector>
 
 using namespace std;
-using namespace std::chrono;
-
-// Returns a reference to the singleton temp file manager
-Temp_File_Manager& get_temp_file_manager();
-
-enum LogLevel {OFF = 0, MAJOR = 1, MINOR = 2, DEBUG = 3};
-
-long long cur_time_millis();
-double seconds_since_program_start();
-string getTimeString();
-void set_log_level(LogLevel level);
-LogLevel get_log_level();
-void write_log(string message, LogLevel level);
-map<string,vector<string> > parse_args(int argc, char** argv);
-string figure_out_file_format(string filename);
-char fix_char(char c);
-
-// Returns number of chars replaced
-int64_t fix_alphabet_of_string(string& S);
-
-// Makes a copy of the file and replaces bad characters. Returns the new filename
-// The new file is in fasta format
-std::string fix_alphabet(const std::string& input_file, const int mode);
-
-// We need this function because the standard library stoll function accepts all kinds of crap,
-// such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid
-// number and returns that number, or throws an error otherwise.
-int64_t string_to_integer_safe(const string& S);
-
-vector<int64_t> read_colorfile(string filename);
-
-// Returns new inputfile and new colorfile
-pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile);
-
-void sigint_handler(int sig);
-void sigabrt_handler(int sig);
-
-vector<string> get_first_and_last_kmers(string fastafile, int64_t k);
-
-string get_rc(string S);
-char get_rc(char S);
-
-// true if S is colexicographically-smaller than T
-bool colex_compare(const string& S, const string& T);
-
-bool colex_compare_cstrings(const char* x, const char* y);
-bool lex_compare(const string& S, const string& T);
-bool lex_compare_cstrings(const char* x, const char* y);
-
-// Split by whitespace
-vector<string> split(string text);
-
-// Split by delimiter
-vector<string> split(string text, char delimiter);
-vector<string> split(const char* text, char delimiter);
 
 void create_directory_if_does_not_exist(string path);
+
+// https://stackoverflow.com/questions/18100097/portable-way-to-check-if-directory-exists-windows-linux-c
 void check_dir_exists(string path);
-void check_readable(string filename);
-
-// Also clears the file
-void check_writable(string filename);
-
-bool files_are_equal(const std::string& p1, const std::string& p2);
-void check_true(bool condition, string error_message);
 
 // Returns filename of a new color file that has one color for each sequence
 // Input format is either "fasta" or "fastq"
 string generate_default_colorfile(string inputfile, string file_format);
 
-template <typename T>
-vector<T> parse_tokens(string S){
-    vector<T> tokens;
-    stringstream ss(S);
-    T token;
-    while(ss >> token) tokens.push_back(token);
-    
-    return tokens;
-}
+pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile);
 
-// Returns filename 
-string string_to_temp_file(const string& S);
+vector<int64_t> read_colorfile(string filename);
 
-template <typename T>
-void write_to_file(string path, T& thing){
-    throwing_ofstream out(path);
-    out << thing << endl;
-}
-
-template <typename T>
-void read_from_file(string path, T& thing){
-    throwing_ifstream input(path);
-    input >> thing;
-}
-
-class Progress_printer{
-
-    public:
-
-    int64_t n_jobs;
-    int64_t processed;
-    int64_t total_prints;
-    int64_t next_print;
-
-    Progress_printer(int64_t n_jobs, int64_t total_prints) : n_jobs(n_jobs), processed(0), total_prints(total_prints), next_print(0) {}
-
-    void job_done(){
-        if(next_print == processed){
-            int64_t progress_percent = round(100 * ((double)processed / n_jobs));
-            write_log("Progress: " + to_string(progress_percent) + "%", MINOR);
-            next_print += n_jobs / total_prints;
-        }
-        processed++;
-    }
-
-};
-
+std::string fix_alphabet(const std::string& input_file);

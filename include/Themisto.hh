@@ -7,11 +7,7 @@
 #include <set>
 #include <algorithm>
 #include <filesystem>
-#include "input_reading.hh"
-#include "test_tools.hh"
 #include "globals.hh"
-#include "libwheeler/BOSS.hh"
-#include "libwheeler/BOSS_builder.hh"
 #include "new_coloring.hh"
 #include "WorkDispatcher.hh"
 #include "EM_sort.hh"
