@@ -37,7 +37,7 @@ set(THEMISTO_SOURCES
   #src/test_tools.cpp 
   #src/Themisto.cpp 
   #src/WorkDispatcher.cpp 
-  #src/zpipe.cpp 
+  src/zpipe.cpp 
   src/build_index_main.cpp 
   #src/pseudoalign_main.cpp 
   #src/extract_unitigs_main.cpp 
@@ -195,7 +195,7 @@ if(CMAKE_BUILD_BZIP2)
 endif()
 
 ## Link
-target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
+target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
