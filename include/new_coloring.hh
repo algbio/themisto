@@ -11,8 +11,7 @@
 #include <sdsl/bit_vectors.hpp>
 
 #include "buffered_streams.hh"
-#include "core_kmer_marker.hpp"
-#include "color_set.hpp"
+#include "core_kmer_marker.hh"
 #include "EM_sort/bit_level_stuff.hh"
 #include "EM_sort/EM_sort.hh"
 #include "globals.hh"

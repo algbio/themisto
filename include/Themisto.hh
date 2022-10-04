@@ -12,7 +12,7 @@
 #include "globals.hh"
 #include "libwheeler/BOSS.hh"
 #include "libwheeler/BOSS_builder.hh"
-#include "Coloring.hh"
+#include "new_coloring.hh"
 #include "WorkDispatcher.hh"
 #include "EM_sort.hh"
 #include "KMC_wrapper.hh"

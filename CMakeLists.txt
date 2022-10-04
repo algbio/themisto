@@ -128,7 +128,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
                  ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
 ## Set includes
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core)
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/libwheeler ${CMAKE_SOURCE_DIR}/zstr ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter ${CMAKE_SOURCE_DIR}/SBWT/KMC ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core ${CMAKE_SOURCE_DIR}/SBWT ${CMAKE_SOURCE_DIR}/SBWT/include)
 
 ## Libraries & executables to build
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
