@@ -5,6 +5,7 @@
 #include "version.h"
 #include "sbwt/globals.hh"
 #include "sbwt/variants.hh"
+#include "new_coloring.hh"
 #include "globals.hh"
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
@@ -165,9 +166,12 @@ int build_index_main(int argc, char** argv){
         C.colorfile = generate_default_colorfile(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq");
     }
 
+    std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
+
     if(C.load_dbg){
         sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
-        //themisto.load_boss(C.index_dbg_file);
+        dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
+        dbg_ptr->load(C.index_dbg_file);
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
@@ -180,14 +184,14 @@ int build_index_main(int argc, char** argv){
         sbwt_config.n_threads = C.n_threads;
         sbwt_config.ram_gigas = min(2LL, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
         sbwt_config.temp_dir = C.temp_dir;
-        sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
-        //themisto.construct_boss(C.inputfile, C.k, C.memory_megas * (1 << 20), C.n_threads, false);
-        //themisto.save_boss(C.index_dbg_file);
-        //sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(themisto.boss.number_of_nodes()) + " nodes)", sbwt::LogLevel::MAJOR);
+        dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
+        dbg_ptr->serialize(C.index_dbg_file);
+        sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
     }
 
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
+
         //themisto.construct_colors(C.inputfile, C.colorfile, C.memory_megas * 1e6, C.n_threads, C.colorset_sampling_distance);
         //themisto.save_colors(C.index_color_file);
     } else{

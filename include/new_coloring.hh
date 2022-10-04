@@ -10,12 +10,13 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include "buffered_streams.hh"
 #include "core_kmer_marker.hh"
-#include "bit_level_stuff.hh"
-#include "EM_sort.hh"
-#include "globals.hh"
-#include "SeqIO.hh"
+
+#include "sbwt/buffered_streams.hh"
+#include "sbwt/EM_sort/bit_level_stuff.hh"
+#include "sbwt/EM_sort/EM_sort.hh"
+#include "sbwt/globals.hh"
+#include "sbwt/SeqIO.hh"
 
 #include <vector>
 
