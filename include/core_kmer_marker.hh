@@ -5,9 +5,9 @@
 
 #include <sdsl/bit_vectors.hpp>
 
-#include "SBWT/include/SBWT.hh"
+#include "sbwt/SBWT.hh"
 #include "SeqIO.hh"
-#include "variants.hh"
+#include "sbwt/variants.hh"
 #include "globals.hh"
 
 using namespace sbwt;

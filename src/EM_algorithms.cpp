@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include "globals.hh"
+#include "sbwt/globals.hh"
 #include "EM_sort.hh"
 #include "EM_algorithms.hh"
 

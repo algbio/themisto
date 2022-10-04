@@ -12,8 +12,8 @@
 
 #include "buffered_streams.hh"
 #include "core_kmer_marker.hh"
-#include "EM_sort/bit_level_stuff.hh"
-#include "EM_sort/EM_sort.hh"
+#include "bit_level_stuff.hh"
+#include "EM_sort.hh"
 #include "globals.hh"
 #include "SeqIO.hh"
 

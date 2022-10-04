@@ -18,7 +18,7 @@ static const char read_separator = '$';
 #define KMER_MAX_LENGTH 64
 #endif
 
-#include "SBWT/include/globals.hh"
+#include "sbwt/globals.hh"
 #include "TempFileManager.hh"
 #include <signal.h>
 #include "input_reading.hh"
