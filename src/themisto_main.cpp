@@ -48,7 +48,7 @@ int main(int argc, char** argv){
 
     try{
         if(command == "build") return build_index_main(argc, argv);
-        //else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
+        else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
         //else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
         //else if(command == "stats") return stats_main(argc, argv);
         //else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");

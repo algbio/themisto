@@ -1,12 +1,19 @@
-#include "Themisto.hh"
-#include "input_reading.hh"
-#include "zpipe.hh"
 #include <string>
 #include <cstring>
+#include "zpipe.hh"
 #include "version.h"
-#include "cxxopts.hpp"
+#include "new_coloring.hh"
+#include "globals.hh"
+#include "sbwt/globals.hh"
+#include "sbwt/throwing_streams.hh"
+#include "sbwt/variants.hh"
+#include "sbwt/SeqIO.hh"
+#include "sbwt/cxxopts.hpp"
 
 using namespace std;
+using namespace sbwt;
+
+typedef long long LL;
 
 struct Pseudoalign_Config{
     vector<string> query_files;
@@ -55,7 +62,7 @@ struct Pseudoalign_Config{
 vector<string> read_lines(string filename){
     check_readable(filename);
     vector<string> lines;
-    throwing_ifstream in(filename);
+    sbwt::throwing_ifstream in(filename);
     string line;
     while(in.getline(line)){
         lines.push_back(line);
@@ -82,7 +89,7 @@ int pseudoalign_main(int argc, char** argv){
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
-        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignemt.", cxxopts::value<bool>()->default_value("false")) 
+        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false")) 
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
@@ -141,10 +148,12 @@ int pseudoalign_main(int argc, char** argv){
 
     get_temp_file_manager().set_dir(C.temp_dir);
 
-    write_log("Loading the index", LogLevel::MAJOR);    
-    Themisto themisto;
-    themisto.load_boss(C.index_dbg_file);
-    themisto.load_colors(C.index_color_file);
+    write_log("Loading the index", LogLevel::MAJOR);
+    plain_matrix_sbwt_t SBWT;
+    SBWT.load(C.index_dbg_file);
+    coloring colors;
+    throwing_ifstream colors_in(C.index_color_file, ios::binary);
+    colors.load(colors_in.stream, SBWT);
 
     for(LL i = 0; i < C.query_files.size(); i++){
 	if (C.outfiles.size() > 0) {
@@ -154,16 +163,16 @@ int pseudoalign_main(int argc, char** argv){
 	}
 
         string inputfile = C.query_files[i];
-        string file_format = figure_out_file_format(inputfile);
-        if(file_format == "gzip"){
-            string new_name = get_temp_file_manager().create_filename("input");
+        SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
+        if(format.gzipped){
+            string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
             check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-            file_format = figure_out_file_format(inputfile.substr(0,inputfile.size() - 3));
             inputfile = new_name;
         }
 
-        Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-        themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        pseudoalign_parallel(C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        //Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+        //themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);
