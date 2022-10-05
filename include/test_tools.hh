@@ -14,7 +14,6 @@
 #include <cassert>
 
 using namespace std;
-typedef int64_t LL;
 
 template <typename T>
 void print(T C){

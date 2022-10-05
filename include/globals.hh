@@ -19,3 +19,22 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
 vector<int64_t> read_colorfile(string filename);
 
 std::string fix_alphabet(const std::string& input_file);
+
+bool colex_compare(const string& S, const string& T);
+
+// Split by whitespace
+vector<string> split(string text);
+
+// Split by delimiter
+vector<string> split(string text, char delimiter);
+vector<string> split(const char* text, char delimiter);
+
+template <typename T>
+vector<T> parse_tokens(string S){
+    vector<T> tokens;
+    stringstream ss(S);
+    T token;
+    while(ss >> token) tokens.push_back(token);
+    
+    return tokens;
+}

@@ -13,18 +13,17 @@
 #include "setup_tests.hh"
 #include <cassert>
 
-#include "test_DBG.hh"
-#include "test_IO.hh"
-#include "test_input_reading.hh"
-#include "test_CLI.hh"
-#include "test_misc.hh"
-#include "Kmer_tests.hh"
-#include "test_work_dispatcher.hh"
-#include "test_coloring.hh"
-#include "test_EM_sort.hh"
+//#include "test_DBG.hh"
+//#include "test_IO.hh"
+//#include "test_input_reading.hh"
+//#include "test_CLI.hh"
+//#include "test_misc.hh"
+//#include "Kmer_tests.hh"
+//#include "test_work_dispatcher.hh"
+//#include "test_coloring.hh"
 #include "test_pseudoalignment.hh"
-#include "BOSS_tests.hh"
-#include "test_extract_unitigs.hh"
+//#include "BOSS_tests.hh"
+//#include "test_extract_unitigs.hh"
 
 int main(int argc, char **argv) {
     try{
@@ -39,6 +38,7 @@ int main(int argc, char **argv) {
     }
 }
 
+/*
 class DispatcherConsumerTestCallback : DispatcherConsumerCallback{
 
 public:
@@ -106,3 +106,5 @@ TEST(WORK_DISPATCHER, basic_test){
         delete callbacks[i];
 
 }
+
+*/

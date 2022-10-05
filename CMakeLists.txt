@@ -39,7 +39,6 @@ set(THEMISTO_SOURCES
   #src/WorkDispatcher.cpp 
   src/zpipe.cpp 
   src/build_index_main.cpp 
-  #src/pseudoalign_main.cpp 
   #src/extract_unitigs_main.cpp 
   #src/stats_main.cpp 
   #src/KMC_wrapper.cpp 
@@ -143,6 +142,9 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/vers
 add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
                  ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
+set(LIBSBWT ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a)
+
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -196,7 +198,7 @@ if(CMAKE_BUILD_BZIP2)
 endif()
 
 ## Link
-target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
 
 ## Build tests if doing a Debug build
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -207,7 +209,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_dependencies(sdsl divsufsort64)
   #find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
+  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core)
   
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)

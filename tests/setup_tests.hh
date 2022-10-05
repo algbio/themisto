@@ -2,7 +2,8 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include "../globals.hh"
+#include "globals.hh"
+#include "sbwt/globals.hh"
 #include "version.h"
 
 class TestLogger{
@@ -29,10 +30,10 @@ void disable_test_logging(){logger.verbose = false; }
 
 void setup_tests(int argc, char** argv){
 
-    write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), LogLevel::MAJOR);
-    write_log("Built at " + std::string(THEMISTO_BUILD_TIMESTAMP), LogLevel::MAJOR);
+    sbwt::write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), sbwt::LogLevel::MAJOR);
+    sbwt::write_log("Built at " + std::string(THEMISTO_BUILD_TIMESTAMP), sbwt::LogLevel::MAJOR);
     
-    write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH-1), LogLevel::MAJOR);
+    sbwt::write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH-1), sbwt::LogLevel::MAJOR);
     if(KMER_MAX_LENGTH != 255 + 1){
         throw std::runtime_error("Error: tests must be compiled with -DMAX_KMER_LENGTH=255 to cmake"); // 255 is kmer length, 255+1 is edgemer length
     }
@@ -53,13 +54,13 @@ void setup_tests(int argc, char** argv){
     }
     
     bool verbose = false;
-    for(LL i = 1; i < argc; i++)
+    for(int64_t i = 1; i < argc; i++)
         if(argv[i] == string("--verbose") || argv[i] == string("-v")) verbose = true;
 
-    get_temp_file_manager().set_dir("temp");
+    sbwt::get_temp_file_manager().set_dir("temp");
 
     verbose ? enable_test_logging() : disable_test_logging(); // test logger
-    verbose ? set_log_level(LogLevel::DEBUG) : set_log_level(LogLevel::OFF); // main logger
+    verbose ? sbwt::set_log_level(sbwt::LogLevel::DEBUG) : sbwt::set_log_level(sbwt::LogLevel::OFF); // main logger
 
     ::testing::InitGoogleTest(&argc, argv);
 

@@ -1,6 +1,8 @@
 #include "globals.hh"
 #include <filesystem>
 #include <iostream>
+#include <sstream>
+#include <iterator>
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/SeqIO.hh"
 
@@ -219,4 +221,52 @@ std::string fix_alphabet(const std::string& input_file){
     sbwt::write_log("Replaced " + to_string(n_replaced) + " characters", sbwt::LogLevel::MAJOR);
     
     return output_file;
+}
+
+// true if S is colexicographically-smaller than T
+bool colex_compare(const string& S, const string& T){
+    LL i = 0;
+    while(true){
+        if(i == S.size() || i == T.size()){
+            // One of the strings is a suffix of the other. Return the shorter.
+            if(S.size() < T.size()) return true;
+            else return false;
+        }
+        if(S[S.size()-1-i] < T[T.size()-1-i]) return true;
+        if(S[S.size()-1-i] > T[T.size()-1-i]) return false;
+        i++;
+    }
+}
+
+
+// Split by whitespace
+vector<string> split(string text){
+    std::istringstream iss(text);
+    std::vector<std::string> results(std::istream_iterator<std::string>{iss},
+                                 std::istream_iterator<std::string>());
+    return results;
+}
+
+// Split by delimiter
+vector<string> split(string text, char delimiter){
+    assert(text.size() != 0); // If called with empty string we probably have a bug
+    vector<LL> I; // Delimiter indices
+    I.push_back(-1);
+    for(LL i = 0; i < text.size(); i++){
+        if(text[i] == delimiter){
+            I.push_back(i);
+        }
+    }
+    I.push_back(text.size());
+    vector<string> tokens;
+    for(LL i = 0; i < I.size()-1; i++){
+        LL len = I[i+1] - I[i] + 1 - 2;
+        tokens.push_back(text.substr(I[i]+1, len));
+    }
+    
+    return tokens;
+}
+
+vector<string> split(const char* text, char delimiter){
+    return split(string(text), delimiter);
 }

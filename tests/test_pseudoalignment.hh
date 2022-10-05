@@ -3,13 +3,14 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#include "../globals.hh"
-#include "../test_tools.hh"
-#include "../Themisto.hh"
+#include "globals.hh"
+#include "sbwt/globals.hh"
+#include "sbwt/throwing_streams.hh"
+#include "pseudoalign.hh"
+#include "test_tools.hh"
 #include "setup_tests.hh"
 #include <gtest/gtest.h>
-#include "Argv.hh"
-#include "commands.hh"
+#include "include/commands.hh"
 
 using namespace std;
 
@@ -86,6 +87,17 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
     return testcases;
 }
 
+template <typename T>
+set<T> intersect(const set<T>& S1, const set<T>& S2){
+    set<T> ans;
+    for(auto x : S1){
+        if(S2.count(x) > 0){
+            ans.insert(x);
+        }
+    }
+    return ans;
+}
+
 // Returns set of color names
 set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
     set<LL> alignments;
@@ -96,7 +108,7 @@ set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool rever
     for(string kmer : get_all_kmers(query, tcase.k)){
         set<LL> colorset = tcase.node_to_color_ids[kmer];
         if(reverse_complements){
-            set<LL> colorset_rc = tcase.node_to_color_ids[get_rc(kmer)];
+            set<LL> colorset_rc = tcase.node_to_color_ids[sbwt::get_rc(kmer)];
             for(LL color : colorset_rc) colorset.insert(color);
         }
         if(colorset.size() >= 1) {
@@ -125,43 +137,43 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         testcase_id++;
         logger << "Running alignment testcase" << endl;
 
-        string genomes_outfilename = get_temp_file_manager().create_filename("genomes-",".fna");
-        string queries_outfilename = get_temp_file_manager().create_filename("queries-",".fna");
-        string colorfile_outfilename = get_temp_file_manager().create_filename("colorfile-",".txt");
-        string index_prefix = get_temp_file_manager().get_dir() + "/test_index";
+        string genomes_outfilename = sbwt::get_temp_file_manager().create_filename("genomes-",".fna");
+        string queries_outfilename = sbwt::get_temp_file_manager().create_filename("queries-",".fna");
+        string colorfile_outfilename = sbwt::get_temp_file_manager().create_filename("colorfile-",".txt");
+        string index_prefix = sbwt::get_temp_file_manager().get_dir() + "/test_index";
 
-        throwing_ofstream genomes_out(genomes_outfilename);
+        sbwt::throwing_ofstream genomes_out(genomes_outfilename);
         for(string genome : tcase.genomes){
             genomes_out << ">\n" << genome << "\n";
         }
         genomes_out.close();
 
-        throwing_ofstream colors_out(colorfile_outfilename);
+        sbwt::throwing_ofstream colors_out(colorfile_outfilename);
         for(LL i = 0; i < tcase.seq_to_color_id.size(); i++){
             colors_out << tcase.seq_to_color_id[i] << "\n";
         }
         colors_out.close();
 
-        throwing_ofstream queries_out(queries_outfilename);
+        sbwt::throwing_ofstream queries_out(queries_outfilename);
         for(string query : tcase.queries){
             queries_out << ">\n" << query << "\n";
         }
         queries_out.close();
 
         stringstream build_argstring;
-        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << get_temp_file_manager().get_dir();
+        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
         Argv build_argv(split(build_argstring.str()));
 
         ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
 
         // Run without rc
-        string final_file = get_temp_file_manager().create_filename("finalfile-");
+        string final_file = sbwt::get_temp_file_manager().create_filename("finalfile-");
         stringstream pseudoalign_argstring;
-        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
         Argv pseudoalign_argv(split(pseudoalign_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
 
-        vector<set<LL> > our_results = Themisto::parse_output_format_from_disk(final_file);
+        vector<set<LL> > our_results = parse_pseudoalignment_output_format_from_disk(final_file);
 
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
@@ -170,7 +182,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 
-        vector<set<LL> > our_results_rc = Themisto::parse_output_format_from_disk(final_file_rc);
+        vector<set<LL> > our_results_rc = parse_pseudoalignment_output_format_from_disk(final_file_rc);
 
         for(LL i = 0; i < tcase.queries.size(); i++){
             string query = tcase.queries[i];
