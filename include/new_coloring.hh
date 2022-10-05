@@ -277,7 +277,7 @@ public:
                                      const std::string& fasta_file,
                                      const std::vector<std::int64_t>& seq_id_to_color_id) {
         const std::string outfile = get_temp_file_manager().create_filename();
-        Buffered_ofstream out(outfile);
+        Buffered_ofstream<> out(outfile);
         const auto k = index.get_k();
 
         SeqIO::Reader<> reader(fasta_file);
@@ -310,8 +310,8 @@ public:
     std::string delete_duplicate_pairs(const std::string& infile) {
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream in(infile, std::ios::binary);
-        Buffered_ofstream out(outfile, std::ios::binary);
+        Buffered_ifstream<> in(infile, std::ios::binary);
+        Buffered_ofstream<> out(outfile, std::ios::binary);
 
         char prev[8+8]; // two long longs
         char cur[8+8]; // two long longs
@@ -335,8 +335,8 @@ public:
     std::string collect_colorsets(const std::string& infile){
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream in(infile, ios::binary);
-        Buffered_ofstream out(outfile, ios::binary);
+        Buffered_ifstream<> in(infile, ios::binary);
+        Buffered_ofstream<> out(outfile, ios::binary);
 
         std::int64_t active_key = -1;
         std::vector<std::int64_t> cur_value_list;
@@ -412,8 +412,8 @@ public:
     std::string collect_nodes_by_colorset(const std::string& infile){
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream in(infile, ios::binary);
-        Buffered_ofstream out(outfile, ios::binary);
+        Buffered_ifstream<> in(infile, ios::binary);
+        Buffered_ofstream<> out(outfile, ios::binary);
 
         std::vector<std::int64_t> active_key;
         std::vector<std::int64_t> cur_value_list;
@@ -496,7 +496,7 @@ public:
         node_to_set.resize(core_count);
         node_to_set.assign(core_count, -1);
 
-        Buffered_ifstream in(infile, ios::binary);
+        Buffered_ifstream<> in(infile, ios::binary);
         vector<char> buffer(16);
 
         vector<std::int64_t> node_set; // Reusable space
