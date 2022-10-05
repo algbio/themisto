@@ -104,7 +104,7 @@ set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool rever
     for(LL i = 0; i < tcase.n_colors; i++) alignments.insert(i); // All color names
 
     bool at_least_one = false;
-    // For each k-mer in query, get the color name set and intersect that with alignments
+    // For each k-mer in query, get the color set and intersect that with alignments
     for(string kmer : get_all_kmers(query, tcase.k)){
         set<LL> colorset = tcase.node_to_color_ids[kmer];
         if(reverse_complements){

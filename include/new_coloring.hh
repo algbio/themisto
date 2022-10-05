@@ -78,6 +78,11 @@ public:
         return Color_Set(roaring & c.roaring);
     }
 
+    // union is a reserved word in C++ so this function is called do_union
+    Color_Set do_union(const Color_Set& c) const {
+        return Color_Set(roaring | c.roaring);
+    }
+
     std::size_t serialize(std::ostream& os) const {
         std::size_t expected_size = roaring.getSizeInBytes();
         char* serialized_bytes = new char[expected_size];
