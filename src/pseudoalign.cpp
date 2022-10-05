@@ -40,11 +40,23 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int6
         LL len = reader.get_next_read_to_buffer();
         if(len == 0) break;
         vector<int64_t> colex_ranks = SBWT.streaming_search(reader.read_buf, len);
+        vector<int64_t> rc_colex_ranks;
+        if(reverse_complements){
+            reverse_complement_c_string(reader.read_buf, len);
+            rc_colex_ranks = SBWT.streaming_search(reader.read_buf, len);
+            reverse_complement_c_string(reader.read_buf, len); // Undo reverse complement
+        }
+        LL n_kmers = colex_ranks.size();
         Color_Set intersection;
         bool first_nonempty_found = false;
-        for(LL colex : colex_ranks){
-            if(colex >= 0){ // k-mer found Found
-                Color_Set cs = coloring.get_color_set(colex);
+        for(LL i = 0; i < n_kmers; i++){
+            if(colex_ranks[i] >= 0 || (reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0)){ // k-mer found
+                Color_Set cs; // Empty
+                if(colex_ranks[i] >= 0) cs = coloring.get_color_set(colex_ranks[i]);
+                if(reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0){
+                    Color_Set cs_rc = coloring.get_color_set(rc_colex_ranks[n_kmers-1-i]);
+                    cs = cs.do_union(cs_rc);
+                }
                 if(cs.size() > 0){
                     if(!first_nonempty_found){
                         intersection = cs;

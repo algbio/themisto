@@ -29,6 +29,8 @@ vector<string> split(string text);
 vector<string> split(string text, char delimiter);
 vector<string> split(const char* text, char delimiter);
 
+void reverse_complement_c_string(char* S, int64_t len);
+
 template <typename T>
 vector<T> parse_tokens(string S){
     vector<T> tokens;

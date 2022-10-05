@@ -270,3 +270,9 @@ vector<string> split(string text, char delimiter){
 vector<string> split(const char* text, char delimiter){
     return split(string(text), delimiter);
 }
+
+void reverse_complement_c_string(char* S, int64_t len){
+    std::reverse(S, S + len);
+    for(LL i = 0; i < len; i++)
+        S[i] = sbwt::get_rc(S[i]);
+}
