@@ -46,6 +46,7 @@ LL union_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, LL b
 void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int64_t n_threads, std::string inputfile, std::string outputfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
 
     SeqIO::Reader<> reader(inputfile);
+    LL string_id = 0;
     while(true) { 
         LL len = reader.get_next_read_to_buffer();
         if(len == 0) break;
@@ -65,7 +66,14 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int6
                 }
             }
         }
-        // TODO: Print result
+
+        // Todo: write to output stream with buffering and parallel safety etc
+        cout << string_id << " ";
+        for(color_t x : intersection.get_colors_as_vector()){
+            cout << x <<  " ";
+        }
+        cout << "\n";
+        string_id++;
     }
 
 }
