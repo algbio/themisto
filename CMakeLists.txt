@@ -35,7 +35,7 @@ set(THEMISTO_SOURCES
   #src/EM_sort.cpp 
   #src/Block.cpp 
   #src/EM_algorithms.cpp 
-  #src/test_tools.cpp 
+  src/test_tools.cpp 
   #src/Themisto.cpp 
   #src/WorkDispatcher.cpp 
   src/zpipe.cpp 

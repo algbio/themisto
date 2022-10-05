@@ -21,7 +21,7 @@ set<char> get_alphabet(string S){
     return ans;
 }
 
-set<string> get_all_distinct_kmers(string S, LL k){
+set<string> get_all_distinct_kmers(string S, int64_t k){
     set<string> kmers;
     for(LL i = 0; i < S.size()-k+1; i++){
         kmers.insert(S.substr(i,k));
@@ -29,11 +29,11 @@ set<string> get_all_distinct_kmers(string S, LL k){
     return kmers;
 }
 
-set<string> get_all_distinct_cyclic_kmers(string S, LL k){
+set<string> get_all_distinct_cyclic_kmers(string S, int64_t k){
     set<string> kmers;
-    for(LL i = 0; i < S.size(); i++){
+    for(int64_t i = 0; i < S.size(); i++){
         string kmer;
-        for(LL j = 0; j < k; j++){
+        for(int64_t j = 0; j < k; j++){
             kmer += S[(i+j) % S.size()];
         }
         kmers.insert(kmer);
@@ -42,7 +42,9 @@ set<string> get_all_distinct_cyclic_kmers(string S, LL k){
 }
 
 
-set<string> get_all_distinct_cyclic_kmers(vector<string>& A, LL k){
+set<string> get_all_distinct_cyclic_kmers(vector<string>& A, int64_t k){
+    throw std::runtime_error("ERROR: OLD CODE");
+    /*
     string concat;
     for(string read : A){
         concat += read_separator + read;
@@ -50,11 +52,12 @@ set<string> get_all_distinct_cyclic_kmers(vector<string>& A, LL k){
     concat += '\x01'; // bibwt end sentinel
 
     return get_all_distinct_cyclic_kmers(concat,k);
+    */
 }
 
-vector<string> get_all_kmers(string& S, LL k){
+vector<string> get_all_kmers(string& S, int64_t k){
     vector<string> kmers;
-    for(LL i = 0; i < S.size()-k+1; i++){
+    for(int64_t i = 0; i < S.size()-k+1; i++){
         kmers.push_back(S.substr(i,k));
     }
     return kmers;
@@ -88,7 +91,7 @@ string get_random_dna_string(int64_t length, int64_t alphabet_size){ // For test
 string get_random_string(int64_t length, int64_t alphabet_size){ // For testing
     string s;
     for(int64_t i = 0; i < length; i++){
-        LL r = rand() % alphabet_size;
+        int64_t r = rand() % alphabet_size;
         s += 'a' + r;
     }
     return s;
@@ -104,12 +107,12 @@ vector<string> get_sorted_suffixes(string S){
 }
 
 void write_as_fasta(vector<string>& seqs, string fasta_filename){
-    throwing_ofstream out(fasta_filename);
+    sbwt::throwing_ofstream out(fasta_filename);
     for(string& S : seqs) out << ">\n" << S << "\n";
 }
 
 void write_as_fastq(vector<string>& seqs, string fastq_filename){
-    throwing_ofstream out(fastq_filename);
+    sbwt::throwing_ofstream out(fastq_filename);
     for(string& S : seqs){
         out << "@\n" << S << "\n+\n" << string(S.size(), 'I') << "\n";
     }

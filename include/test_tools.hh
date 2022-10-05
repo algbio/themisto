@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <map>
 #include "globals.hh"
+#include "sbwt/globals.hh"
+#include "sbwt/throwing_streams.hh"
 #include "stdlib_printing.hh"
 #include <cassert>
 
@@ -24,19 +26,19 @@ void print(T C){
 
 template<typename T>
 void write_vector(vector<T>& v, string outfilename){
-    throwing_ofstream out(outfilename);
+    sbwt::throwing_ofstream out(outfilename);
     for(T& t : v) out << t << "\n";
 }
 
 set<char> get_alphabet(string S);
 
-set<string> get_all_distinct_kmers(string S, LL k);
+set<string> get_all_distinct_kmers(string S, int64_t k);
 
-set<string> get_all_distinct_cyclic_kmers(string S, LL k);
+set<string> get_all_distinct_cyclic_kmers(string S, int64_t k);
 
-set<string> get_all_distinct_cyclic_kmers(vector<string>& A, LL k);
+set<string> get_all_distinct_cyclic_kmers(vector<string>& A, int64_t k);
 
-vector<string> get_all_kmers(string& S, LL k);
+vector<string> get_all_kmers(string& S, int64_t k);
 
 vector<string> all_binary_strings_up_to(int64_t k);
 
