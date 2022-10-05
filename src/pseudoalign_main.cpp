@@ -163,17 +163,17 @@ int pseudoalign_main(int argc, char** argv){
 	    write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
 	}
 
-        string inputfile = C.query_files[i];
-        SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
-        if(format.gzipped){
-            string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
-            check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-            inputfile = new_name;
-        }
+    string inputfile = C.query_files[i];
+    SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
+    if(format.gzipped){
+        string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
+        check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
+        inputfile = new_name;
+    }
 
-        pseudoalign(SBWT, coloring, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
-        //Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-        //themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+    pseudoalign(SBWT, coloring, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+    //Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
+    //themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);

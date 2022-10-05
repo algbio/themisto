@@ -30,6 +30,13 @@ LL union_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, LL b
     return end - result_buf.begin();
 }
 
+template <typename T>
+string vec_to_string(const vector<T>& v){
+    stringstream ss;
+    for(T x : v) ss << x << " ";
+    return ss.str();
+}
+
 void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int64_t n_threads, std::string inputfile, std::string outputfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
 
     SeqIO::Reader<> reader(inputfile);
@@ -53,8 +60,10 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int6
             if(colex_ranks[i] >= 0 || (reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0)){ // k-mer found
                 Color_Set cs; // Empty
                 if(colex_ranks[i] >= 0) cs = coloring.get_color_set(colex_ranks[i]);
+                cout << "cs " << vec_to_string(cs.get_colors_as_vector()) << endl;
                 if(reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0){
                     Color_Set cs_rc = coloring.get_color_set(rc_colex_ranks[n_kmers-1-i]);
+                    cout << "cs_rc " << vec_to_string(cs_rc.get_colors_as_vector()) << endl;
                     cs = cs.do_union(cs_rc);
                 }
                 if(cs.size() > 0){
