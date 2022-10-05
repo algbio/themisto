@@ -30,6 +30,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Our sources, excluding the file with the main function
 set(THEMISTO_SOURCES 
   src/pseudoalign_main.cpp 
+  src/pseudoalign.cpp 
   src/globals.cpp 
   #src/EM_sort.cpp 
   #src/Block.cpp 
