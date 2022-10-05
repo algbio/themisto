@@ -3,7 +3,6 @@
 #include <vector>
 #include <memory>
 #include "ParallelBoundedQueue.hh"
-#include "input_reading.hh"
 #include "globals.hh"
 #include "zstr.hpp"
 

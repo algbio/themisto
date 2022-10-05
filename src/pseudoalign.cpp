@@ -1,5 +1,6 @@
 #include <string>
 #include "pseudoalign.hh"
+#include <sstream>
 
 using namespace std;
 using namespace sbwt;
@@ -33,6 +34,8 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int6
 
     SeqIO::Reader<> reader(inputfile);
     LL string_id = 0;
+    sbwt::throwing_ofstream* out = nullptr;
+    if(outputfile != "") out = new sbwt::throwing_ofstream(outputfile);
     while(true) { 
         LL len = reader.get_next_read_to_buffer();
         if(len == 0) break;
@@ -53,14 +56,22 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int6
             }
         }
 
-        // Todo: write to output stream with buffering and parallel safety etc
-        cout << string_id << " ";
+        stringstream output_buffer;
+        output_buffer << string_id << " ";
         for(color_t x : intersection.get_colors_as_vector()){
-            cout << x <<  " ";
+            output_buffer << x <<  " ";
         }
-        cout << "\n";
+        output_buffer << "\n";
+
+        if(out == nullptr) cout << output_buffer.str();
+        else out->stream << output_buffer.str();
+
         string_id++;
+
+        // Todo: write to output stream with buffering and parallel safety etc
     }
+
+    delete out;
 
 }
 
