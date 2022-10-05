@@ -25,22 +25,22 @@
 #include "roaring/roaring.hh"
 
 
-class color_set {
+class Color_Set {
     Roaring roaring;
 
 public:
-    color_set() {}
+    Color_Set() {}
 
-    color_set(Roaring r) : roaring(r) {}
+    Color_Set(Roaring r) : roaring(r) {}
 
-    color_set(const vector<std::int64_t>& colors) {
+    Color_Set(const vector<std::int64_t>& colors) {
         for (const auto x : colors)
             roaring.add(x);
 
         roaring.runOptimize();
     }
 
-    color_set(const std::size_t n, const std::uint32_t* colors) {
+    Color_Set(const std::size_t n, const std::uint32_t* colors) {
         roaring.addMany(n, colors);
 
         roaring.runOptimize();
@@ -74,8 +74,8 @@ public:
         return contains(n);
     }
 
-    color_set intersection(const color_set& c) const {
-        return color_set(roaring & c.roaring);
+    Color_Set intersection(const Color_Set& c) const {
+        return Color_Set(roaring & c.roaring);
     }
 
     std::size_t serialize(std::ostream& os) const {
@@ -104,17 +104,17 @@ public:
 };
 
 
-class coloring {
-    std::vector<color_set> sets;
+class Coloring {
+    std::vector<Color_Set> sets;
     std::vector<std::int64_t> node_to_set;
     sdsl::bit_vector cores;
     sdsl::rank_support_v<1> cores_rs;
     const plain_matrix_sbwt_t* index_ptr;
 
 public:
-    coloring() {}
+    Coloring() {}
 
-    coloring(const std::vector<color_set>& sets,
+    Coloring(const std::vector<Color_Set>& sets,
              const std::vector<std::int64_t>& node_to_set,
              const sdsl::bit_vector& cores,
              const plain_matrix_sbwt_t& index) : sets(sets), node_to_set(node_to_set), cores(cores) {
@@ -122,7 +122,7 @@ public:
         index_ptr = &index;
     }
 
-    coloring(const coloring& c) {
+    Coloring(const Coloring& c) {
         this->sets = c.sets;
         this->node_to_set = c.node_to_set;
         this->cores = c.cores;
@@ -164,7 +164,7 @@ public:
         is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
 
         for (std::size_t i = 0; i < n_sets; ++i) {
-            color_set cs;
+            Color_Set cs;
             cs.load(is);
             sets.push_back(cs);
         }
@@ -216,6 +216,17 @@ public:
         }
 
         return sets[mapping].get_colors_as_vector();
+    }
+
+    Color_Set get_color_set(std::int64_t node) const {
+        const auto mapping = get_mapping(node);
+
+        if (mapping == -1) {
+            Color_Set empty;
+            return empty;
+        }
+
+        return sets[mapping];
     }
 
     void add_colors(const plain_matrix_sbwt_t& index,

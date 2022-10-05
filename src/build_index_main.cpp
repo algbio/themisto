@@ -192,11 +192,11 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
-        coloring colors;
+        Coloring coloring;
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
-        colors.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads);
+        coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads);
         sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-        colors.serialize(out.stream);
+        coloring.serialize(out.stream);
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }

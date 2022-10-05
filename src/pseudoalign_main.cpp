@@ -4,6 +4,7 @@
 #include "version.h"
 #include "new_coloring.hh"
 #include "globals.hh"
+#include "pseudoalign.hh"
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
 #include "sbwt/variants.hh"
@@ -151,9 +152,9 @@ int pseudoalign_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);
     plain_matrix_sbwt_t SBWT;
     SBWT.load(C.index_dbg_file);
-    coloring colors;
+    Coloring coloring;
     throwing_ifstream colors_in(C.index_color_file, ios::binary);
-    colors.load(colors_in.stream, SBWT);
+    coloring.load(colors_in.stream, SBWT);
 
     for(LL i = 0; i < C.query_files.size(); i++){
 	if (C.outfiles.size() > 0) {
@@ -170,7 +171,7 @@ int pseudoalign_main(int argc, char** argv){
             inputfile = new_name;
         }
 
-        pseudoalign_parallel(C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        pseudoalign(SBWT, coloring, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
         //Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
         //themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
