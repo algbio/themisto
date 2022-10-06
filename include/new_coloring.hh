@@ -126,7 +126,7 @@ public:
     Coloring() {}
 
     Coloring(const std::vector<Color_Set>& sets,
-             const sdsl::int_vector<> color_set_pointers,
+             const sdsl::int_vector<>& color_set_pointers,
              const sdsl::bit_vector& cores,
              const plain_matrix_sbwt_t& index) : sets(sets) {
         index_ptr = &index;
