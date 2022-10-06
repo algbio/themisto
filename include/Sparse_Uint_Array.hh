@@ -52,6 +52,16 @@ class Sparse_Uint_Array{
         return marks[idx];
     }
 
+    // Length of the array, including non-existent entries
+    int64_t size() const{
+        return marks.size();
+    }
+
+    // Number of values stored in this array
+    int64_t number_of_values() const{
+        return values.size();
+    }
+
     int64_t serialize(ostream& os) const{
         int64_t n_bytes_written = 0;
         n_bytes_written += marks.serialize(os);

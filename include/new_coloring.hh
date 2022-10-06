@@ -204,6 +204,8 @@ public:
     }
 
     std::vector<std::uint32_t> get_color_set_as_vector(std::int64_t node) const {
+        assert(node >= 0);
+        assert(node < node_id_to_color_set_id.size());
         return get_color_set(node).get_colors_as_vector();
     }
 

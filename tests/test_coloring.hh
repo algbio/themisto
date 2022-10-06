@@ -121,6 +121,11 @@ TEST(COLORING_TESTS, random_testcases){
     }
 }
 
+bool is_valid_kmer(const string& S){
+    for(char c : S) if(c != 'A' && c != 'C' && c != 'G' && c != 'T') return false;
+    return true;
+}
+
 TEST(COLORING_TESTS, coli3) {
     std::string filename = "example_input/coli3.fna";
 
@@ -132,31 +137,46 @@ TEST(COLORING_TESTS, coli3) {
     }
 
     const std::size_t k = 31;
-    plain_matrix_sbwt_t matrix;
+    //plain_matrix_sbwt_t matrix;
 
     std::vector<std::int64_t> colors;
     for(std::int64_t i = 0; i < seqs.size(); ++i){
         colors.push_back(i);
     }
 
-    build_nodeboss_in_memory<plain_matrix_sbwt_t>(seqs, matrix, k, true);
+    //
+    plain_matrix_sbwt_t::BuildConfig config;
+    config.input_files = {filename};
+    config.k = k;
+    config.build_streaming_support = true;
+    config.ram_gigas = 2;
+    config.n_threads = 2;
+    config.min_abundance = 1;
+    plain_matrix_sbwt_t matrix(config);
+    //
+
+    //build_nodeboss_in_memory<plain_matrix_sbwt_t>(seqs, matrix, k, true);
 
     Coloring c;
-    c.add_colors(matrix, filename, colors, 40000, 3, 3);
+    c.add_colors(matrix, filename, colors, 1<<30, 3, 3);
 
     std::size_t seq_id = 0;
     write_log("Checking colors", LogLevel::MAJOR);
     for (const auto& seq : seqs) {
 
         std::cout << "Checking sequence: " << seq_id << "\n";
+        cout << seq << endl;
 
         const auto nodes = matrix.streaming_search(seq);
 
-        for (auto node : nodes) {
-            if (node <= 0 || node > matrix.number_of_subsets()) {
-                break;
+        for(LL i = 0; i < (LL)seq.size()-k+1; i++){
+            LL node = nodes[i];
+            if (node <= 0) {
+                // This can happen if the input file has a non-ACGT character, as it does in this case
+                ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));
             } else {
                 auto vec = c.get_color_set_as_vector(node);
+                cout << "kmer " << i << " " << seq.substr(i,k) << endl;
                 const auto res = std::find(vec.begin(), vec.end(), seq_id);
                 ASSERT_TRUE(res != vec.end());
             }
