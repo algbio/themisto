@@ -532,6 +532,8 @@ public:
             ++set_id;
         }
 
+        node_id_to_color_set_id = builder.finish();
+
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way

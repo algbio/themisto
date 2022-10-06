@@ -12,9 +12,6 @@
 class Sparse_Uint_Array{
     private:
 
-    Sparse_Uint_Array(const Sparse_Uint_Array& temp_obj) = delete; // No copying because pointers inside
-    Sparse_Uint_Array& operator=(const Sparse_Uint_Array& temp_obj) = delete;  // No copying because pointers inside
-
     sdsl::bit_vector marks; // Marks which cells have a value
     sdsl::rank_support_v5<> marks_rs; // Rank support for marks
     sdsl::int_vector<> values; // Values at those cells that are marked
@@ -22,7 +19,21 @@ class Sparse_Uint_Array{
 
     public:
 
+    Sparse_Uint_Array(const Sparse_Uint_Array& other){
+        *this = other;
+    }
+
+    Sparse_Uint_Array& operator=(const Sparse_Uint_Array& other){
+        this->marks = other.marks;
+        this->marks_rs = other.marks_rs;
+        this->marks_rs.set_vector(&this->marks);
+        this->values = other.values;
+        this->max_value = other.max_value;
+    }
+
+
     Sparse_Uint_Array(){}
+
 
     Sparse_Uint_Array(const sdsl::bit_vector& marks, sdsl::int_vector<>& values, uint64_t max_value) :
         marks(marks), values(values), max_value(max_value){
