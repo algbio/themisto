@@ -29,7 +29,7 @@ class Sparse_Uint_Array{
 
     // Return -1 if not in the array
     int64_t get(uint64_t idx){
-        if(idx < 0 || idx >= marks.size()) throw std::runtime_error("Access out of bounds at Sparse_Uint_Array");
+        if(idx >= marks.size()) throw std::runtime_error("Access out of bounds at Sparse_Uint_Array");
         if(marks[idx] == 0) return -1; // Not in array
         int64_t pos = marks_rs.rank(idx);
         return values[pos];
@@ -100,26 +100,37 @@ class Sparse_Uint_Array_Builder{
         marks = sdsl::bit_vector(array_length, 0);
     }
 
-    // Should be called for each index only once
+    // If multiple values are added to the same index, the *smallest* value to that index is kept
     void add(uint64_t index, uint64_t value){
         assert(value <= max_value);
+        marks[index] = 1;
         write_big_endian_LL(out_stream, index);
         write_big_endian_LL(out_stream, value);
         n_values++;
     }    
 
     Sparse_Uint_Array finish(){
-        sdsl::int_vector<> values(n_values, 0, ceil(log2(max_value)));
+
+        out_stream.close();
+
         string sorted_out = EM_sort_big_endian_LL_pairs(temp_filename, ram_bytes, 0, n_threads);
         sbwt::get_temp_file_manager().delete_file(temp_filename);
         sbwt::Buffered_ifstream<> sorted_in(sorted_out);
         vector<char> buffer(8+8);
-        uint64_t idx = 0;
+        uint64_t rank = 0;
+        int64_t prev_index = -1;
+        sdsl::int_vector<> values(n_values, 0, ceil(log2(max_value)));
         while(true){
             sorted_in.read(buffer.data(), 8+8);
             if(sorted_in.eof()) break;
+            uint64_t index = sbwt::parse_big_endian_LL(buffer.data());
             uint64_t value = sbwt::parse_big_endian_LL(buffer.data() + 8);
-            values[idx++] = value;
+
+            if(index != prev_index) values[rank++] = value;
+            // If there are multiple values with the same index, we ignore all but the first one
+            // This is why the comment on add(...) says that the smallest value is kept
+
+            prev_index = index;
         }
         sbwt::get_temp_file_manager().delete_file(sorted_out);
 
