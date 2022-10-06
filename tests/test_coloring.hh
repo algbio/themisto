@@ -88,7 +88,7 @@ vector<ColoringTestCase> generate_testcases(){
 TEST(COLORING_TESTS, random_testcases){
     for(ColoringTestCase tcase : generate_testcases()){
         logger << "Running testcase" << endl;
-        string fastafilename = get_temp_file_manager().create_filename("ctest");
+        string fastafilename = get_temp_file_manager().create_filename("ctest",".fna");
         sbwt::throwing_ofstream fastafile(fastafilename);
         fastafile << tcase.fasta_data;
         fastafile.close();
