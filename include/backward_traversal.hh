@@ -14,10 +14,10 @@ class SBWT_backward_traversal_support{
         SBWT_backward_traversal_support(throwing_ofstream const& other) = delete;
         SBWT_backward_traversal_support& operator=(throwing_ofstream const& other) = delete;
 
-        plain_matrix_sbwt_t* SBWT;  // Non-owning pointer
+        const plain_matrix_sbwt_t* SBWT;  // Non-owning pointer
         sdsl::select_support_mcl<> select_A, select_C, select_G, select_T;
 
-        char get_incoming_character(int64_t node){
+        char get_incoming_character(int64_t node) const{
             if(node < SBWT->get_C_array()[0]) return '$';
             if(node < SBWT->get_C_array()[1]) return 'A';
             if(node < SBWT->get_C_array()[2]) return 'C';
@@ -27,18 +27,19 @@ class SBWT_backward_traversal_support{
 
     public:
 
-        SBWT_backward_traversal_support(plain_matrix_sbwt_t* SBWT) : SBWT(SBWT){
+        SBWT_backward_traversal_support(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT){
             if(!SBWT->has_streaming_query_support())
                 throw std::runtime_error("Bug: SBWT Streaming query support (=suffix group marks) required for backward traversal.");
-            sdsl::init_support(select_A, &SBWT->get_subset_rank_structure().A_bits);
-            sdsl::init_support(select_C, &SBWT->get_subset_rank_structure().C_bits);
-            sdsl::init_support(select_G, &SBWT->get_subset_rank_structure().G_bits);
-            sdsl::init_support(select_T, &SBWT->get_subset_rank_structure().T_bits);
+            sdsl::util::init_support(select_A, &SBWT->get_subset_rank_structure().A_bits);
+            sdsl::util::init_support(select_C, &SBWT->get_subset_rank_structure().C_bits);
+            sdsl::util::init_support(select_G, &SBWT->get_subset_rank_structure().G_bits);
+            sdsl::util::init_support(select_T, &SBWT->get_subset_rank_structure().T_bits);
         }
 
         // Up to 4 in-neighbors will be stored to the given array. The in-degree
-        // will be stored to the other parameter.
-        void list_in_neighbors(int64_t node, int64_t in_neighbors[4], int64_t& indegree){
+        // will be stored to the other parameter. The in-degree means the in-degree in the
+        // de Bruijn graph, not the SBWT graph (which has in-degree 1 everywhere except at the root).
+        void list_in_neighbors(int64_t node, int64_t in_neighbors[4], int64_t& indegree) const{
             char c = get_incoming_character(node);
             indegree = 0;
             if(c == '$') return; // Indegree 0

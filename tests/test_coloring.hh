@@ -95,7 +95,7 @@ TEST(COLORING_TESTS, random_testcases){
         plain_matrix_sbwt_t SBWT;
         build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
         Coloring coloring;
-        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3);
+        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, 3);
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
@@ -130,7 +130,7 @@ TEST(COLORING_TESTS, coli3) {
     build_nodeboss_in_memory<plain_matrix_sbwt_t>(seqs, matrix, k, true);
 
     Coloring c;
-    c.add_colors(matrix, filename, colors, 40000, 3);
+    c.add_colors(matrix, filename, colors, 40000, 3, 3);
 
     std::size_t seq_id = 0;
     write_log("Checking colors", LogLevel::MAJOR);

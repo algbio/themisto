@@ -11,6 +11,7 @@
 #include <sdsl/bit_vectors.hpp>
 
 #include "core_kmer_marker.hh"
+#include "backward_traversal.hh"
 
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
@@ -518,6 +519,8 @@ public:
         node_to_set.resize(core_count);
         node_to_set.assign(core_count, -1);
 
+        SBWT_backward_traversal_support backward_support(index_ptr);
+
         sdsl::bit_vector new_cores = cores; // For new core marks
 
         Buffered_ifstream<> in(infile, ios::binary);
@@ -557,49 +560,46 @@ public:
             for (const auto node : node_set) {
                 const auto core_rank = cores_rs.rank(node);
                 node_to_set[core_rank] = set_id;
-                propagate_core_marks(new_cores, node, core_rank, colorset_sampling_distance);
+                propagate_core_marks(new_cores, backward_support, node, core_rank, colorset_sampling_distance);
             }
 
             ++set_id;
         }
     }
 
-    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
-/*
+    // Walks backward from from_node and marks every colorset_sampling_distance node on the way
+    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
+
         int64_t n_new_marks = 0;
         
         assert(cores[from_node] == 1);
-        pair<int64_t, int64_t> I = boss.outlabel_range(from_node);
-        for(LL i = I.first; i <= I.second; i++){
-            LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
+        int64_t in_neighbors[4];
+        int64_t indegree;
+        backward_support.list_in_neighbors(from_node, in_neighbors, indegree);
+        for(LL i = 0; i < indegree; i++){
+            LL u = in_neighbors[i];
             LL counter = 0;
-            while(redundancy_marks[u] == 1){
+            while(new_cores[u] == 0){
                 counter++;
                 if(counter == colorset_sampling_distance){
-                    redundancy_marks_temp[u] = 0; // new mark
-                    nonempty_and_nonredundant[u] = 1;
-                    nonempty[u] = 1;
+                    new_cores[u] = 1; // new mark
+                    //node_to_set[u] = colorset_id; // Same color set as from_node TODO
                     counter = 0;
                     n_new_marks++;
-                    write_big_endian_LL(out, u);
-                    write_big_endian_LL(out, class_id);
                 }
-                pair<int64_t, int64_t> I_u = boss.outlabel_range(u);
-                if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
-                u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
+                backward_support.list_in_neighbors(u, in_neighbors, indegree);
+                if(indegree == 0) break; // Root node
+                if(indegree >= 2) break; // Predecessors are already marked
+                u = in_neighbors[0]; // The only in-neighbor
                 // This loop is guaranteed to terminate. Proof:
-                // If the in-degree and out-degree of u always stays 1, then we come back to v eventually,
-                // which is marked as non-redundant, so we stop. Otherwise:
-                // - If the out-degree of u becomes greater than 1 at some point, then the
-                // successors of that u will be marked non-redundant by case (4)
-                // - If the in-degree of u becomes greater than 1 at some point, then it is
-                //   marked as non-redundant by case (3)
+                // If the in-degree and out-degree of u always stays 1, then we come back to the original node eventually,
+                // which is marked, so we stop. Otherwise, the in-degree becomes 0 or >= 2 at some point, and we hit
+                // the break statements above.
             }
         }
         
-        return n_new_marks;*/
+        return n_new_marks;
 
-        return 0; // TODO
     }
     
 };
