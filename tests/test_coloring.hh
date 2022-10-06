@@ -86,6 +86,7 @@ vector<ColoringTestCase> generate_testcases(){
 }
 
 TEST(COLORING_TESTS, random_testcases){
+    int64_t testcase_id = 0;
     for(ColoringTestCase tcase : generate_testcases()){
         logger << "Running testcase" << endl;
         string fastafilename = get_temp_file_manager().create_filename("ctest",".fna");
@@ -94,8 +95,16 @@ TEST(COLORING_TESTS, random_testcases){
         fastafile.close();
         plain_matrix_sbwt_t SBWT;
         build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
+
+        sbwt::throwing_ofstream debug_out("debug/sbwt-" + to_string(testcase_id), ios::binary);
+        sbwt::serialize_string("plain-matrix", debug_out.stream); // Write variant string to file
+        SBWT.serialize(debug_out.stream); // For debug
+        vector<string> labels = dump_node_labels(SBWT);
+        for(LL i = 0; i < labels.size(); i++)
+            cout << i << " " << labels[i] << endl;
+
         Coloring coloring;
-        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, 3);
+        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, 1); // TODO: other distance than 1
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
@@ -106,6 +115,7 @@ TEST(COLORING_TESTS, random_testcases){
             logger << colorset << endl << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);
         }
+        testcase_id++;
     }
 }
 

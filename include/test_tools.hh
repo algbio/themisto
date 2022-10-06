@@ -13,6 +13,8 @@
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
 #include "stdlib_printing.hh"
+#include "sbwt/variants.hh"
+#include "sbwt/SBWT.hh"
 #include <cassert>
 
 using namespace std;
@@ -50,3 +52,6 @@ vector<string> get_sorted_suffixes(string S);
 
 void write_as_fasta(vector<string>& seqs, string fasta_filename);
 void write_as_fastq(vector<string>& seqs, string fastq_filename);
+
+vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT);
+

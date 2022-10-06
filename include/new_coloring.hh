@@ -574,6 +574,8 @@ public:
         node_to_color_id_pairs_out.close();
         cores = new_cores;
 
+        cout << cores << endl;
+
         sdsl::util::init_support(cores_rs, &cores);
 
         // Build color set_pointers
@@ -587,14 +589,18 @@ public:
             sorted_in.read(buffer.data(), 8+8);
             if(sorted_in.eof()) break;
             LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
+            cout << "pointer " << idx << " " << color_set_id << endl;
             color_set_pointers[idx] = color_set_id;
             idx++;
         }
+        cout << idx << " pointers created" << endl;
+        cout << "n_marks = " << n_marks << endl;
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
     int64_t propagate_core_marks(sdsl::bit_vector& new_cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
 
+        cout << "Back from " << from_node << " (colorset id " << colorset_id << ")" << endl;
         int64_t n_new_marks = 0;
         
         assert(cores[from_node] == 1);
@@ -607,6 +613,7 @@ public:
             while(new_cores[u] == 0){
                 counter++;
                 if(counter == colorset_sampling_distance){
+                    cout << "Mark " << u << " (colorset id " << colorset_id << ")" << endl;
                     new_cores[u] = 1; // new mark
                     write_big_endian_LL(out, u);
                     write_big_endian_LL(out, colorset_id);

@@ -117,3 +117,46 @@ void write_as_fastq(vector<string>& seqs, string fastq_filename){
         out << "@\n" << S << "\n+\n" << string(S.size(), 'I') << "\n";
     }
 }
+
+static char incoming_label(const sbwt::plain_matrix_sbwt_t& SBWT, int64_t node){
+    if(node < SBWT.get_C_array()[0]) return '$';
+    else if(node < SBWT.get_C_array()[1]) return 'A';
+    else if(node < SBWT.get_C_array()[2]) return 'C';
+    else if(node < SBWT.get_C_array()[3]) return 'G';
+    else return 'T';
+}
+
+
+// Include dummy nodes
+vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT){
+    vector<sdsl::select_support_mcl<>> select_supports(4);
+    sdsl::util::init_support(select_supports[0], &SBWT.get_subset_rank_structure().A_bits);
+    sdsl::util::init_support(select_supports[1], &SBWT.get_subset_rank_structure().C_bits);
+    sdsl::util::init_support(select_supports[2], &SBWT.get_subset_rank_structure().G_bits);
+    sdsl::util::init_support(select_supports[3], &SBWT.get_subset_rank_structure().T_bits);
+
+    vector<string> labels;
+    LL k = SBWT.get_k();
+    for(LL i = 0; i < SBWT.number_of_subsets(); i++){
+        string label;
+        LL node = i;
+        for(LL j = 0; j < k; j++){
+            char c = incoming_label(SBWT, node);
+            label.push_back(c);
+            if(c == '$') 
+                continue;
+            if(c == 'A')
+                node = select_supports[0].select(node - SBWT.get_C_array()[0] + 1);
+            if(c == 'C')
+                node = select_supports[1].select(node - SBWT.get_C_array()[1] + 1);
+            if(c == 'G')
+                node = select_supports[2].select(node - SBWT.get_C_array()[2] + 1);
+            if(c == 'T')
+                node = select_supports[3].select(node - SBWT.get_C_array()[3] + 1);
+        }
+
+        std::reverse(label.begin(), label.end());
+        labels.push_back(label);
+    }
+    return labels;
+}
