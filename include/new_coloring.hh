@@ -112,7 +112,7 @@ public:
 
 class Coloring {
     std::vector<Color_Set> sets;
-    std::vector<std::int64_t> node_to_set;
+    sdsl::int_vector<> color_set_pointers; // Rank_1 in cores -> index of color set
     sdsl::bit_vector cores;
     sdsl::rank_support_v<1> cores_rs;
     const plain_matrix_sbwt_t* index_ptr;
@@ -121,16 +121,16 @@ public:
     Coloring() {}
 
     Coloring(const std::vector<Color_Set>& sets,
-             const std::vector<std::int64_t>& node_to_set,
+             const sdsl::int_vector<> color_set_pointers,
              const sdsl::bit_vector& cores,
-             const plain_matrix_sbwt_t& index) : sets(sets), node_to_set(node_to_set), cores(cores) {
+             const plain_matrix_sbwt_t& index) : sets(sets), color_set_pointers(color_set_pointers), cores(cores) {
         sdsl::util::init_support(cores_rs, &this->cores);
         index_ptr = &index;
     }
 
     Coloring(const Coloring& c) {
         this->sets = c.sets;
-        this->node_to_set = c.node_to_set;
+        this->color_set_pointers = c.color_set_pointers;
         this->cores = c.cores;
         sdsl::util::init_support(cores_rs, &this->cores);
         this->index_ptr = c.index_ptr;
@@ -147,16 +147,7 @@ public:
             bytes_written += sets[i].serialize(os);
         }
 
-        std::size_t nts_size = node_to_set.size();
-        os.write(reinterpret_cast<char*>(&nts_size), sizeof(std::size_t));
-        bytes_written += sizeof(std::size_t);
-
-        for (std::size_t i = 0; i < nts_size; ++i) {
-            std::int64_t val = node_to_set[i];
-            os.write(reinterpret_cast<char*>(&val), sizeof(std::int64_t));
-        }
-        bytes_written += sizeof(std::int64_t) * nts_size;
-
+        bytes_written += color_set_pointers.serialize(os);
         bytes_written += cores.serialize(os);
         bytes_written += cores_rs.serialize(os);
 
@@ -175,15 +166,7 @@ public:
             sets.push_back(cs);
         }
 
-        std::size_t nts_size = 0;
-        is.read(reinterpret_cast<char*>(&nts_size), sizeof(std::size_t));
-
-        for (std::size_t i = 0; i < nts_size; ++i) {
-            std::int64_t val = 0;
-            is.read(reinterpret_cast<char*>(&val), sizeof(std::int64_t));
-            node_to_set.push_back(val);
-        }
-
+        color_set_pointers.load(is);
         cores.load(is);
         cores_rs.load(is);
         cores_rs.set_vector(&cores);
@@ -213,7 +196,7 @@ public:
         }
 
         const auto core_rank = cores_rs.rank(node);
-        const auto mapping = node_to_set[core_rank];
+        const auto mapping = color_set_pointers[core_rank];
 
         return mapping;
     }
@@ -290,7 +273,7 @@ public:
         get_temp_file_manager().delete_file(sorted_sets);
 
         write_log("Building representation", LogLevel::MAJOR);
-        build_representation(collected_nodes, colorset_sampling_distance);
+        build_representation(collected_nodes, colorset_sampling_distance, ram_bytes, n_threads);
         get_temp_file_manager().delete_file(collected_nodes);
 
         write_log("Representation built", LogLevel::MAJOR);
@@ -513,11 +496,32 @@ public:
         return outfile;
     }
 
-    void build_representation(const std::string& infile, int64_t colorset_sampling_distance) {
-        sdsl::util::init_support(cores_rs, &cores);
-        const std::size_t core_count = cores_rs.rank(cores.size());
-        node_to_set.resize(core_count);
-        node_to_set.assign(core_count, -1);
+    string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_threads){
+        assert(key == 0 || key == 1);
+        
+        auto cmp = [&](const char* A, const char* B) -> bool{
+            LL x_1,y_1,x_2,y_2; // compare (x_1, y_1) and (x_2,y_2)
+            x_1 = parse_big_endian_LL(A + 0);
+            y_1 = parse_big_endian_LL(A + 8);
+            x_2 = parse_big_endian_LL(B + 0);
+            y_2 = parse_big_endian_LL(B + 8);
+            if(key == 0){
+                return make_pair(x_1, y_1) < make_pair(x_2, y_2);
+            } else{
+                return make_pair(y_1, x_1) < make_pair(y_2, x_2);
+            }
+        };
+
+        string outfile = get_temp_file_manager().create_filename();
+        EM_sort_constant_binary(infile, outfile, cmp, ram_bytes, 8+8, n_threads);
+        return outfile;
+    }
+
+    void build_representation(const std::string& infile, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
+        
+        string node_to_color_id_pairs_filename = get_temp_file_manager().create_filename();
+        Buffered_ofstream<> node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
+        LL n_marks = 0;
 
         SBWT_backward_traversal_support backward_support(index_ptr);
 
@@ -558,17 +562,38 @@ public:
             sets.emplace_back(colors_set);
 
             for (const auto node : node_set) {
-                const auto core_rank = cores_rs.rank(node);
-                node_to_set[core_rank] = set_id;
-                propagate_core_marks(new_cores, backward_support, node, core_rank, colorset_sampling_distance);
+                n_marks++;
+                write_big_endian_LL(node_to_color_id_pairs_out, node);
+                write_big_endian_LL(node_to_color_id_pairs_out, set_id);
+                n_marks += propagate_core_marks(new_cores, backward_support, node, set_id, colorset_sampling_distance, node_to_color_id_pairs_out);
             }
 
             ++set_id;
         }
+
+        node_to_color_id_pairs_out.close();
+        cores = new_cores;
+
+        sdsl::util::init_support(cores_rs, &cores);
+
+        // Build color set_pointers
+        color_set_pointers = sdsl::int_vector<>(n_marks, 0, ceil(log2(set_id)));
+        string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
+        get_temp_file_manager().delete_file(node_to_color_id_pairs_filename);
+        Buffered_ifstream<> sorted_in(sorted_out);
+        vector<char> buffer2(8+8);
+        LL idx = 0;
+        while(true){
+            sorted_in.read(buffer.data(), 8+8);
+            if(sorted_in.eof()) break;
+            LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
+            color_set_pointers[idx] = color_set_id;
+            idx++;
+        }
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
-    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
+    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
 
         int64_t n_new_marks = 0;
         
@@ -583,7 +608,8 @@ public:
                 counter++;
                 if(counter == colorset_sampling_distance){
                     new_cores[u] = 1; // new mark
-                    //node_to_set[u] = colorset_id; // Same color set as from_node TODO
+                    write_big_endian_LL(out, u);
+                    write_big_endian_LL(out, colorset_id);
                     counter = 0;
                     n_new_marks++;
                 }
