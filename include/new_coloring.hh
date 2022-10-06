@@ -126,10 +126,8 @@ public:
     Coloring() {}
 
     Coloring(const std::vector<Color_Set>& sets,
-             const sdsl::int_vector<>& color_set_pointers,
-             const sdsl::bit_vector& cores,
-             const plain_matrix_sbwt_t& index) : sets(sets) {
-        index_ptr = &index;
+             const Sparse_Uint_Array& node_id_to_color_set_id,
+             const plain_matrix_sbwt_t& index) : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index){
     }
 
     std::size_t serialize(std::ostream& os) const {
