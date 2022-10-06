@@ -109,7 +109,6 @@ class Sparse_Uint_Array_Builder{
 
     // If multiple values are added to the same index, the *smallest* value to that index is kept
     void add(uint64_t index, uint64_t value){
-        assert(value <= max_value);
         marks[index] = 1;
         write_big_endian_LL(out_stream, index);
         write_big_endian_LL(out_stream, value);
