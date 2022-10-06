@@ -29,6 +29,7 @@ class Sparse_Uint_Array{
         this->marks_rs.set_vector(&this->marks);
         this->values = other.values;
         this->max_value = other.max_value;
+        return *this;
     }
 
 
