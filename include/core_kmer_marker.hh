@@ -58,7 +58,6 @@ public:
                 // Beginning of a sequence
                 const std::size_t first_kmer_idx = index.search(seq.substr(0, k));
                 first_kmer_marks[first_kmer_idx] = 1;
-
             }
         }
 
@@ -88,22 +87,17 @@ public:
 
         std::size_t cores = 0;
 
-        std::size_t i = 1;
-        while (i < n) {
-            // If suffix group start is encountered, check its width
+        for (std::size_t i = 1; i < n; ++i) {
             if (suffix_group_marks[i] == 1) {
-                const std::size_t group_width =  suffix_group_width(suffix_group_marks, i);
+                const std::size_t group_width = suffix_group_width(suffix_group_marks, i);
 
-                // If wider than 1, mark its members
                 if (group_width > 1) {
                     for (std::size_t j = 0; j < group_width; ++j) {
-                            cores += core_kmer_marks[i] == 1 ? 0 : 1;
-                            core_kmer_marks[i] = 1;
-                            ++i;
+                        cores += core_kmer_marks[i + j] == 1 ? 0 : 1;
+                        core_kmer_marks[i + j] = 1;
                     }
                 }
             }
-            ++i;
         }
 
         return cores;
