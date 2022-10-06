@@ -10,7 +10,7 @@ using namespace sbwt;
 
 TEST(TEST_SPARSE_UINT_ARRAY, random_test){
     LL length = 1000;
-    LL max_value = 9; // power of 2 plus 1 in case that is a special case
+    LL max_value = 8; // power of 2
     Sparse_Uint_Array_Builder builder(length, 2048, 3);
     
     LL NOTFOUND = 1e9;

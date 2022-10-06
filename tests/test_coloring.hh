@@ -106,7 +106,7 @@ TEST(COLORING_TESTS, random_testcases){
 */
 
         Coloring coloring;
-        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, 1); // TODO: other distance than 1
+        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
