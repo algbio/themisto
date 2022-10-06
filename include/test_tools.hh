@@ -12,7 +12,7 @@
 #include "globals.hh"
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
-#include "stdlib_printing.hh"
+#include "sdsl/io.hpp" // stdlib printing
 #include "sbwt/variants.hh"
 #include "sbwt/SBWT.hh"
 #include <cassert>

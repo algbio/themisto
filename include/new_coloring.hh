@@ -539,7 +539,6 @@ public:
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
     void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
 
-        cout << "Back from " << from_node << " (colorset id " << colorset_id << ")" << endl;
         int64_t n_new_marks = 0;
         
         assert(cores[from_node] == 1);

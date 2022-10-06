@@ -96,12 +96,14 @@ TEST(COLORING_TESTS, random_testcases){
         plain_matrix_sbwt_t SBWT;
         build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
 
+/*
         sbwt::throwing_ofstream debug_out("debug/sbwt-" + to_string(testcase_id), ios::binary);
         sbwt::serialize_string("plain-matrix", debug_out.stream); // Write variant string to file
         SBWT.serialize(debug_out.stream); // For debug
         vector<string> labels = dump_node_labels(SBWT);
         for(LL i = 0; i < labels.size(); i++)
             cout << i << " " << labels[i] << endl;
+*/
 
         Coloring coloring;
         coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, 1); // TODO: other distance than 1
@@ -112,7 +114,7 @@ TEST(COLORING_TESTS, random_testcases){
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
             vector<uint32_t> colorvec = coloring.get_color_set_as_vector(node_id);
             set<LL> colorset(colorvec.begin(), colorvec.end());
-            logger << colorset << endl << correct_colorset << endl;
+            logger << node_id << ": " << colorset << " - " << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);
         }
         testcase_id++;

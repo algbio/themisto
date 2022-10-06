@@ -35,10 +35,9 @@ class Sparse_Uint_Array{
     Sparse_Uint_Array(){}
 
 
-    Sparse_Uint_Array(const sdsl::bit_vector& marks, sdsl::int_vector<>& values, uint64_t max_value) :
-        marks(marks), values(values), max_value(max_value){
-            sdsl::util::init_support(marks_rs, &marks);
-        }
+    Sparse_Uint_Array(const sdsl::bit_vector& marks, sdsl::int_vector<>& values, uint64_t max_value) : marks(marks), values(values), max_value(max_value){
+        sdsl::util::init_support(marks_rs, &marks);
+    }
 
 
     // Return -1 if not in the array
@@ -137,7 +136,7 @@ class Sparse_Uint_Array_Builder{
         vector<char> buffer(8+8);
         uint64_t rank = 0;
         int64_t prev_index = -1;
-        sdsl::int_vector<> values(n_values, 0, ceil(log2(max_value)));
+        sdsl::int_vector<> values(n_values, 0, ceil(log2(max_value+1))); // +1 because 0..max_value is max_value+1 distinct values
         while(true){
             sorted_in.read(buffer.data(), 8+8);
             if(sorted_in.eof()) break;
@@ -145,6 +144,7 @@ class Sparse_Uint_Array_Builder{
             uint64_t value = sbwt::parse_big_endian_LL(buffer.data() + 8);
 
             if(index != prev_index) values[rank++] = value;
+
             // If there are multiple values with the same index, we ignore all but the first one
             // This is why the comment on add(...) says that the smallest value is kept
 
