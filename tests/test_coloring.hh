@@ -108,3 +108,47 @@ TEST(COLORING_TESTS, random_testcases){
         }
     }
 }
+
+TEST(COLORING_TESTS, coli3) {
+    std::string filename = "example_input/coli3.fna";
+
+    std::vector<std::string> seqs;
+    SeqIO::Unbuffered_Reader sr(filename);
+    while(!sr.done()){
+        string S = sr.get_next_query_stream().get_all();
+        seqs.push_back(S);
+    }
+
+    const std::size_t k = 31;
+    plain_matrix_sbwt_t matrix;
+
+    std::vector<std::int64_t> colors;
+    for(std::int64_t i = 0; i < seqs.size(); ++i){
+        colors.push_back(i);
+    }
+
+    build_nodeboss_in_memory<plain_matrix_sbwt_t>(seqs, matrix, k, true);
+
+    Coloring c;
+    c.add_colors(matrix, filename, colors, 40000, 3);
+
+    std::size_t seq_id = 0;
+    write_log("Checking colors", LogLevel::MAJOR);
+    for (const auto& seq : seqs) {
+
+        std::cout << "Checking sequence: " << seq_id << "\n";
+
+        const auto nodes = matrix.streaming_search(seq);
+
+        for (auto node : nodes) {
+            if (node <= 0 || node > matrix.number_of_subsets()) {
+                break;
+            } else {
+                auto vec = c.get_color_set_as_vector(node);
+                const auto res = std::find(vec.begin(), vec.end(), seq_id);
+                ASSERT_TRUE(res != vec.end());
+            }
+        }
+        ++seq_id;
+    }
+}
