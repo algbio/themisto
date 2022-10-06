@@ -61,17 +61,17 @@ public:
         sdsl::bit_vector first_kmer_marks(n, 0);
         std::size_t read_len = 0;
         while ((read_len = reader.get_next_read_to_buffer()) > 0) {
-            if (read_len >= k) {
-                const std::string seq(reader.read_buf);
+            for(const string& part : split_at_non_ACGT(reader.read_buf, read_len)){
+                if (part.size() >= k) {
+                    // End of a sequence
+                    const std::size_t last_kmer_idx = index.search(part.substr(part.size() - k));
+                    core_kmer_marks[last_kmer_idx] = 1;
+                    cores += core_kmer_marks[last_kmer_idx] == 1 ? 0 : 1;
 
-                // End of a sequence
-                const std::size_t last_kmer_idx = index.search(seq.substr(seq.size() - k));
-                core_kmer_marks[last_kmer_idx] = 1;
-                cores += core_kmer_marks[last_kmer_idx] == 1 ? 0 : 1;
-
-                // Beginning of a sequence
-                const std::size_t first_kmer_idx = index.search(seq.substr(0, k));
-                first_kmer_marks[first_kmer_idx] = 1;
+                    // Beginning of a sequence
+                    const std::size_t first_kmer_idx = index.search(part.substr(0, k));
+                    first_kmer_marks[first_kmer_idx] = 1;
+                }
             }
         }
 
@@ -158,6 +158,20 @@ public:
             edges.set(3, true);
 
         return edges;
+    }
+
+    vector<string> split_at_non_ACGT(const char* S, int64_t S_size){
+        vector<string> parts;
+        int64_t start = 0;
+        for(int64_t end = 0; end <= S_size; end++){ // Exclusive end point
+            if(end == S_size || (S[end] != 'A' && S[end] != 'C' && S[end] != 'G' && S[end] != 'T')){
+                if(end > start) {
+                    parts.push_back(string(S + start, S + end));
+                }
+                start = end + 1;
+            }
+        }
+        return parts;
     }
 
 };

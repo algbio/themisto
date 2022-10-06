@@ -284,11 +284,10 @@ public:
 
                 const auto res = index.streaming_search(seq);
                 for (const auto node : res) {
-                    if (node < cores.size() && node > 0)
-                        if (cores[node] == 1) {
-                            write_big_endian_LL(out, node);
-                            write_big_endian_LL(out, seq_id_to_color_id.at(seq_id));
-                        }
+                    if(node >= 0 && cores[node] == 1) {
+                        write_big_endian_LL(out, node);
+                        write_big_endian_LL(out, seq_id_to_color_id.at(seq_id));
+                    }
                 }
             }
 

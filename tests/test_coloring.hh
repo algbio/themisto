@@ -165,7 +165,7 @@ TEST(COLORING_TESTS, coli3) {
     for (const auto& seq : seqs) {
 
         std::cout << "Checking sequence: " << seq_id << "\n";
-        cout << seq << endl;
+        //cout << seq << endl;
 
         const auto nodes = matrix.streaming_search(seq);
 
@@ -176,7 +176,7 @@ TEST(COLORING_TESTS, coli3) {
                 ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));
             } else {
                 auto vec = c.get_color_set_as_vector(node);
-                cout << "kmer " << i << " " << seq.substr(i,k) << endl;
+                //cout << "kmer " << i << " " << seq.substr(i,k) << endl;
                 const auto res = std::find(vec.begin(), vec.end(), seq_id);
                 ASSERT_TRUE(res != vec.end());
             }
