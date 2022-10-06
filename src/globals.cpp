@@ -50,7 +50,7 @@ string generate_default_colorfile(string inputfile, string file_format){
 // We need this function because the standard library stoll function accepts all kinds of crap,
 // such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid
 // number and returns that number, or throws an error otherwise.
-LL string_to_integer_safe(const string& S){
+int64_t string_to_integer_safe(const string& S){
 
     // Figure out leading and trailing whitespace
     LL pos_of_first_digit = 1e18;

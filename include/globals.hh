@@ -42,3 +42,5 @@ vector<T> parse_tokens(string S){
     
     return tokens;
 }
+
+int64_t string_to_integer_safe(const string& S);

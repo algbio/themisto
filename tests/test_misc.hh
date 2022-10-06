@@ -10,21 +10,23 @@
 #include <unordered_map>
 #include <map>
 #include <gtest/gtest.h>
-#include "../stdlib_printing.hh"
-#include "../globals.hh"
+#include "sbwt/stdlib_printing.hh"
+#include "sbwt/globals.hh"
+#include "sbwt/SeqIO.hh"
+#include "globals.hh"
 #include "setup_tests.hh"
 #include "test_tools.hh"
-#include "Themisto.hh"
-#include "Argv.hh"
 #include "commands.hh"
 #include <cassert>
 
+using namespace sbwt;
+
 TEST(MISC_TEST, randomize_non_ACGT){
     vector<string> seqs = {"AATgCaTGCPPOjdjpqFbCL", "AACGTAAGCGALKJGF"};
-    string fastafile = get_temp_file_manager().create_filename();
+    string fastafile = get_temp_file_manager().create_filename(".",".fna");
     write_as_fasta(seqs, fastafile);
-    string fixedfile = fix_alphabet(fastafile, FASTA_MODE);
-    Sequence_Reader_Buffered sr(fixedfile, FASTA_MODE);
+    string fixedfile = fix_alphabet(fastafile);
+    sbwt::SeqIO::Reader<> sr(fixedfile);
     LL seqs_read = 0;
 
     auto is_dna = [](char c){
@@ -36,7 +38,7 @@ TEST(MISC_TEST, randomize_non_ACGT){
         string S_fixed = sr.get_next_read();
         if(S_fixed.size() == 0) break;
         string S = seqs[seqs_read++];
-        cout << S << endl << S_fixed << endl;
+        logger << S << endl << S_fixed << endl;
         ASSERT_EQ(S.size(), S_fixed.size());
         for(LL i = 0; i < S.size(); i++){
             if(is_dna(S[i])) {ASSERT_EQ(toupper(S[i]), toupper(S_fixed[i]));}
@@ -59,8 +61,8 @@ TEST(MISC_TEST, delete_non_ACGT){
 
     // Write to files
 
-    string fasta1 = get_temp_file_manager().create_filename("fasta1");
-    string colors1 = get_temp_file_manager().create_filename("colors1");
+    string fasta1 = get_temp_file_manager().create_filename("fasta1",".fna");
+    string colors1 = get_temp_file_manager().create_filename("colors1",".txt");
     
     throwing_ofstream fasta1_outstream(fasta1);
     fasta1_outstream << fasta_data;
@@ -82,7 +84,7 @@ TEST(MISC_TEST, delete_non_ACGT){
     while(getline(colors_stream, line))
         out_colors.push_back(stoll(line));
     vector<string> out_seqs;
-    Sequence_Reader_Buffered sr(fasta2, FASTA_MODE);
+    SeqIO::Reader<> sr(fasta2);
     while(true){
         string read = sr.get_next_read();
         if(read.size() > 0) out_seqs.push_back(read);
