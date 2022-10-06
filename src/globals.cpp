@@ -271,6 +271,7 @@ vector<string> split(const char* text, char delimiter){
     return split(string(text), delimiter);
 }
 
+// This is designed to work even if S is not null-terminated. Calling code depends on this.
 void reverse_complement_c_string(char* S, int64_t len){
     std::reverse(S, S + len);
     for(LL i = 0; i < len; i++)

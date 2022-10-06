@@ -2,11 +2,13 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "ParallelBoundedQueue.hh"
 #include "globals.hh"
 #include "zstr.hpp"
+#include "old_buffered_streams.hh"
+#include "sbwt/EM_sort/ParallelBoundedQueue.hh"
 
 using namespace std;
+using namespace sbwt;
 
 class ParallelBaseWriter{
 
@@ -22,7 +24,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     public:
 
     string outfile;
-    Buffered_ofstream outstream;
+    old_themisto_code::Buffered_ofstream outstream;
     std::mutex mutex;
 
     ParallelOutputWriter(string outfile) : outfile(outfile){
@@ -76,7 +78,7 @@ class ParallelBinaryOutputWriter{
     public:
 
     string outfile;
-    Buffered_ofstream outstream;
+    old_themisto_code::Buffered_ofstream outstream;
     std::mutex mutex;
 
     ParallelBinaryOutputWriter(string outfile) : outfile(outfile, ios::binary){
@@ -132,6 +134,6 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
-void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Buffered& sr, int64_t buffer_size);
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sbwt::SeqIO::Reader<>& sr, int64_t buffer_size);
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader_Buffered& sr, LL buffer_size);
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sbwt::SeqIO::Reader<>& sr, LL buffer_size);

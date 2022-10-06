@@ -1,7 +1,6 @@
 #include <string>
 #include <vector>
-#include "ParallelBoundedQueue.hh"
-#include "input_reading.hh"
+#include "sbwt/SeqIO.hh"
 #include "globals.hh"
 #include "zstr.hpp"
 #include "ReadBatch.hh"
@@ -9,6 +8,7 @@
 #include "stdlib_printing.hh"
 
 using namespace std;
+using namespace sbwt;
 
 void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id){
     write_log("Starting thread " + to_string(thread_id), LogLevel::MINOR);
@@ -33,7 +33,7 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
     write_log("Thread " + to_string(thread_id) + " done", LogLevel::MINOR);
 }
 
-void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Buffered& sr, int64_t batch_size){
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sbwt::SeqIO::Reader<>& sr, int64_t batch_size){
     // Push work in batches of approximately buffer_size base pairs
 
     LL read_id = 0;
@@ -69,7 +69,7 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, Sequence_Reader_Bu
     Q.push(batch,0); // Empty batch in the end signifies end of the queue
 }
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader_Buffered& sr, LL buffer_size){
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sbwt::SeqIO::Reader<>& sr, LL buffer_size){
     vector<std::thread> threads;
     ParallelBoundedQueue<ReadBatch*> Q(buffer_size);
 
