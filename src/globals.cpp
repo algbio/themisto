@@ -277,3 +277,20 @@ void reverse_complement_c_string(char* S, int64_t len){
     for(LL i = 0; i < len; i++)
         S[i] = sbwt::get_rc(S[i]);
 }
+
+bool files_are_equal(const std::string& p1, const std::string& p2) {
+  //https://stackoverflow.com/questions/6163611/compare-two-files/6163627
+    sbwt::throwing_ifstream f1(p1, std::ifstream::binary|std::ifstream::ate);
+    sbwt::throwing_ifstream f2(p2, std::ifstream::binary|std::ifstream::ate);
+
+    if (f1.stream.tellg() != f2.stream.tellg()) {
+      return false; //size mismatch
+    }
+
+    //seek back to beginning and use std::equal to compare contents
+    f1.stream.seekg(0, std::ifstream::beg);
+    f2.stream.seekg(0, std::ifstream::beg);
+    return std::equal(std::istreambuf_iterator<char>(f1.stream.rdbuf()),
+                    std::istreambuf_iterator<char>(),
+                    std::istreambuf_iterator<char>(f2.stream.rdbuf()));
+}

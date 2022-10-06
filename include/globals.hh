@@ -31,6 +31,8 @@ vector<string> split(const char* text, char delimiter);
 
 void reverse_complement_c_string(char* S, int64_t len);
 
+bool files_are_equal(const std::string& p1, const std::string& p2);
+
 template <typename T>
 vector<T> parse_tokens(string S){
     vector<T> tokens;

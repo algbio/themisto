@@ -188,6 +188,11 @@ public:
         cores_rs.set_vector(&cores);
     }
 
+    void load(const std::string& filename, const plain_matrix_sbwt_t& index) {
+        throwing_ifstream in(filename, ios::binary);
+        load(in.stream, index);
+    }
+
     inline std::int64_t get_mapping(std::int64_t node) const {
         const auto& C_array = index_ptr->get_C_array();
         const auto& subset_struct= index_ptr->get_subset_rank_structure();

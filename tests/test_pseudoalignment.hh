@@ -13,6 +13,7 @@
 #include "include/commands.hh"
 
 using namespace std;
+using namespace sbwt;
 
 LL random_seed = 123674;
 
