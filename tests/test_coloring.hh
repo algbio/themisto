@@ -4,10 +4,11 @@
 #include <vector>
 #include <unordered_map>
 #include "setup_tests.hh"
-#include "../globals.hh"
-#include "../test_tools.hh"
-#include "../libwheeler/BOSS.hh"
-#include "../Themisto.hh"
+#include "globals.hh"
+#include "test_tools.hh"
+#include "sbwt/SBWT.hh"
+#include "sbwt/globals.hh"
+#include "new_coloring.hh"
 
 // Testcase: put in a couple of reference sequences, sweep different k. For each k-mer, 
 // ask what is the color set of that k-mer. It should coincide with the reads that contain
@@ -18,7 +19,7 @@ struct ColoringTestCase{
     vector<string> colex_kmers; //
     unordered_map<string,set<LL> > kmer_to_ref_ids; //
     vector<set<LL> > color_sets; // kmer id -> color ids
-    vector<LL> seq_id_to_color_id; //
+    vector<int64_t> seq_id_to_color_id; //
     string fasta_data; //
     LL k; //
 };
@@ -84,41 +85,24 @@ vector<ColoringTestCase> generate_testcases(){
     return cases;
 }
 
-TEST(COLORING_TESTS, kmer_edge_case){
-    // The coloring should not have a k-mer if it is not inside some (k+1)-mer
-    vector<string> seqs = {"AACA", "ATAACAGACT"};
-    vector<LL> colors = {0,1};
-    LL k = 4;
-    string fastafile = get_temp_file_manager().create_filename();
-    write_as_fasta(seqs, fastafile);
-    BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(seqs, k, false);
-    Coloring coloring;
-    coloring.add_colors(boss, fastafile, colors, 1e6, 1, 1);
-    
-    LL node_id = boss.find_kmer("AACA");
-    vector<LL> correct_colorset = {1}; // no color 0 because it does not have a (4+1)-mer
-    set<LL> colorset_set = coloring.get_colorset(node_id, boss);
-    vector<LL> colorset_vec(colorset_set.begin(), colorset_set.end());
-    logger << "== Colorset edge case test == " << endl << correct_colorset << endl << colorset_vec << endl << "==" << endl;
-    ASSERT_EQ(correct_colorset, colorset_vec);
-}
-
 TEST(COLORING_TESTS, random_testcases){
     for(ColoringTestCase tcase : generate_testcases()){
         logger << "Running testcase" << endl;
         string fastafilename = get_temp_file_manager().create_filename("ctest");
-        throwing_ofstream fastafile(fastafilename);
+        sbwt::throwing_ofstream fastafile(fastafilename);
         fastafile << tcase.fasta_data;
         fastafile.close();
-        BOSS<sdsl::bit_vector> boss = build_BOSS_with_maps(tcase.references, tcase.k, false);
+        plain_matrix_sbwt_t SBWT;
+        build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
         Coloring coloring;
-        coloring.add_colors(boss, fastafilename, tcase.seq_id_to_color_id, 1000, 3, 10);
+        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3);
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
-            LL node_id = boss.find_kmer(kmer);
+            LL node_id = SBWT.search(kmer);
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
-            set<LL> colorset = coloring.get_colorset(node_id, boss);
+            vector<uint32_t> colorvec = coloring.get_color_set_as_vector(node_id);
+            set<LL> colorset(colorvec.begin(), colorvec.end());
             logger << colorset << endl << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);
         }

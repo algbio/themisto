@@ -17,7 +17,7 @@
 #include "test_CLI.hh"
 #include "test_misc.hh"
 #include "test_work_dispatcher.hh"
-//#include "test_coloring.hh"
+#include "test_coloring.hh"
 #include "test_pseudoalignment.hh"
 //#include "test_extract_unitigs.hh"
 
