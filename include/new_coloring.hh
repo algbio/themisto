@@ -243,7 +243,8 @@ public:
                     const std::string fastafile,
                     const std::vector<std::int64_t>& colors_assignments,
                     const std::int64_t ram_bytes,
-                    const std::int64_t n_threads) {
+                    const std::int64_t n_threads,
+                    int64_t colorset_sampling_distance) {
 
         index_ptr = &index;
 
@@ -288,7 +289,7 @@ public:
         get_temp_file_manager().delete_file(sorted_sets);
 
         write_log("Building representation", LogLevel::MAJOR);
-        build_representation(collected_nodes);
+        build_representation(collected_nodes, colorset_sampling_distance);
         get_temp_file_manager().delete_file(collected_nodes);
 
         write_log("Representation built", LogLevel::MAJOR);
@@ -511,11 +512,13 @@ public:
         return outfile;
     }
 
-    void build_representation(const std::string& infile) {
+    void build_representation(const std::string& infile, int64_t colorset_sampling_distance) {
         sdsl::util::init_support(cores_rs, &cores);
         const std::size_t core_count = cores_rs.rank(cores.size());
         node_to_set.resize(core_count);
         node_to_set.assign(core_count, -1);
+
+        sdsl::bit_vector new_cores = cores; // For new core marks
 
         Buffered_ifstream<> in(infile, ios::binary);
         vector<char> buffer(16);
@@ -554,9 +557,49 @@ public:
             for (const auto node : node_set) {
                 const auto core_rank = cores_rs.rank(node);
                 node_to_set[core_rank] = set_id;
+                propagate_core_marks(new_cores, node, core_rank, colorset_sampling_distance);
             }
 
             ++set_id;
         }
     }
+
+    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
+/*
+        int64_t n_new_marks = 0;
+        
+        assert(cores[from_node] == 1);
+        pair<int64_t, int64_t> I = boss.outlabel_range(from_node);
+        for(LL i = I.first; i <= I.second; i++){
+            LL u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(i));
+            LL counter = 0;
+            while(redundancy_marks[u] == 1){
+                counter++;
+                if(counter == colorset_sampling_distance){
+                    redundancy_marks_temp[u] = 0; // new mark
+                    nonempty_and_nonredundant[u] = 1;
+                    nonempty[u] = 1;
+                    counter = 0;
+                    n_new_marks++;
+                    write_big_endian_LL(out, u);
+                    write_big_endian_LL(out, class_id);
+                }
+                pair<int64_t, int64_t> I_u = boss.outlabel_range(u);
+                if(I_u == make_pair<int64_t, int64_t>(1,0)) break; // Outdegree is zero
+                u = boss.edge_destination(boss.outedge_index_to_wheeler_rank(I_u.first));
+                // This loop is guaranteed to terminate. Proof:
+                // If the in-degree and out-degree of u always stays 1, then we come back to v eventually,
+                // which is marked as non-redundant, so we stop. Otherwise:
+                // - If the out-degree of u becomes greater than 1 at some point, then the
+                // successors of that u will be marked non-redundant by case (4)
+                // - If the in-degree of u becomes greater than 1 at some point, then it is
+                //   marked as non-redundant by case (3)
+            }
+        }
+        
+        return n_new_marks;*/
+
+        return 0; // TODO
+    }
+    
 };

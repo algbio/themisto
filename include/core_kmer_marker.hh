@@ -12,6 +12,20 @@
 
 using namespace sbwt;
 
+/*
+    Marks nodes v that fall into one of the following four cases:
+
+    (1) v has an outgoing edge into a node that is the first k-mer of a sequence
+    (2) v is the last k-mer of a sequence
+    (3) v has an outgoing edge into a node with in-degree at least 2
+    (4) v has outdegree at least 2
+
+    The idea of these cases is that a node u has the same color set as the nearest
+    marked node v that can be reached by walking forward from u in the de Bruijn graph.
+    In other words, the color set of a non-marked node u is the same as the color set of
+    its successor in the graph (the successor exists due to case 2 and is unique due to case 4).
+*/
+
 class core_kmer_marker {
     static constexpr char int_to_dna[] = { 'A', 'C', 'G', 'T' };
 public:
