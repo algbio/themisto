@@ -13,6 +13,7 @@
 #include "core_kmer_marker.hh"
 #include "backward_traversal.hh"
 
+#include "Sparse_Uint_Array.hh"
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
 #include "sbwt/EM_sort/EM_sort.hh"
@@ -112,10 +113,14 @@ public:
 
 class Coloring {
     std::vector<Color_Set> sets;
-    sdsl::int_vector<> color_set_pointers; // Rank_1 in cores -> index of color set
-    sdsl::bit_vector cores;
-    sdsl::rank_support_v<1> cores_rs;
+    
+    Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
+
+private:
+
+    Coloring(const Coloring& temp_obj) = delete; // No copying
+    Coloring& operator=(const Coloring& temp_obj) = delete;  // No copying
 
 public:
     Coloring() {}
@@ -123,17 +128,8 @@ public:
     Coloring(const std::vector<Color_Set>& sets,
              const sdsl::int_vector<> color_set_pointers,
              const sdsl::bit_vector& cores,
-             const plain_matrix_sbwt_t& index) : sets(sets), color_set_pointers(color_set_pointers), cores(cores) {
-        sdsl::util::init_support(cores_rs, &this->cores);
+             const plain_matrix_sbwt_t& index) : sets(sets) {
         index_ptr = &index;
-    }
-
-    Coloring(const Coloring& c) {
-        this->sets = c.sets;
-        this->color_set_pointers = c.color_set_pointers;
-        this->cores = c.cores;
-        sdsl::util::init_support(cores_rs, &this->cores);
-        this->index_ptr = c.index_ptr;
     }
 
     std::size_t serialize(std::ostream& os) const {
@@ -147,9 +143,7 @@ public:
             bytes_written += sets[i].serialize(os);
         }
 
-        bytes_written += color_set_pointers.serialize(os);
-        bytes_written += cores.serialize(os);
-        bytes_written += cores_rs.serialize(os);
+        bytes_written += node_id_to_color_set_id.serialize(os);
 
         return bytes_written;
     }
@@ -166,10 +160,7 @@ public:
             sets.push_back(cs);
         }
 
-        color_set_pointers.load(is);
-        cores.load(is);
-        cores_rs.load(is);
-        cores_rs.set_vector(&cores);
+        node_id_to_color_set_id.load(is);
     }
 
     void load(const std::string& filename, const plain_matrix_sbwt_t& index) {
@@ -177,11 +168,14 @@ public:
         load(in.stream, index);
     }
 
-    inline std::int64_t get_mapping(std::int64_t node) const {
+    std::int64_t get_color_set_id(std::int64_t node) const {
         const auto& C_array = index_ptr->get_C_array();
         const auto& subset_struct= index_ptr->get_subset_rank_structure();
 
-        while (cores[node] == 0) {
+        while (!node_id_to_color_set_id.has_index(node)) {
+            // While we don't have the color set id stored for the current node...
+
+            // Follow an edge forward
             if (subset_struct.A_bits[node] == 1) {
                 node = C_array[0] + subset_struct.rank(node, 'A');
             } else if (subset_struct.C_bits[node] == 1) {
@@ -195,32 +189,22 @@ public:
             }
         }
 
-        const auto core_rank = cores_rs.rank(node);
-        const auto mapping = color_set_pointers[core_rank];
-
-        return mapping;
-    }
-
-    std::vector<std::uint32_t> get_color_set_as_vector(std::int64_t node) const {
-        const auto mapping = get_mapping(node);
-
-        if (mapping == -1) {
-            std::vector<std::uint32_t> empty;
-            return empty;
-        }
-
-        return sets[mapping].get_colors_as_vector();
+        return node_id_to_color_set_id.get(node);
     }
 
     Color_Set get_color_set(std::int64_t node) const {
-        const auto mapping = get_mapping(node);
+        std::int64_t color_set_id = get_color_set_id(node);
 
-        if (mapping == -1) {
+        if (color_set_id == -1) {
             Color_Set empty;
             return empty;
         }
 
-        return sets[mapping];
+        return sets[color_set_id];
+    }
+
+    std::vector<std::uint32_t> get_color_set_as_vector(std::int64_t node) const {
+        return get_color_set(node).get_colors_as_vector();
     }
 
     void add_colors(const plain_matrix_sbwt_t& index,
@@ -235,10 +219,10 @@ public:
         write_log("Marking core kmers", LogLevel::MAJOR);
         core_kmer_marker ckm;
         ckm.mark_core_kmers(fastafile, index);
-        cores = ckm.core_kmer_marks;
+        sdsl::bit_vector cores = ckm.core_kmer_marks;
 
         write_log("Getting node color pairs", LogLevel::MAJOR);
-        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments);
+        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments, cores);
 
         write_log("Sorting node color pairs", LogLevel::MAJOR);
         const std::string sorted_pairs = get_temp_file_manager().create_filename();
@@ -273,7 +257,7 @@ public:
         get_temp_file_manager().delete_file(sorted_sets);
 
         write_log("Building representation", LogLevel::MAJOR);
-        build_representation(collected_nodes, colorset_sampling_distance, ram_bytes, n_threads);
+        build_representation(collected_nodes, cores, colorset_sampling_distance, ram_bytes, n_threads);
         get_temp_file_manager().delete_file(collected_nodes);
 
         write_log("Representation built", LogLevel::MAJOR);
@@ -281,7 +265,8 @@ public:
 
     std::string get_node_color_pairs(const plain_matrix_sbwt_t& index,
                                      const std::string& fasta_file,
-                                     const std::vector<std::int64_t>& seq_id_to_color_id) {
+                                     const std::vector<std::int64_t>& seq_id_to_color_id,
+                                     const sdsl::bit_vector& cores) {
         const std::string outfile = get_temp_file_manager().create_filename();
         Buffered_ofstream<> out(outfile);
         const auto k = index.get_k();
@@ -496,36 +481,12 @@ public:
         return outfile;
     }
 
-    string EM_sort_big_endian_LL_pairs(string infile, LL ram_bytes, LL key, LL n_threads){
-        assert(key == 0 || key == 1);
-        
-        auto cmp = [&](const char* A, const char* B) -> bool{
-            LL x_1,y_1,x_2,y_2; // compare (x_1, y_1) and (x_2,y_2)
-            x_1 = parse_big_endian_LL(A + 0);
-            y_1 = parse_big_endian_LL(A + 8);
-            x_2 = parse_big_endian_LL(B + 0);
-            y_2 = parse_big_endian_LL(B + 8);
-            if(key == 0){
-                return make_pair(x_1, y_1) < make_pair(x_2, y_2);
-            } else{
-                return make_pair(y_1, x_1) < make_pair(y_2, x_2);
-            }
-        };
-
-        string outfile = get_temp_file_manager().create_filename();
-        EM_sort_constant_binary(infile, outfile, cmp, ram_bytes, 8+8, n_threads);
-        return outfile;
-    }
-
-    void build_representation(const std::string& infile, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
+    void build_representation(const std::string& infile, const sdsl::bit_vector& cores, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
         
         string node_to_color_id_pairs_filename = get_temp_file_manager().create_filename();
         Buffered_ofstream<> node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
-        LL n_marks = 0;
 
         SBWT_backward_traversal_support backward_support(index_ptr);
-
-        sdsl::bit_vector new_cores = cores; // For new core marks
 
         Buffered_ifstream<> in(infile, ios::binary);
         vector<char> buffer(16);
@@ -534,6 +495,8 @@ public:
         vector<std::int64_t> colors_set; // Reusable space
 
         std::size_t set_id = 0;
+
+        Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
         while (true) {
             node_set.clear();
             colors_set.clear();
@@ -562,43 +525,17 @@ public:
             sets.emplace_back(colors_set);
 
             for (const auto node : node_set) {
-                n_marks++;
-                write_big_endian_LL(node_to_color_id_pairs_out, node);
-                write_big_endian_LL(node_to_color_id_pairs_out, set_id);
-                n_marks += propagate_core_marks(new_cores, backward_support, node, set_id, colorset_sampling_distance, node_to_color_id_pairs_out);
+                builder.add(node, set_id);
+                store_samples_in_unitig(cores, builder, backward_support, node, set_id, colorset_sampling_distance, node_to_color_id_pairs_out);
             }
 
             ++set_id;
         }
 
-        node_to_color_id_pairs_out.close();
-        cores = new_cores;
-
-        cout << cores << endl;
-
-        sdsl::util::init_support(cores_rs, &cores);
-
-        // Build color set_pointers
-        color_set_pointers = sdsl::int_vector<>(n_marks, 0, ceil(log2(set_id)));
-        string sorted_out = EM_sort_big_endian_LL_pairs(node_to_color_id_pairs_filename, ram_bytes, 0, n_threads);
-        get_temp_file_manager().delete_file(node_to_color_id_pairs_filename);
-        Buffered_ifstream<> sorted_in(sorted_out);
-        vector<char> buffer2(8+8);
-        LL idx = 0;
-        while(true){
-            sorted_in.read(buffer.data(), 8+8);
-            if(sorted_in.eof()) break;
-            LL color_set_id = parse_big_endian_LL(buffer.data() + 8);
-            cout << "pointer " << idx << " " << color_set_id << endl;
-            color_set_pointers[idx] = color_set_id;
-            idx++;
-        }
-        cout << idx << " pointers created" << endl;
-        cout << "n_marks = " << n_marks << endl;
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
-    int64_t propagate_core_marks(sdsl::bit_vector& new_cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
+    void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
 
         cout << "Back from " << from_node << " (colorset id " << colorset_id << ")" << endl;
         int64_t n_new_marks = 0;
@@ -610,15 +547,11 @@ public:
         for(LL i = 0; i < indegree; i++){
             LL u = in_neighbors[i];
             LL counter = 0;
-            while(new_cores[u] == 0){
+            while(cores[u] == 0){
                 counter++;
                 if(counter == colorset_sampling_distance){
-                    cout << "Mark " << u << " (colorset id " << colorset_id << ")" << endl;
-                    new_cores[u] = 1; // new mark
-                    write_big_endian_LL(out, u);
-                    write_big_endian_LL(out, colorset_id);
+                    builder.add(u, colorset_id);
                     counter = 0;
-                    n_new_marks++;
                 }
                 backward_support.list_in_neighbors(u, in_neighbors, indegree);
                 if(indegree == 0) break; // Root node
@@ -630,9 +563,6 @@ public:
                 // the break statements above.
             }
         }
-        
-        return n_new_marks;
-
     }
     
 };

@@ -8,6 +8,7 @@
 #include "sdsl/bit_vectors.hpp"
 
 
+// Should be constructed with Sparse_Uint_Array_Builder
 class Sparse_Uint_Array{
     private:
 
@@ -21,6 +22,8 @@ class Sparse_Uint_Array{
 
     public:
 
+    Sparse_Uint_Array(){}
+
     Sparse_Uint_Array(const sdsl::bit_vector& marks, sdsl::int_vector<>& values, uint64_t max_value) :
         marks(marks), values(values), max_value(max_value){
             sdsl::util::init_support(marks_rs, &marks);
@@ -28,14 +31,18 @@ class Sparse_Uint_Array{
 
 
     // Return -1 if not in the array
-    int64_t get(uint64_t idx){
+    int64_t get(uint64_t idx) const{
         if(idx >= marks.size()) throw std::runtime_error("Access out of bounds at Sparse_Uint_Array");
         if(marks[idx] == 0) return -1; // Not in array
         int64_t pos = marks_rs.rank(idx);
         return values[pos];
     }
 
-    int64_t serialize(ostream& os){
+    bool has_index(uint64_t idx) const{
+        return marks[idx];
+    }
+
+    int64_t serialize(ostream& os) const{
         int64_t n_bytes_written = 0;
         n_bytes_written += marks.serialize(os);
         n_bytes_written += marks_rs.serialize(os);
@@ -94,7 +101,7 @@ class Sparse_Uint_Array_Builder{
 
     public:
 
-    Sparse_Uint_Array_Builder(uint64_t array_length, uint64_t max_value, uint64_t ram_bytes, uint64_t n_threads) : array_length(array_length), max_value(max_value), n_values(0), ram_bytes(ram_bytes), n_threads(n_threads) {
+    Sparse_Uint_Array_Builder(uint64_t array_length, uint64_t ram_bytes, uint64_t n_threads) : array_length(array_length), max_value(0), n_values(0), ram_bytes(ram_bytes), n_threads(n_threads) {
         temp_filename = sbwt::get_temp_file_manager().create_filename("");
         out_stream.open(temp_filename, ios::binary);
         marks = sdsl::bit_vector(array_length, 0);
@@ -106,6 +113,7 @@ class Sparse_Uint_Array_Builder{
         marks[index] = 1;
         write_big_endian_LL(out_stream, index);
         write_big_endian_LL(out_stream, value);
+        max_value = max(max_value, value);
         n_values++;
     }    
 
