@@ -17,7 +17,6 @@ private:
 
     plain_matrix_sbwt_t* SBWT; // Non-owning pointer
     SBWT_backward_traversal_support backward_support;
-    vector<bool> is_dummy;
 
 public:
 
@@ -36,7 +35,7 @@ public:
     class inedge_generator;
 
     DBG(){}
-    DBG(plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT), is_dummy(SBWT->compute_dummy_node_marks()){}
+    DBG(plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT)){}
 
     all_nodes_generator all_nodes(); // Return a generator for a range-for loop
     outedge_generator outedges(Node v); // Return a generator for a range-for loop
@@ -53,19 +52,20 @@ public:
 
     int64_t indegree(const Node& v){
         assert(v.id != -1);
-        if(v.id == 0) return 0; // Root
-        int64_t u = backward_support...
-        pair<LL,LL> R = boss->inedge_range(v.id);
-        if(R.first == R.second){ // One predecessor. Check whether it's a dummy
-            int64_t source = boss->edge_source(R.first);
-            if(is_dummy.at(source)) return 0;
-        } 
-        return R.second - R.first + 1;
+        int64_t in_neighbors[4]; 
+        int64_t indeg;
+        backward_support.list_DBG_in_neighbors(v.id, in_neighbors, indeg);
+        return indeg;
     }
 
     int64_t outdegree(const Node& v){
         assert(v.id != -1);
-        return boss->outdegree(v.id);
+        int64_t node = v.id;
+        while(SBWT->get_streaming_support()[node] == 0) node--; // Walk back to the start of the suffix group
+        return SBWT->get_subset_rank_structure().A_bits[node] 
+             + SBWT->get_subset_rank_structure().C_bits[node]
+             + SBWT->get_subset_rank_structure().G_bits[node]
+             + SBWT->get_subset_rank_structure().T_bits[node];
     }
 
     // If the indegree of v is not 1, throws an error.
@@ -74,18 +74,21 @@ public:
         if(indegree(v) != 1) 
             throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
         else{
-            return {boss->edge_source(boss->inedge_range(v.id).first)}; // predecessor
+            return {backward_support.backward_step(v.id)};
         }
     }
 
     // If the outdegree of v is not 1, throws an error.
     // Otherwise, returns the node at the end of the outgoing edge to v
     Node succ(const Node& v){
-        if(outdegree(v) != 1) 
-            throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
-        else{
-            return {boss->walk(v.id, boss->outlabels_at(boss->outlabel_range(v.id).first))}; // successor
-        }
+        int64_t node = v.id;
+        while(SBWT->get_streaming_support()[node] == 0) node--; // Walk back to the start of the suffix group
+
+        if(SBWT->get_subset_rank_structure().A_bits[node]) return {SBWT->forward(node, 'A')};
+        else if(SBWT->get_subset_rank_structure().C_bits[node]) return {SBWT->forward(node, 'C')};
+        else if(SBWT->get_subset_rank_structure().G_bits[node]) return {SBWT->forward(node, 'G')};
+        else if(SBWT->get_subset_rank_structure().T_bits[node]) return {SBWT->forward(node, 'T')};
+        else throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
     }    
 
 };
@@ -99,17 +102,17 @@ public:
     struct iterator{
 
         int64_t idx;
-        BOSS<sdsl::bit_vector>* boss;
-        vector<bool>* is_dummy;
+        const plain_matrix_sbwt_t* SBWT;
+        const sdsl::bit_vector* dummy_marks;
 
-        iterator(int64_t node_idx, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : idx(node_idx), boss(boss), is_dummy(is_dummy) {
+        iterator(int64_t node_idx, const plain_matrix_sbwt_t* SBWT, const sdsl::bit_vector* dummy_marks) : idx(node_idx), SBWT(SBWT), dummy_marks(dummy_marks){
             // Rewind to first non-dummy
-            while(idx < boss->number_of_nodes() && is_dummy->at(idx)) idx++;
+            while(idx < SBWT->number_of_subsets() && (*dummy_marks)[idx]) idx++;
         }
 
         iterator operator++(){
             idx++;
-            while(idx < boss->number_of_nodes() && is_dummy->at(idx)) idx++;
+            while(idx < SBWT->number_of_subsets() && (*dummy_marks)[idx]) idx++;
             return *this;
         }
 
@@ -119,15 +122,15 @@ public:
 
         bool operator!=(const end_iterator& other){
             (void)other; // This is just a dummy
-            return this->idx < boss->number_of_nodes();
+            return this->idx < SBWT->number_of_subsets();
         }
     };
 
-    BOSS<sdsl::bit_vector>* boss;
-    vector<bool>* is_dummy;
-    all_nodes_generator(BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : boss(boss), is_dummy(is_dummy){}
+    plain_matrix_sbwt_t* SBWT;
+    sdsl::bit_vector* dummy_marks;
+    all_nodes_generator(const plain_matrix_sbwt_t* boss, const sdsl::bit_vector* is_dummy) : SBWT(SBWT), dummy_marks(dummy_marks){}
 
-    iterator begin(){return iterator(0, boss, is_dummy);}
+    iterator begin(){return iterator(0, SBWT, dummy_marks);}
     end_iterator end(){return end_iterator();}
 
 };
@@ -141,40 +144,46 @@ public:
     struct iterator{
 
         int64_t node_idx;
-        int64_t outlabels_start; // In outlabels of boss
-        int64_t outlabels_offset; // In outlabels of boss
-        int64_t outdegree;
-        BOSS<sdsl::bit_vector>* boss;
+        int64_t sbwt_row;
+        const plain_matrix_sbwt_t* SBWT;
 
-        iterator(int64_t node_idx, int64_t edge_offset, BOSS<sdsl::bit_vector>* boss) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss){
-            outlabels_start = boss->outdegs_rank0(boss->outdegs_select1(node_idx+1));
-            outdegree = boss->outdegree(node_idx);
+        iterator(int64_t node_idx, const plain_matrix_sbwt_t* SBWT) : node_idx(node_idx), sbwt_row(-1), SBWT(SBWT){
+            operator++(); // Rewind to the first outedge
+        }
+
+        bool matrixboss_access(int64_t row, int64_t col) const{
+            assert(row >= 0 && row < 4);
+            if(row == 0) return SBWT->get_subset_rank_structure().A_bits[col];
+            if(row == 1) return SBWT->get_subset_rank_structure().C_bits[col];
+            if(row == 2) return SBWT->get_subset_rank_structure().G_bits[col];
+            if(row == 3) return SBWT->get_subset_rank_structure().T_bits[col];
         }
 
         iterator operator++(){
-            outlabels_offset++;
+            sbwt_row++;
+            while(sbwt_row < 4 && matrixboss_access(sbwt_row, node_idx) == 0) sbwt_row++;
             return *this;
         }
 
         Edge operator*(){
             int64_t source = node_idx;
-            char label = boss->outlabels_at(outlabels_start + outlabels_offset);
-            int64_t dest = boss->edge_destination(boss->outedge_index_to_wheeler_rank(outlabels_start + outlabels_offset));
+            char label = char_idx_to_DNA(sbwt_row);
+            int64_t dest = SBWT->forward(source, label);
             return {.source = source, .dest = dest, .label = label};
         }
 
         bool operator!=(const end_iterator& other){
             (void)other; // This is just a dummy
-            return outlabels_offset < outdegree;
+            return sbwt_row < 4;
         }
     };
 
     Node v;
-    BOSS<sdsl::bit_vector>* boss;
+    const plain_matrix_sbwt_t* SBWT;
 
-    outedge_generator(Node v, BOSS<sdsl::bit_vector>* boss) : v(v), boss(boss){}
+    outedge_generator(Node v, const plain_matrix_sbwt_t* SBWT) : v(v), SBWT(SBWT){}
 
-    iterator begin(){return iterator(v.id, 0, boss);}
+    iterator begin(){return iterator(v.id, SBWT);}
     end_iterator end(){return end_iterator();}
 
 };

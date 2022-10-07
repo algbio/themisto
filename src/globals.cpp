@@ -294,3 +294,20 @@ bool files_are_equal(const std::string& p1, const std::string& p2) {
                     std::istreambuf_iterator<char>(),
                     std::istreambuf_iterator<char>(f2.stream.rdbuf()));
 }
+
+int64_t DNA_to_char_idx(char c){
+    switch(c){
+        case 'A': return 0;
+        case 'C': return 1;
+        case 'G': return 2;
+        case 'T': return 3;
+        default: return -1;
+    }
+}
+
+char char_idx_to_DNA(int64_t i){
+    assert(i >= 0 && i < 4);
+    
+    static string ACGT = "ACGT";
+    return ACGT[i];
+}

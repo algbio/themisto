@@ -48,6 +48,8 @@ class SBWT_backward_traversal_support{
             dummy_marks = SBWT->compute_dummy_node_marks();
         }
 
+        const sdsl::bit_vector& get_dummy_marks() const{return dummy_marks;}
+
         // Up to 4 in-neighbors will be stored to the given array. The in-degree
         // will be stored to the other parameter. The in-degree means the in-degree in the
         // de Bruijn graph, not the SBWT graph (which has in-degree 1 everywhere except at the root).
