@@ -147,7 +147,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     vector<string> unitigs_with_colorsplit;
     vector<vector<color_t>> unitig_colors;
     vector<string> unitigs_without_colorsplit;
-    DBG dbg;
+    DBG* dbg = nullptr;
 
     void SetUp() override {
         
@@ -177,13 +177,15 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         logger << "Getting dummy marks" << endl;
         is_dummy = SBWT.compute_dummy_node_marks();
 
-        dbg = DBG(&SBWT);
+        dbg = new DBG(&SBWT);
 
         set_log_level(LogLevel::MAJOR);
 
     }
 
-    virtual void TearDown() {}
+    virtual void TearDown() {
+        delete dbg;
+    }
 
 
 };
@@ -197,17 +199,17 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
         if(unitig.size() == k) continue; // Only one node: trivially ok
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
             string kmer = unitig.substr(i,k);
-            DBG::Node node = dbg.locate(kmer);
+            DBG::Node node = dbg->locate(kmer);
             ASSERT_GE(node.id, 0); // Exists in graph
             if(i == 0){ // Start node
-                ASSERT_LT(dbg.outdegree(node), 2);
+                ASSERT_LT(dbg->outdegree(node), 2);
             }
             if(i > 0 && i < (LL)unitig.size()-k){ // Internal node
-                ASSERT_LT(dbg.indegree(node), 2);
-                ASSERT_LT(dbg.outdegree(node), 2);
+                ASSERT_LT(dbg->indegree(node), 2);
+                ASSERT_LT(dbg->outdegree(node), 2);
             }
             if(i == (LL)unitig.size()-k){ // Last node
-                ASSERT_LT(dbg.indegree(node), 2);
+                ASSERT_LT(dbg->indegree(node), 2);
             }
             
         }
@@ -229,11 +231,11 @@ TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
     }
 }
 
-bool is_cyclic(DBG::Node first, DBG::Node last, DBG& dbg){
-    if(dbg.indegree(first) != 1) return false;
-    if(dbg.outdegree(last) != 1) return false;
+bool is_cyclic(DBG::Node first, DBG::Node last, DBG* dbg){
+    if(dbg->indegree(first) != 1) return false;
+    if(dbg->outdegree(last) != 1) return false;
 
-    for(DBG::Edge e : dbg.inedges(first)) // There is exactly one in-edge
+    for(DBG::Edge e : dbg->inedges(first)) // There is exactly one in-edge
         return e.source == last.id;
     throw std::runtime_error("SHOULD NEVER COME HERE!!!!!");
 }
@@ -244,22 +246,22 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_no_color_split){
     for(LL unitig_id = 0; unitig_id < (LL)unitigs_without_colorsplit.size(); unitig_id++){
         string unitig = unitigs_without_colorsplit[unitig_id];
 
-        DBG::Node first = dbg.locate(unitig.substr(0, k));
+        DBG::Node first = dbg->locate(unitig.substr(0, k));
         ASSERT_GE(first.id, 0); // Must exist in graph
 
-        DBG::Node last = dbg.locate(unitig.substr((LL)unitig.size()-k, k));
+        DBG::Node last = dbg->locate(unitig.substr((LL)unitig.size()-k, k));
         ASSERT_GE(last.id, 0); // Must exist in graph
 
         if(!is_cyclic(first, last, dbg)){
             // The indegree of the first node must be 0 or >= 2, or otherwise the predecessor must be forward-branching
-            if(dbg.indegree(first) == 1){ // If indegree != 1, we are good
-                DBG::Node pred = dbg.pred(first);
-                ASSERT_TRUE(dbg.outdegree(pred) >= 2);
+            if(dbg->indegree(first) == 1){ // If indegree != 1, we are good
+                DBG::Node pred = dbg->pred(first);
+                ASSERT_TRUE(dbg->outdegree(pred) >= 2);
             }
             // The outdegree of the last node must be 0 or >= 2, or otherwise the successor must be backward-branching
-            if(dbg.outdegree(last) == 1){ // If outdegree != 1, we are good
-                DBG::Node succ = dbg.succ(last);
-                ASSERT_TRUE(dbg.indegree(succ) >= 2);
+            if(dbg->outdegree(last) == 1){ // If outdegree != 1, we are good
+                DBG::Node succ = dbg->succ(last);
+                ASSERT_TRUE(dbg->indegree(succ) >= 2);
             }
         }
     }
@@ -271,26 +273,26 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
     for(LL unitig_id = 0; unitig_id < (LL)unitigs_with_colorsplit.size(); unitig_id++){
         string unitig = unitigs_with_colorsplit[unitig_id];
 
-        DBG::Node first = dbg.locate(unitig.substr(0, k));
+        DBG::Node first = dbg->locate(unitig.substr(0, k));
         ASSERT_GE(first.id, 0); // Must exist in graph
 
-        DBG::Node last = dbg.locate(unitig.substr((LL)unitig.size()-k, k));
+        DBG::Node last = dbg->locate(unitig.substr((LL)unitig.size()-k, k));
         ASSERT_GE(last.id, 0); // Must exist in graph
 
         if(!is_cyclic(first, last, dbg)){
             // The indegree of the first node must be 0 or >= 2, or otherwise the predecessor must be forward-branching
-            if(dbg.indegree(first) == 1){ // If indegree != 1, we are good
-                DBG::Node pred = dbg.pred(first);
-                if(dbg.outdegree(pred) == 1){
+            if(dbg->indegree(first) == 1){ // If indegree != 1, we are good
+                DBG::Node pred = dbg->pred(first);
+                if(dbg->outdegree(pred) == 1){
                     vector<color_t> A = coloring.get_color_set_as_vector(first.id);
                     vector<color_t> B = coloring.get_color_set_as_vector(pred.id);
                     ASSERT_NE(A,B);
                 }
             }
             // The outdegree of the last node must be 0 or >= 2, or otherwise the successor must be backward-branching
-            if(dbg.outdegree(last) == 1){ // If outdegree != 1, we are good
-                DBG::Node succ = dbg.succ(last);
-                if(dbg.indegree(succ) == 1){
+            if(dbg->outdegree(last) == 1){ // If outdegree != 1, we are good
+                DBG::Node succ = dbg->succ(last);
+                if(dbg->indegree(succ) == 1){
                     vector<color_t> A = coloring.get_color_set_as_vector(last.id);
                     vector<color_t> B = coloring.get_color_set_as_vector(succ.id);
                     ASSERT_NE(A,B);
@@ -308,7 +310,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_without_colorsplit){
     sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_without_colorsplit){
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
-            DBG::Node node = dbg.locate(unitig.substr(i,k));
+            DBG::Node node = dbg->locate(unitig.substr(i,k));
             ASSERT_EQ(found[node.id], 0);
             found[node.id] = 1;
         }
@@ -327,7 +329,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
     sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_with_colorsplit){
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
-            DBG::Node node = dbg.locate(unitig.substr(i,k));
+            DBG::Node node = dbg->locate(unitig.substr(i,k));
             ASSERT_EQ(found[node.id], 0);
             found[node.id] = 1;
         }

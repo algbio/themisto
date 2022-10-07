@@ -29,8 +29,13 @@ class DBG{
 
 private:
 
+    // No copying because of pointer business
+    DBG(DBG const& other) = delete;
+    DBG(DBG&&) = default;
+
     const plain_matrix_sbwt_t* SBWT; // Non-owning pointer
-    SBWT_backward_traversal_support backward_support;
+    SBWT_backward_traversal_support* backward_support; // Owning pointer
+    sdsl::rank_support_v5<> dummy_node_rs;
 
 public:
 
@@ -55,7 +60,10 @@ public:
     class inedge_generator;
 
     DBG(){}
-    DBG(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT){}
+    DBG(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT){
+        backward_support = new SBWT_backward_traversal_support(SBWT);
+        sdsl::util::init_support(dummy_node_rs, &backward_support->get_dummy_marks());
+    }
 
     all_nodes_generator all_nodes() const; // Return a generator for a range-for loop
     outedge_generator outedges(Node v) const; // Return a generator for a range-for loop
@@ -67,14 +75,14 @@ public:
 
     string get_node_label(const Node& v) const{
         assert(v.id != -1);
-        return backward_support.get_node_label(v.id);
+        return backward_support->get_node_label(v.id);
     }
 
     int64_t indegree(const Node& v) const{
         assert(v.id != -1);
         int64_t in_neighbors[4]; 
         int64_t indeg;
-        backward_support.list_DBG_in_neighbors(v.id, in_neighbors, indeg);
+        backward_support->list_DBG_in_neighbors(v.id, in_neighbors, indeg);
         return indeg;
     }
 
@@ -94,7 +102,7 @@ public:
         if(indegree(v) != 1) 
             throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
         else{
-            return {backward_support.backward_step(v.id)};
+            return {backward_support->backward_step(v.id)};
         }
     }
 
@@ -112,7 +120,7 @@ public:
     }
 
     char incoming_character(const Node& v) const{
-        return backward_support.get_incoming_character(v.id);
+        return backward_support->get_incoming_character(v.id);
     }
 
 
@@ -122,6 +130,10 @@ public:
 
     int64_t get_k() const{
         return SBWT->get_k();
+    }
+
+    ~DBG(){
+        delete backward_support;
     }
 
 };
