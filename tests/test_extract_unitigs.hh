@@ -78,6 +78,14 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     colors.push_back(0);
     colors.push_back(0);
 
+    // Isolated k-mer
+    seqs.push_back(random_data.substr(700,30));
+    colors.push_back(0);
+
+    // Shotert than k
+    seqs.push_back(random_data.substr(730,20));
+    colors.push_back(0);    
+
     write_as_fasta(seqs, fastafile);
     write_vector(colors, colorfile);
 
