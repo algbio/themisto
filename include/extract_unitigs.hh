@@ -18,7 +18,7 @@ class UnitigExtractor {
 
     struct Colored_Unitig {
         vector<DBG::Node> nodes;
-        vector<DBG::Node> colorset;
+        vector<uint32_t> colorset;
         vector<int64_t>
             links;  // Outgoing edges from this unitig, as a list of unitig ids
         int64_t id;
@@ -68,7 +68,7 @@ class UnitigExtractor {
 
         // Compute links
             
-        for(DBG::Edge edge : DBG.outedges(U.nodes.back())){
+        for(DBG::Edge edge : dbg.outedges(U.nodes.back())){
             DBG::Node destination = edge.dest;
             U.links.push_back(destination.id);
         }
@@ -77,13 +77,11 @@ class UnitigExtractor {
         return U;
     }
 
-    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U,
-                                                  const DBG& dbg, const Coloring& coloring) {
+    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U, const Coloring& coloring) {
         vector<Colored_Unitig> colored_unitigs;
         auto get_id = [&](int64_t node) {
             return coloring.get_color_set_id(node);
         };
-        vector<int64_t> colorset_buffer(themisto.coloring.n_colors);
         for (int64_t run_start = 0; run_start < U.nodes.size(); run_start++) {
             int64_t run_end = run_start;
             while (run_end < U.nodes.size() - 1 &&
@@ -120,8 +118,8 @@ class UnitigExtractor {
                                                   Unitig& U,
                                                   const Coloring& coloring) {
         vector<Colored_Unitig> colored_unitigs;
-        auto get_n_colors = [&](int64_t node) {
-            return coloring.get_color_set().size();
+        auto get_n_colors = [&](DBG::Node node) {
+            return coloring.get_color_set(node.id).size();
         };
 
         int64_t run_start = 0;
@@ -139,7 +137,7 @@ class UnitigExtractor {
                 for (int64_t i = run_start; i <= run_end; i++)
                     colored.nodes.push_back(U.nodes[i]);
 
-                colored.id = U.nodes[run_start];
+                colored.id = U.nodes[run_start].id;
 
                 colored_unitigs.push_back(colored);  // Links are added later
 
@@ -161,7 +159,7 @@ class UnitigExtractor {
         return colored_unitigs;
     }
 
-    string get_unitig_string(vector<int64_t>& nodes, const DBG& dbg) {
+    string get_unitig_string(vector<DBG::Node>& nodes, const DBG& dbg) {
         if (nodes.size() == 0) return "";
         string first_kmer = dbg.get_node_label(nodes[0]);
         string rest;
@@ -170,14 +168,14 @@ class UnitigExtractor {
         return first_kmer + rest;
     }
 
-    void write_colorset(int64_t unitig_id, vector<int64_t>& colorset,
+    void write_colorset(int64_t unitig_id, vector<uint32_t>& colorset,
                         ostream& colorsets_out) {
         colorsets_out << unitig_id;
         for (int64_t color : colorset) colorsets_out << " " << color;
         colorsets_out << "\n";
     }
 
-    void write_unitig(vector<DBG::Node>& nodes, int64_t unitig_id, DBG& dbg,
+    void write_unitig(vector<DBG::Node>& nodes, int64_t unitig_id, const DBG& dbg,
                       ostream& fasta_out, ostream& gfa_out) {
         string unitig_string = get_unitig_string(nodes, dbg);
         fasta_out << ">" << unitig_id << "\n" << unitig_string << "\n";
@@ -203,7 +201,7 @@ class UnitigExtractor {
     // The colorsets are written one per line, in the same order as unitigs, in
     // a space-separated format "id c1 c2 ..", where id is the fasta header of
     // the colorset, and c1 c2... are the colors.
-    void extract_unitigs(const DBG& dbg, Coloring& coloring, ostream& unitigs_out,
+    void extract_unitigs(const DBG& dbg, const Coloring& coloring, ostream& unitigs_out,
                          bool split_by_colorset_runs, ostream& colorsets_out,
                          ostream& gfa_out, int64_t min_colors = 0) {
 
@@ -214,10 +212,10 @@ class UnitigExtractor {
 
         unordered_map<DBG::Node, bool> visited;
 
-        int64_t total_kmers = dbg.SBWT->number_of_kmers();
+        int64_t total_kmers = dbg.number_of_kmers();
         Progress_printer pp(total_kmers, 100);
 
-        for(DBG::Node v : dbg){
+        for(DBG::Node v : dbg.all_nodes()){
             if (!visited[v.id]) {
                 Unitig U = get_unitig_containing_node(v, dbg, visited);
                 for (int64_t i = 0; i < U.nodes.size(); i++)
@@ -227,19 +225,19 @@ class UnitigExtractor {
                          split_by_colorset_size(min_colors, U, coloring)) {
                         write_unitig(CU.nodes, CU.id, dbg, unitigs_out,
                                      gfa_out);
-                        write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
+                        write_linkage(CU.id, CU.links, gfa_out, dbg.get_k());
                     }
                 } else if (split_by_colorset_runs) {
                     for (Colored_Unitig& CU :
-                         split_to_colorset_runs(U, dbg, coloring)) {
+                         split_to_colorset_runs(U, coloring)) {
                         write_unitig(CU.nodes, CU.id, dbg, unitigs_out,
                                      gfa_out);
-                        write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
+                        write_linkage(CU.id, CU.links, gfa_out, dbg.get_k());
                         write_colorset(CU.id, CU.colorset, colorsets_out);
                     }
                 } else {
                     write_unitig(U.nodes, U.id, dbg, unitigs_out, gfa_out);
-                    write_linkage(U.id, U.links, gfa_out, boss.get_k());
+                    write_linkage(U.id, U.links, gfa_out, dbg.get_k());
                 }
             }
         }

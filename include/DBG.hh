@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "sbwt/SBWT.hh"
 #include "sbwt/variants.hh"
 #include "backward_traversal.hh"
@@ -39,20 +40,20 @@ public:
     DBG(){}
     DBG(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT){}
 
-    all_nodes_generator all_nodes(); // Return a generator for a range-for loop
-    outedge_generator outedges(Node v); // Return a generator for a range-for loop
-    inedge_generator inedges(Node v); // Return a generator for a range-for loop
+    all_nodes_generator all_nodes() const; // Return a generator for a range-for loop
+    outedge_generator outedges(Node v) const; // Return a generator for a range-for loop
+    inedge_generator inedges(Node v) const; // Return a generator for a range-for loop
 
-    Node locate(const string& kmer){ // Returns a node with id -1 if the k-mer does not does not exist
+    Node locate(const string& kmer) const{ // Returns a node with id -1 if the k-mer does not does not exist
         return {SBWT->search(kmer)};
     }
 
-    string get_node_label(const Node& v){
+    string get_node_label(const Node& v) const{
         assert(v.id != -1);
         return backward_support.get_node_label(v.id);
     }
 
-    int64_t indegree(const Node& v){
+    int64_t indegree(const Node& v) const{
         assert(v.id != -1);
         int64_t in_neighbors[4]; 
         int64_t indeg;
@@ -60,7 +61,7 @@ public:
         return indeg;
     }
 
-    int64_t outdegree(const Node& v){
+    int64_t outdegree(const Node& v) const{
         assert(v.id != -1);
         int64_t node = v.id;
         while(SBWT->get_streaming_support()[node] == 0) node--; // Walk back to the start of the suffix group
@@ -72,7 +73,7 @@ public:
 
     // If the indegree of v is not 1, throws an error.
     // Otherwise, returns the node at the start of the incoming edge to v
-    Node pred(const Node& v){
+    Node pred(const Node& v) const{
         if(indegree(v) != 1) 
             throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
         else{
@@ -82,7 +83,7 @@ public:
 
     // If the outdegree of v is not 1, throws an error.
     // Otherwise, returns the node at the end of the outgoing edge to v
-    Node succ(const Node& v){
+    Node succ(const Node& v) const{
         int64_t node = v.id;
         while(SBWT->get_streaming_support()[node] == 0) node--; // Walk back to the start of the suffix group
 
@@ -93,8 +94,17 @@ public:
         else throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
     }
 
-    char incoming_character(const Node& v){
+    char incoming_character(const Node& v) const{
         return backward_support.get_incoming_character(v.id);
+    }
+
+
+    int64_t number_of_kmers() const{
+        return SBWT->number_of_kmers();
+    }
+
+    int64_t get_k() const{
+        return SBWT->get_k();
     }
 
 };
@@ -247,19 +257,20 @@ public:
 
 
 
-DBG::all_nodes_generator DBG::all_nodes(){
+DBG::all_nodes_generator DBG::all_nodes() const{
     return all_nodes_generator(SBWT, &(backward_support.get_dummy_marks()));
 }
 
-DBG::outedge_generator DBG::outedges(Node v){
+DBG::outedge_generator DBG::outedges(Node v) const{
     return outedge_generator(v, SBWT);
 }
 
-DBG::inedge_generator DBG::inedges(Node v){
+DBG::inedge_generator DBG::inedges(Node v) const{
     return inedge_generator(v, SBWT, &backward_support);
 }
 
 // For standard library hash functions.
+template<>
 struct std::hash<DBG::Node>{
     std::size_t operator()(const DBG::Node& X) const {
         return X.id;

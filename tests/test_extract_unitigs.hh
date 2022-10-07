@@ -10,16 +10,16 @@
 #include <unordered_map>
 #include <map>
 #include <gtest/gtest.h>
-#include "../stdlib_printing.hh"
-#include "../globals.hh"
+#include "globals.hh"
 #include "setup_tests.hh"
-#include "Themisto.hh"
-#include "Argv.hh"
+#include "sbwt/globals.hh"
 #include "extract_unitigs.hh"
 #include <cassert>
 #include <sstream>
 #include "commands.hh"
 #include "DBG.hh"
+
+using namespace sbwt;
 
 // This is designed for k = 30
 void construct_unitig_extraction_test_input(string fastafile, string colorfile){

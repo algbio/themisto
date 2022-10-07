@@ -20,7 +20,7 @@
 #include "test_coloring.hh"
 #include "test_pseudoalignment.hh"
 #include "test_sparse_uint_array.hh"
-//#include "test_extract_unitigs.hh"
+#include "test_extract_unitigs.hh"
 
 
 int main(int argc, char **argv) {
