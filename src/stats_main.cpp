@@ -11,6 +11,14 @@
 using namespace sbwt;
 using namespace std;
 
+int64_t count_DBG_edges(const DBG& dbg){
+    int64_t ans = 0;
+    for(DBG::Node v : dbg){
+        ans += dbg.outdegree(v);
+    }
+    return ans;
+}
+
 int stats_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
@@ -49,18 +57,19 @@ int stats_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);    
     plain_matrix_sbwt_t SBWT;
     Coloring coloring;
-    SBWT.load(index_SBWT_file);
+    SBWT.load(index_dbg_file);
     coloring.load(index_color_file, SBWT);
-
-    write_log("Computing index statistics", LogLevel::MAJOR);
 
     cout << "Node length k: " << SBWT.get_k() << endl;
     cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
     cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
-    cout << "De Bruijn graph edge count: " << SBWT.number_of_DBG_edges() << endl;
     cout << "Number of colors: " << coloring.number_of_distinct_colors() << endl;
     cout << "Number of distinct color sets: " << coloring.number_of_distinct_colorsets() << endl;
-    cout << "Sum of sizes of all distinct color sets: " << themisto.coloring.sum_of_all_color_set_lengths() << endl;
+    cout << "Sum of sizes of all distinct color sets: " << coloring.sum_of_all_color_set_lengths() << endl;
+
+    write_log("Computing more statistics...", LogLevel::MAJOR);
+    DBG dbg(&SBWT);
+    cout << "De Bruijn graph edge count: " << count_DBG_edges(DBG); << endl;
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
@@ -68,7 +77,8 @@ int stats_main(int argc, char** argv){
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
         sbwt::SeqIO::NullStream null_stream;
-        UE.extract_unitigs(SBWT, coloring, unitigs_out.stream, false, null_stream, null_stream);
+        
+        UE.extract_unitigs(dbg, coloring, unitigs_out.stream, false, null_stream, null_stream);
         unitigs_out.close();
         
         LL unitig_count = 0;
