@@ -4,6 +4,7 @@
 
 #include "DBG.hh"
 #include "globals.hh"
+#include "new_coloring.hh"
 
 using namespace std;
 

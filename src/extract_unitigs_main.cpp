@@ -1,11 +1,13 @@
-#include "Themisto.hh"
-#include "input_reading.hh"
 #include "zpipe.hh"
 #include <string>
 #include <cstring>
 #include "version.h"
 #include "cxxopts.hpp"
 #include "extract_unitigs.hh"
+#include "DBG.hh"
+#include "new_coloring.hh"
+#include "sbwt/SBWT.hh"
+#include "sbwt/variants.hh"
 
 using namespace std;
 
@@ -57,7 +59,7 @@ int extract_unitigs_main(int argc, char** argv){
     
     // Prepare output streams
 
-    NullStream null_stream;
+    sbwt::SeqIO::NullStream null_stream;
     throwing_ofstream unitigs_ofstream;
     throwing_ofstream gfa_ofstream;
     throwing_ofstream colors_ofstream;
@@ -86,14 +88,21 @@ int extract_unitigs_main(int argc, char** argv){
     write_log("Starting", LogLevel::MAJOR);
     write_log("Loading the index", LogLevel::MAJOR);    
 
-    Themisto themisto;
-    themisto.load_boss(index_dbg_file);
-    if(do_colors) themisto.load_colors(index_color_file);
-    
+    sbwt::plain_matrix_sbwt_t SBWT;
+    Coloring coloring;
+
+    SBWT.load(index_dbg_file);
+    if(do_colors){    
+        throwing_ifstream colors_in(index_color_file, ios::binary);
+        coloring.load(colors_in.stream, SBWT);
+    }
+
+    DBG dbg(&SBWT);
+
     write_log("Extracting unitigs", LogLevel::MAJOR);
     
     UnitigExtractor UE;
-    UE.extract_unitigs(themisto, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+    UE.extract_unitigs(dbg, coloring, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
 
     return 0;
     

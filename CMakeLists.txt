@@ -32,12 +32,12 @@ set(THEMISTO_SOURCES
   src/pseudoalign_main.cpp 
   src/pseudoalign.cpp 
   src/globals.cpp 
-  #src/EM_algorithms.cpp 
   src/test_tools.cpp 
   src/WorkDispatcher.cpp 
   src/zpipe.cpp 
   src/build_index_main.cpp 
-  #src/extract_unitigs_main.cpp 
+  src/extract_unitigs_main.cpp 
+  src/DBG.cpp 
   #src/stats_main.cpp 
   #src/KMC_wrapper.cpp 
   )

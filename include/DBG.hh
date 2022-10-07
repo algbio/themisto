@@ -12,6 +12,19 @@ using namespace sbwt;
 // Implemented internally using the SBWT class. The SBWT is a bit tricky
 // because it has the dummy nodes. This class deals with the dummies so 
 // that the caller does not have to care about them.
+
+/*
+
+Usage:
+
+for(DBG::Node node : DBG){
+    for(DBG::Edge edge : DBG.outedges(node)){
+        DBG::Node destination = edge.dest
+    }
+}
+
+*/
+
 class DBG{
 
 private:
@@ -25,6 +38,10 @@ public:
         int64_t id;
 
         Node(int64_t id) : id(id) {}
+
+        bool operator==(const Node& other) const{
+            return this->id == other.id;
+        }
     };
 
     struct Edge{ 
@@ -255,20 +272,6 @@ public:
 
 };
 
-
-
-DBG::all_nodes_generator DBG::all_nodes() const{
-    return all_nodes_generator(SBWT, &(backward_support.get_dummy_marks()));
-}
-
-DBG::outedge_generator DBG::outedges(Node v) const{
-    return outedge_generator(v, SBWT);
-}
-
-DBG::inedge_generator DBG::inedges(Node v) const{
-    return inedge_generator(v, SBWT, &backward_support);
-}
-
 // For standard library hash functions.
 template<>
 struct std::hash<DBG::Node>{
@@ -277,15 +280,3 @@ struct std::hash<DBG::Node>{
     }
 };
 
-
-/*
-
-Usage:
-
-for(DBG::Node node : DBG){
-    for(DBG::Edge edge : DBG.outedges(node)){
-        DBG::Node destination = edge.dest
-    }
-}
-
-*/

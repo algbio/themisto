@@ -18,6 +18,8 @@
 #include <sstream>
 #include "commands.hh"
 #include "DBG.hh"
+#include "sbwt/SBWT.hh"
+#include "new_coloring.hh"
 
 using namespace sbwt;
 
@@ -82,6 +84,8 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     ASSERT_EQ(seqs.size(), colors.size());
 }
 
+typedef uint32_t color_t;
+
 class EXTRACT_UNITIGS_TEST : public testing::Test {
 
     private:
@@ -112,7 +116,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
             throwing_ifstream colors_in(colors_outfile);
             while(getline(colors_in.stream, line)){
                 vector<string> tokens = split(line, ' ');
-                vector<LL> colors;
+                vector<color_t> colors;
                 for(LL i = 1; i < (LL)tokens.size(); i++){ // First token is unitig id -> skip
                     colors.push_back(string_to_integer_safe(tokens[i]));
                 }
@@ -127,10 +131,11 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     protected:
 
     string indexprefix;
-    Themisto themisto;
-    vector<bool> is_dummy;
+    plain_matrix_sbwt_t SBWT;
+    Coloring coloring;
+    sdsl::bit_vector is_dummy;
     vector<string> unitigs_with_colorsplit;
-    vector<vector<LL>> unitig_colors;
+    vector<vector<color_t>> unitig_colors;
     vector<string> unitigs_without_colorsplit;
     DBG dbg;
 
@@ -157,11 +162,12 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         unitigs_without_colorsplit = run_and_return_unitigs(indexprefix, false);
         unitigs_with_colorsplit = run_and_return_unitigs(indexprefix, true);
         
-        themisto.load(indexprefix);
+        SBWT.load(indexprefix + ".tdbg");
+        coloring.load(indexprefix + ".tcolors", SBWT);
         logger << "Getting dummy marks" << endl;
-        is_dummy = themisto.boss.get_dummy_node_marks();
+        is_dummy = SBWT.compute_dummy_node_marks();
 
-        dbg = DBG(&themisto.boss);
+        dbg = DBG(&SBWT);
 
         set_log_level(LogLevel::MAJOR);
 
@@ -176,7 +182,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 // edges from non-dummy nodes.
 
 TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
-    LL k = themisto.boss.get_k();
+    LL k = SBWT.get_k();
     for(string unitig : unitigs_without_colorsplit){
         if(unitig.size() == k) continue; // Only one node: trivially ok
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
@@ -201,13 +207,13 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
 TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
 
     // Verify that the colorsets of all nodes in the unitig match the colorset of the unitig
-    LL k = themisto.boss.get_k();
+    LL k = SBWT.get_k();
     ASSERT_EQ(unitigs_with_colorsplit.size(), unitig_colors.size());
     for(LL unitig_id = 0; unitig_id < (LL)unitigs_with_colorsplit.size(); unitig_id++){
         string unitig = unitigs_with_colorsplit[unitig_id];
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
-            LL node = themisto.boss.find_kmer(unitig.substr(i,k));
-            vector<LL> node_colors = themisto.coloring.get_colorvec(node, themisto.boss);
+            LL node = SBWT.search(unitig.substr(i,k));
+            vector<color_t> node_colors = coloring.get_color_set_as_vector(node);
             ASSERT_EQ(node_colors, unitig_colors[unitig_id]);
         }
     }
@@ -223,8 +229,8 @@ bool is_cyclic(DBG::Node first, DBG::Node last, DBG& dbg){
 }
 
 TEST_F(EXTRACT_UNITIGS_TEST, maximality_no_color_split){
-    BOSS<sdsl::bit_vector>& boss = themisto.boss;
-    LL k = boss.get_k();
+    LL k = SBWT.get_k();
+
     for(LL unitig_id = 0; unitig_id < (LL)unitigs_without_colorsplit.size(); unitig_id++){
         string unitig = unitigs_without_colorsplit[unitig_id];
 
@@ -250,8 +256,8 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_no_color_split){
 }
 
 TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
-    BOSS<sdsl::bit_vector>& boss = themisto.boss;
-    LL k = boss.get_k();
+    LL k = SBWT.get_k();
+
     for(LL unitig_id = 0; unitig_id < (LL)unitigs_with_colorsplit.size(); unitig_id++){
         string unitig = unitigs_with_colorsplit[unitig_id];
 
@@ -266,8 +272,8 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
             if(dbg.indegree(first) == 1){ // If indegree != 1, we are good
                 DBG::Node pred = dbg.pred(first);
                 if(dbg.outdegree(pred) == 1){
-                    vector<LL> A = themisto.coloring.get_colorvec(first.id, boss);
-                    vector<LL> B = themisto.coloring.get_colorvec(pred.id, boss);
+                    vector<color_t> A = coloring.get_color_set_as_vector(first.id);
+                    vector<color_t> B = coloring.get_color_set_as_vector(pred.id);
                     ASSERT_NE(A,B);
                 }
             }
@@ -275,8 +281,8 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
             if(dbg.outdegree(last) == 1){ // If outdegree != 1, we are good
                 DBG::Node succ = dbg.succ(last);
                 if(dbg.indegree(succ) == 1){
-                    vector<LL> A = themisto.coloring.get_colorvec(last.id, boss);
-                    vector<LL> B = themisto.coloring.get_colorvec(succ.id, boss);
+                    vector<color_t> A = coloring.get_color_set_as_vector(last.id);
+                    vector<color_t> B = coloring.get_color_set_as_vector(succ.id);
                     ASSERT_NE(A,B);
                 }
             }
@@ -287,9 +293,9 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
 
 // Check that every non-dummy node is in exactly one unitig
 TEST_F(EXTRACT_UNITIGS_TEST, partition_without_colorsplit){
-    BOSS<sdsl::bit_vector>& boss = themisto.boss;
-    LL k = boss.get_k();
-    vector<bool> found = is_dummy; // dummies are marked as found from the beginning
+    LL k = SBWT.get_k();
+
+    sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_without_colorsplit){
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
             DBG::Node node = dbg.locate(unitig.substr(i,k));
@@ -306,9 +312,9 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_without_colorsplit){
 
 // Check that every non-dummy node is in exactly one unitig
 TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
-    BOSS<sdsl::bit_vector>& boss = themisto.boss;
-    LL k = boss.get_k();
-    vector<bool> found = is_dummy; // dummies are marked as found from the beginning
+    LL k = SBWT.get_k();
+
+    sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_with_colorsplit){
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
             DBG::Node node = dbg.locate(unitig.substr(i,k));
