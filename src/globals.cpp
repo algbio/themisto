@@ -5,6 +5,7 @@
 #include <iterator>
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/SeqIO.hh"
+#include <csignal>
 
 typedef long long LL;
 
@@ -310,3 +311,21 @@ char char_idx_to_DNA(int64_t i){
     static string ACGT = "ACGT";
     return ACGT[i];
 }
+
+void sigint_handler(int sig) {
+    cerr << "caught signal: " << sig << endl;
+    cerr << "Cleaning up temporary files" << endl;
+    sbwt::get_temp_file_manager().delete_all_files();
+    exit(1);
+}
+
+void sigabrt_handler(int sig) {
+    cerr << "caught signal: " << sig << endl;
+    cerr << "Cleaning up temporary files" << endl;
+    sbwt::get_temp_file_manager().delete_all_files();
+    cerr << "Aborting" << endl;
+    exit(1);
+}
+
+auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the SIGINT handler
+auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler

@@ -47,3 +47,7 @@ int64_t string_to_integer_safe(const string& S);
 
 int64_t DNA_to_char_idx(char c); // ACGT -> 0123
 char char_idx_to_DNA(int64_t i); // 0123 -> ACGT
+
+void sigint_handler(int sig);
+
+void sigabrt_handler(int sig);
