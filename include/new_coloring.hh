@@ -173,7 +173,14 @@ public:
         while (!node_id_to_color_set_id.has_index(node)) {
             // While we don't have the color set id stored for the current node...
 
-            // Follow an edge forward
+            // Follow an edge forward. The code below works only if we are at the
+            // start of a suffix group. But this is guaranteed by the core k-mer marking
+            // rules. If a suffix group is wider than 1, then all its elements are marked
+            // as core because:
+            //   - If there is at least one outgoing edge from the group, the nodes are marked
+            //     by core k-mer rule (3) (see core_kmer_marker.hh)
+            //   - If there are no outgoing edges from the group, the nodes are marked by
+            //     core k-mer rule (2) (see core_kmer_marker.hh).
             if (subset_struct.A_bits[node] == 1) {
                 node = C_array[0] + subset_struct.rank(node, 'A');
             } else if (subset_struct.C_bits[node] == 1) {

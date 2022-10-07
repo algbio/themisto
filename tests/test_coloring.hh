@@ -183,4 +183,6 @@ TEST(COLORING_TESTS, coli3) {
         }
         ++seq_id;
     }
+
+    //TODO: also test that there are no extra colors in the color sets.
 }
