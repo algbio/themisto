@@ -550,7 +550,7 @@ public:
         assert(cores[from_node] == 1);
         int64_t in_neighbors[4];
         int64_t indegree;
-        backward_support.list_in_neighbors(from_node, in_neighbors, indegree);
+        backward_support.list_DBG_in_neighbors(from_node, in_neighbors, indegree);
         for(LL i = 0; i < indegree; i++){
             LL u = in_neighbors[i];
             LL counter = 0;
@@ -560,7 +560,7 @@ public:
                     builder.add(u, colorset_id);
                     counter = 0;
                 }
-                backward_support.list_in_neighbors(u, in_neighbors, indegree);
+                backward_support.list_DBG_in_neighbors(u, in_neighbors, indegree);
                 if(indegree == 0) break; // Root node
                 if(indegree >= 2) break; // Predecessors are already marked
                 u = in_neighbors[0]; // The only in-neighbor

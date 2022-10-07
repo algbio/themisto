@@ -1,8 +1,11 @@
 #pragma once
 
 #include "sbwt/SBWT.hh"
+#include "sbwt/variants.hh"
+#include "backward_traversal.hh"
 
 using namespace std;
+using namespace sbwt;
 
 // A class that offers an interface to the de Bruijn graph.
 // Implemented internally using the BOSS class. The BOSS is a bit tricky
@@ -12,7 +15,8 @@ class DBG{
 
 private:
 
-    SBWT* SBWT; // Non-owning pointer
+    plain_matrix_sbwt_t* SBWT; // Non-owning pointer
+    SBWT_backward_traversal_support backward_support;
     vector<bool> is_dummy;
 
 public:
@@ -32,23 +36,25 @@ public:
     class inedge_generator;
 
     DBG(){}
-    DBG(SBWT* SBWT) : SBWT(SBWT), is_dummy(SBWT->get_dummy_node_marks()){}
+    DBG(plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT), is_dummy(SBWT->compute_dummy_node_marks()){}
 
     all_nodes_generator all_nodes(); // Return a generator for a range-for loop
     outedge_generator outedges(Node v); // Return a generator for a range-for loop
     inedge_generator inedges(Node v); // Return a generator for a range-for loop
 
-    Node locate(const string& kmer){ // Returns a node with id -1 if does not exist
-        return {boss->find_kmer(kmer)};
+    Node locate(const string& kmer){ // Returns a node with id -1 if the k-mer does not does not exist
+        return {SBWT->search(kmer)};
     }
 
     string get_node_label(const Node& v){
         assert(v.id != -1);
-        return boss->get_node_label(v.id);
+        return backward_support.get_node_label(v.id);
     }
 
     int64_t indegree(const Node& v){
         assert(v.id != -1);
+        if(v.id == 0) return 0; // Root
+        int64_t u = backward_support...
         pair<LL,LL> R = boss->inedge_range(v.id);
         if(R.first == R.second){ // One predecessor. Check whether it's a dummy
             int64_t source = boss->edge_source(R.first);

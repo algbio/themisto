@@ -3,7 +3,6 @@
 #include "setup_tests.hh"
 #include <gtest/gtest.h>
 #include "DBG.hh"
-#include "BOSS_builder.hh"
 
 class DBG_Reference_Implementation{
 
