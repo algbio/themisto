@@ -23,7 +23,7 @@ set<char> get_alphabet(string S){
 
 set<string> get_all_distinct_kmers(string S, int64_t k){
     set<string> kmers;
-    for(LL i = 0; i < S.size()-k+1; i++){
+    for(LL i = 0; i < (LL)S.size()-k+1; i++){
         kmers.insert(S.substr(i,k));
     }
     return kmers;

@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include "test_tools.hh"
 #include "DBG.hh"
+#include <unordered_set>
 
 class DBG_Reference_Implementation{
 
@@ -17,38 +18,24 @@ public:
     DBG_Reference_Implementation(vector<string> reads, LL k){
         // Get sorted k-mers
         for(string S : reads) 
-            if(S.size() >= k+1) // Edge centric
-                for(string x : get_all_distinct_kmers(S, k)) 
-                    colex_kmers.push_back(x);
+
         std::sort(colex_kmers.begin(), colex_kmers.end(), colex_compare);
         colex_kmers.erase(unique(colex_kmers.begin(), colex_kmers.end()), colex_kmers.end()); // Erase duplicaes
         cout << colex_kmers << endl;
 
+        std::unordered_set<std::string> kmers(colex_kmers.begin(), colex_kmers.end());
+
         // Get edges
         for(string S : reads){
-            for(string x : get_all_distinct_kmers(S, k+1)){
-                string source = x.substr(0,k);
-                string dest = x.substr(1,k);
-                outedges[source].push_back(dest);
-                inedges[dest].push_back(source);
+            for(string x : get_all_distinct_kmers(S,k)){
+                for(char c : string("ACGT")){
+                    if(kmers.count(x.substr(1) + c))
+                        outedges[x].push_back(x.substr(1) + c);
+                    if(kmers.count(c + x.substr(0,k-1)))
+                        inedges[x].push_back(c + x.substr(0,k-1));
+                }
             }
         }
-
-        // Sort out-edges and delete duplicates
-        for(auto& keyval : outedges){
-            vector<string>& out = keyval.second;
-            std::sort(out.begin(), out.end(), colex_compare);
-            out.erase(unique(out.begin(), out.end()), out.end()); // Erase duplicaes
-        }
-
-        // Sort in-edges and delete duplicates
-        for(auto& keyval : inedges){
-            vector<string>& in = keyval.second;
-            std::sort(in.begin(), in.end(), colex_compare);
-            in.erase(unique(in.begin(), in.end()), in.end()); // Erase duplicaes
-        }
-
-
     }
 
 
@@ -102,6 +89,9 @@ TEST_F(TEST_DBG, indegree){
     for(string kmer : ref.colex_kmers){
         DBG::Node v = dbg.locate(kmer);
         ASSERT_GE(v.id, 0); // Must be found
+        if(dbg.indegree(v) != ref.inedges[kmer].size()){
+            cout << "Break" << endl;
+        }
         ASSERT_EQ(dbg.indegree(v), ref.inedges[kmer].size());
     }
 }
