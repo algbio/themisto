@@ -116,6 +116,8 @@ class Coloring {
     
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
+    int64_t largest_color_id = 0;
+    int64_t total_color_set_length = 0;
 
 private:
 
@@ -143,6 +145,12 @@ public:
 
         bytes_written += node_id_to_color_set_id.serialize(os);
 
+        os.write((char*)&largest_color_id, sizeof(largest_color_id));
+        bytes_written += sizeof(largest_color_id);
+
+        os.write((char*)&total_color_set_length, sizeof(total_color_set_length));
+        bytes_written += sizeof(total_color_set_length);
+
         return bytes_written;
     }
 
@@ -159,6 +167,9 @@ public:
         }
 
         node_id_to_color_set_id.load(is);
+
+        is.read((char*)&largest_color_id, sizeof(largest_color_id));
+        is.read((char*)&total_color_set_length, sizeof(total_color_set_length));
     }
 
     void load(const std::string& filename, const plain_matrix_sbwt_t& index) {
@@ -292,6 +303,7 @@ public:
                     if(node >= 0 && cores[node] == 1) {
                         write_big_endian_LL(out, node);
                         write_big_endian_LL(out, seq_id_to_color_id.at(seq_id));
+                        largest_color_id = max(largest_color_id, (int64_t)seq_id_to_color_id.at(seq_id));
                     }
                 }
             }
@@ -526,6 +538,7 @@ public:
             }
 
             sets.emplace_back(colors_set);
+            total_color_set_length += colors_set.size();
 
             for (const auto node : node_set) {
                 builder.add(node, set_id);
@@ -566,5 +579,18 @@ public:
             }
         }
     }
-    
+
+
+    int64_t largest_color() const{
+        return largest_color_id;
+    }
+
+    int64_t number_of_distinct_color_sets() const{
+        return sets.size();
+    }
+
+    int64_t sum_of_all_distinct_color_set_lengths() const{
+        return total_color_set_length;
+    }
+
 };

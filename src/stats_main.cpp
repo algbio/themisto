@@ -13,7 +13,7 @@ using namespace std;
 
 int64_t count_DBG_edges(const DBG& dbg){
     int64_t ans = 0;
-    for(DBG::Node v : dbg){
+    for(DBG::Node v : dbg.all_nodes()){
         ans += dbg.outdegree(v);
     }
     return ans;
@@ -63,13 +63,13 @@ int stats_main(int argc, char** argv){
     cout << "Node length k: " << SBWT.get_k() << endl;
     cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
     cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
-    cout << "Number of colors: " << coloring.number_of_distinct_colors() << endl;
-    cout << "Number of distinct color sets: " << coloring.number_of_distinct_colorsets() << endl;
-    cout << "Sum of sizes of all distinct color sets: " << coloring.sum_of_all_color_set_lengths() << endl;
+    cout << "Color id range: 0.." << coloring.largest_color() << endl;
+    cout << "Number of distinct color sets: " << coloring.number_of_distinct_color_sets() << endl;
+    cout << "Sum of sizes of all distinct color sets: " << coloring.sum_of_all_distinct_color_set_lengths() << endl;
 
     write_log("Computing more statistics...", LogLevel::MAJOR);
     DBG dbg(&SBWT);
-    cout << "De Bruijn graph edge count: " << count_DBG_edges(DBG); << endl;
+    cout << "De Bruijn graph edge count: " << count_DBG_edges(dbg) << endl;
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
