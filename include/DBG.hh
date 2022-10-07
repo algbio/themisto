@@ -22,6 +22,8 @@ public:
 
     struct Node{
         int64_t id;
+
+        Node(int64_t id) : id(id) {}
     };
 
     struct Edge{ 
@@ -89,7 +91,11 @@ public:
         else if(SBWT->get_subset_rank_structure().G_bits[node]) return {SBWT->forward(node, 'G')};
         else if(SBWT->get_subset_rank_structure().T_bits[node]) return {SBWT->forward(node, 'T')};
         else throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
-    }    
+    }
+
+    char incoming_character(const Node& v){
+        return backward_support.get_incoming_character(v.id);
+    }
 
 };
 
@@ -252,6 +258,14 @@ DBG::outedge_generator DBG::outedges(Node v){
 DBG::inedge_generator DBG::inedges(Node v){
     return inedge_generator(v, SBWT, &backward_support);
 }
+
+// For standard library hash functions.
+struct std::hash<DBG::Node>{
+    std::size_t operator()(const DBG::Node& X) const {
+        return X.id;
+    }
+};
+
 
 /*
 

@@ -1,56 +1,59 @@
 #pragma once
 
 #include <iostream>
+
+#include "DBG.hh"
 #include "globals.hh"
-#include "Themisto.hh"
 
 using namespace std;
 
-class UnitigExtractor{
-
-private:
-
-    struct Unitig{
-        vector<LL> nodes;
-        vector<LL> links; // Outgoing edges from this unitig, as a list of unitig ids
-        LL id;
+class UnitigExtractor {
+   private:
+    struct Unitig {
+        vector<DBG::Node> nodes;
+        vector<int64_t>
+            links;  // Outgoing edges from this unitig, as a list of unitig ids
+        int64_t id;
     };
 
-    struct Colored_Unitig{
-        vector<LL> nodes;
-        vector<LL> colorset;
-        vector<LL> links; // Outgoing edges from this unitig, as a list of unitig ids
-        LL id;
+    struct Colored_Unitig {
+        vector<DBG::Node> nodes;
+        vector<DBG::Node> colorset;
+        vector<int64_t>
+            links;  // Outgoing edges from this unitig, as a list of unitig ids
+        int64_t id;
     };
 
     // Assumes that dummy nodes are always visited
-    Unitig get_node_unitig_containing(LL v, const BOSS<sdsl::bit_vector>& boss, vector<bool>& visited){
-        
-        vector<LL> backward, forward;
+    Unitig get_unitig_containing_node(DBG::Node v, const DBG& dbg, unordered_map<DBG::Node, bool>& visited) {
+        // TODO: visited hash map is slow.
+        vector<DBG::Node> backward, forward;
 
         visited[v] = true;
 
-        // Walk backward until (indegree >= 2), or (predecessor is visited or has outdegree >= 2)
-        LL u = v;
-        while(true){
-            if(boss.indegree(u) >= 2) break;
-            LL pred = boss.edge_source(boss.inedge_range(u).first); // predecessor
-            if(pred == -1) break;
-            if(visited[pred]) break;
-            if(boss.outdegree(pred) >= 2) break;
+        // Walk backward until (indegree >= 2), or (predecessor is visited or
+        // has outdegree >= 2)
+        DBG::Node u = v;
+        while (true) {
+            if (dbg.indegree(u) >= 2) break;
+            DBG::Node pred = dbg.pred(u);
+            if (pred.id == -1) break;
+            if (visited[pred]) break;
+            if (dbg.outdegree(pred) >= 2) break;
             u = pred;
             visited[u] = true;
             backward.push_back(u);
         }
 
-        // Walk forward until (outdegree >= 2) or (successor is visited or has indegree >= 2)
+        // Walk forward until (outdegree >= 2) or (successor is visited or has
+        // indegree >= 2)
         u = v;
-        while(true){
-            if(boss.outdegree(u) >= 2) break;
-            LL succ = boss.walk(u, boss.outlabels_at(boss.outlabel_range(u).first));
-            if(succ == -1) break;
-            if(visited[succ]) break;
-            if(boss.indegree(succ) >= 2) break;
+        while (true) {
+            if (dbg.outdegree(u) >= 2) break;
+            DBG::Node succ = dbg.succ(u);
+            if (succ.id == -1) break;
+            if (visited[succ]) break;
+            if (dbg.outdegree(succ) >= 2) break;
             u = succ;
             visited[u] = true;
             forward.push_back(u);
@@ -58,163 +61,187 @@ private:
 
         // Collect the unitig path
         Unitig U;
-        for(LL i = (LL)backward.size()-1; i >= 0; i--) U.nodes.push_back(backward[i]);
+        for (int64_t i = (int64_t)backward.size() - 1; i >= 0; i--)
+            U.nodes.push_back(backward[i]);
         U.nodes.push_back(v);
-        for(LL w : forward) U.nodes.push_back(w);
-        
+        for (DBG::Node w : forward) U.nodes.push_back(w);
+
         // Compute links
-        pair<LL,LL> outlabel_range = boss.outlabel_range(U.nodes.back());
-        for(LL i = outlabel_range.first; i <= outlabel_range.second; i++){
-            LL successor = boss.walk(U.nodes.back(), boss.outlabels_at(i));
-            assert(successor != -1); // Must exist
-            U.links.push_back(successor);
+            
+        for(DBG::Edge edge : DBG.outedges(U.nodes.back())){
+            DBG::Node destination = edge.dest;
+            U.links.push_back(destination.id);
         }
 
-        U.id = U.nodes[0];
+        U.id = U.nodes[0].id;
         return U;
     }
 
-    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U, Themisto& themisto){
+    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U,
+                                                  const DBG& dbg, const Coloring& coloring) {
         vector<Colored_Unitig> colored_unitigs;
-        auto get_id = [&](LL node){return themisto.coloring.get_colorset_id(node, themisto.boss);};
-        vector<LL> colorset_buffer(themisto.coloring.n_colors);
-        for(LL run_start = 0; run_start < U.nodes.size(); run_start++){
-            LL run_end = run_start;
-            while(run_end < U.nodes.size()-1 && get_id(U.nodes[run_start]) == get_id(U.nodes[run_end+1])){
+        auto get_id = [&](int64_t node) {
+            return coloring.get_color_set_id(node);
+        };
+        vector<int64_t> colorset_buffer(themisto.coloring.n_colors);
+        for (int64_t run_start = 0; run_start < U.nodes.size(); run_start++) {
+            int64_t run_end = run_start;
+            while (run_end < U.nodes.size() - 1 &&
+                   get_id(U.nodes[run_start].id) == get_id(U.nodes[run_end + 1].id)) {
                 run_end++;
             }
 
             Colored_Unitig colored;
-            for(LL i = run_start; i <= run_end; i++) 
+            for (int64_t i = run_start; i <= run_end; i++)
                 colored.nodes.push_back(U.nodes[i]);
-            colored.colorset = themisto.coloring.get_colorvec(U.nodes[run_start], themisto.boss);
-            colored.id = U.nodes[run_start];
+            colored.colorset = coloring.get_color_set_as_vector(U.nodes[run_start].id);
+            colored.id = U.nodes[run_start].id;
 
-            colored_unitigs.push_back(colored); // Links are added later
-            
+            colored_unitigs.push_back(colored);  // Links are added later
+
             run_start = run_end;
         }
 
         // Linkage
-        for(LL i = 0; i < colored_unitigs.size(); i++){
-            if(i < (LL)colored_unitigs.size()-1) // Not last
-                colored_unitigs[i].links.push_back(colored_unitigs[i+1].id); // Chain unitigs
-            else // Last
-                colored_unitigs[i].links = U.links; // The outgoing links of the original unitig
+        for (int64_t i = 0; i < colored_unitigs.size(); i++) {
+            if (i < (int64_t)colored_unitigs.size() - 1)  // Not last
+                colored_unitigs[i].links.push_back(
+                    colored_unitigs[i + 1].id);  // Chain unitigs
+            else                                 // Last
+                colored_unitigs[i].links =
+                    U.links;  // The outgoing links of the original unitig
         }
 
         return colored_unitigs;
     }
 
     // Extracts maximal unitigs that have at least n_min_colors colors
-    vector<Colored_Unitig> split_by_colorset_size(const LL n_min_colors, Unitig& U, Themisto& themisto){
+    vector<Colored_Unitig> split_by_colorset_size(const int64_t n_min_colors,
+                                                  Unitig& U,
+                                                  const Coloring& coloring) {
         vector<Colored_Unitig> colored_unitigs;
-        auto get_n_colors = [&](LL node){return themisto.coloring.get_colorset_size(node, themisto.boss);};
+        auto get_n_colors = [&](int64_t node) {
+            return coloring.get_color_set().size();
+        };
 
-	LL run_start = 0;
-	while (run_start < U.nodes.size()) {
-	    LL n_colors_for_node = get_n_colors(U.nodes[run_start]);
+        int64_t run_start = 0;
+        while (run_start < U.nodes.size()) {
+            int64_t n_colors_for_node = get_n_colors(U.nodes[run_start]);
 
-	    if (n_colors_for_node >= n_min_colors) {
-		LL run_end = run_start;
-		while(run_end < U.nodes.size()-1 && get_n_colors(U.nodes[run_end + 1]) >= n_min_colors){
-		    run_end++;
-		}
+            if (n_colors_for_node >= n_min_colors) {
+                int64_t run_end = run_start;
+                while (run_end < U.nodes.size() - 1 &&
+                       get_n_colors(U.nodes[run_end + 1]) >= n_min_colors) {
+                    run_end++;
+                }
 
-		Colored_Unitig colored;
-		for(LL i = run_start; i <= run_end; i++)
-		    colored.nodes.push_back(U.nodes[i]);
+                Colored_Unitig colored;
+                for (int64_t i = run_start; i <= run_end; i++)
+                    colored.nodes.push_back(U.nodes[i]);
 
-		colored.id = U.nodes[run_start];
+                colored.id = U.nodes[run_start];
 
-		colored_unitigs.push_back(colored); // Links are added later
+                colored_unitigs.push_back(colored);  // Links are added later
 
-		run_start = run_end;
-	    }
-	    ++run_start;
-	}
+                run_start = run_end;
+            }
+            ++run_start;
+        }
 
         // Linkage
-        for(LL i = 0; i < colored_unitigs.size(); i++){
-            if(i < (LL)colored_unitigs.size()-1) // Not last
-                colored_unitigs[i].links.push_back(colored_unitigs[i+1].id); // Chain unitigs
-            else // Last
-                colored_unitigs[i].links = U.links; // The outgoing links of the original unitig
+        for (int64_t i = 0; i < colored_unitigs.size(); i++) {
+            if (i < (int64_t)colored_unitigs.size() - 1)  // Not last
+                colored_unitigs[i].links.push_back(
+                    colored_unitigs[i + 1].id);  // Chain unitigs
+            else                                 // Last
+                colored_unitigs[i].links =
+                    U.links;  // The outgoing links of the original unitig
         }
 
         return colored_unitigs;
     }
 
-    string get_unitig_string(vector<LL>& nodes, Themisto& themisto){
-        if(nodes.size() == 0) return "";
-        string first_kmer = themisto.boss.get_node_label(nodes[0]);
+    string get_unitig_string(vector<int64_t>& nodes, const DBG& dbg) {
+        if (nodes.size() == 0) return "";
+        string first_kmer = dbg.get_node_label(nodes[0]);
         string rest;
-        for(LL i = 1; i < nodes.size(); i++)
-            rest += themisto.boss.incoming_character(nodes[i]);
+        for (int64_t i = 1; i < nodes.size(); i++)
+            rest += dbg.incoming_character(nodes[i]);
         return first_kmer + rest;
     }
 
-    void write_colorset(LL unitig_id, vector<LL>& colorset, ostream& colorsets_out){
+    void write_colorset(int64_t unitig_id, vector<int64_t>& colorset,
+                        ostream& colorsets_out) {
         colorsets_out << unitig_id;
-        for(LL color : colorset) colorsets_out << " " << color;
+        for (int64_t color : colorset) colorsets_out << " " << color;
         colorsets_out << "\n";
     }
 
-    void write_unitig(vector<LL>& nodes, LL unitig_id, Themisto& themisto, ostream& fasta_out, ostream& gfa_out){
-        string unitig_string = get_unitig_string(nodes, themisto);
-        fasta_out << ">" << unitig_id<< "\n" << unitig_string << "\n";
+    void write_unitig(vector<DBG::Node>& nodes, int64_t unitig_id, DBG& dbg,
+                      ostream& fasta_out, ostream& gfa_out) {
+        string unitig_string = get_unitig_string(nodes, dbg);
+        fasta_out << ">" << unitig_id << "\n" << unitig_string << "\n";
         gfa_out << "S\t" << unitig_id << "\t" << unitig_string << "\n";
     }
 
-    void write_linkage(LL from_unitig, vector<LL> to_unitigs, ostream& gfa_out, LL k){
-        for(LL to_unitig : to_unitigs){
+    void write_linkage(int64_t from_unitig, vector<int64_t> to_unitigs, ostream& gfa_out,
+                       int64_t k) {
+        for (int64_t to_unitig : to_unitigs) {
             // Print overlap with k-1 characters
-            gfa_out << "L\t" << from_unitig << "\t+\t" << to_unitig << "\t+\t" << (k-1) << "M\n";
+            gfa_out << "L\t" << from_unitig << "\t+\t" << to_unitig << "\t+\t"
+                    << (k - 1) << "M\n";
         }
     }
 
-public:
-
+   public:
     // Writes the unitigs to the outputstream, one unitig per line
-    // If split_by_colorset_runs == true, also splits the unitigs to maximal runs of nodes that have
-    // the same colorset, and writes the color sets to colorsets_out. If split_by_colorset_runs == false,
-    // then colorsets_out is unused.
-    // If min_colors > 0, extracts maximal unitigs where each node has at least >=min_colors colors.
-    // The unitigs are written in fasta-format.
-    // The colorsets are written one per line, in the same order as unitigs, in a space-separated format "id c1 c2 ..",
-    // where id is the fasta header of the colorset, and c1 c2... are the colors.
-    void extract_unitigs(Themisto& themisto, ostream& unitigs_out, bool split_by_colorset_runs, ostream& colorsets_out, ostream& gfa_out, LL min_colors = 0){
-        BOSS<sdsl::bit_vector>& boss = themisto.boss;
+    // If split_by_colorset_runs == true, also splits the unitigs to maximal
+    // runs of nodes that have the same colorset, and writes the color sets to
+    // colorsets_out. If split_by_colorset_runs == false, then colorsets_out is
+    // unused. If min_colors > 0, extracts maximal unitigs where each node has
+    // at least >=min_colors colors. The unitigs are written in fasta-format.
+    // The colorsets are written one per line, in the same order as unitigs, in
+    // a space-separated format "id c1 c2 ..", where id is the fasta header of
+    // the colorset, and c1 c2... are the colors.
+    void extract_unitigs(const DBG& dbg, Coloring& coloring, ostream& unitigs_out,
+                         bool split_by_colorset_runs, ostream& colorsets_out,
+                         ostream& gfa_out, int64_t min_colors = 0) {
 
-        gfa_out << "H" << "\t" << "VN:Z:1.0" << "\n"; // Header
+        gfa_out << "H"
+                << "\t"
+                << "VN:Z:1.0"
+                << "\n";  // Header
 
-        vector<bool> visited = boss.get_dummy_node_marks();
+        unordered_map<DBG::Node, bool> visited;
 
-        LL non_dummies = 0;
-        for(LL i = 0; i < visited.size(); i++) if(!visited[i]) non_dummies++;
-        Progress_printer pp(non_dummies, 100);
+        int64_t total_kmers = dbg.SBWT->number_of_kmers();
+        Progress_printer pp(total_kmers, 100);
 
-        for(LL v = 0; v < themisto.boss.number_of_nodes(); v++){
-            if(!visited[v]){
-                Unitig U = get_node_unitig_containing(v, boss, visited);
-                for(LL i = 0; i < U.nodes.size(); i++) pp.job_done(); // Record progress
-		if (min_colors > 0) {
-		    for(Colored_Unitig& CU : split_by_colorset_size(min_colors, U, themisto)){
-                        write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
+        for(DBG::Node v : dbg){
+            if (!visited[v.id]) {
+                Unitig U = get_unitig_containing_node(v, dbg, visited);
+                for (int64_t i = 0; i < U.nodes.size(); i++)
+                    pp.job_done();  // Record progress
+                if (min_colors > 0) {
+                    for (Colored_Unitig& CU :
+                         split_by_colorset_size(min_colors, U, coloring)) {
+                        write_unitig(CU.nodes, CU.id, dbg, unitigs_out,
+                                     gfa_out);
                         write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
-		    }
-		} else if(split_by_colorset_runs){
-		    for(Colored_Unitig& CU : split_to_colorset_runs(U, themisto)){
-                        write_unitig(CU.nodes, CU.id, themisto, unitigs_out, gfa_out);
+                    }
+                } else if (split_by_colorset_runs) {
+                    for (Colored_Unitig& CU :
+                         split_to_colorset_runs(U, dbg, coloring)) {
+                        write_unitig(CU.nodes, CU.id, dbg, unitigs_out,
+                                     gfa_out);
                         write_linkage(CU.id, CU.links, gfa_out, boss.get_k());
                         write_colorset(CU.id, CU.colorset, colorsets_out);
                     }
-                } else{
-                    write_unitig(U.nodes, U.id, themisto, unitigs_out, gfa_out);
+                } else {
+                    write_unitig(U.nodes, U.id, dbg, unitigs_out, gfa_out);
                     write_linkage(U.id, U.links, gfa_out, boss.get_k());
                 }
             }
         }
     }
-
 };
