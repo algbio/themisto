@@ -18,7 +18,8 @@ public:
     DBG_Reference_Implementation(vector<string> reads, LL k){
         // Get sorted k-mers
         for(string S : reads) 
-
+            for(string x : get_all_distinct_kmers(S, k)) 
+                colex_kmers.push_back(x);
         std::sort(colex_kmers.begin(), colex_kmers.end(), colex_compare);
         colex_kmers.erase(unique(colex_kmers.begin(), colex_kmers.end()), colex_kmers.end()); // Erase duplicaes
         cout << colex_kmers << endl;
