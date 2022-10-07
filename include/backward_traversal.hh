@@ -28,16 +28,9 @@ class SBWT_backward_traversal_support{
             }
         }
 
-        char get_incoming_character(int64_t node) const{
-            if(node < SBWT->get_C_array()[0]) return '$';
-            if(node < SBWT->get_C_array()[1]) return 'A';
-            if(node < SBWT->get_C_array()[2]) return 'C';
-            if(node < SBWT->get_C_array()[3]) return 'G';
-            return 'T';
-        }
-
     public:
 
+        SBWT_backward_traversal_support();
         SBWT_backward_traversal_support(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT){
             if(!SBWT->has_streaming_query_support())
                 throw std::runtime_error("Bug: SBWT Streaming query support (=suffix group marks) required for backward traversal.");
@@ -49,6 +42,14 @@ class SBWT_backward_traversal_support{
         }
 
         const sdsl::bit_vector& get_dummy_marks() const{return dummy_marks;}
+
+        char get_incoming_character(int64_t node) const{
+            if(node < SBWT->get_C_array()[0]) return '$';
+            if(node < SBWT->get_C_array()[1]) return 'A';
+            if(node < SBWT->get_C_array()[2]) return 'C';
+            if(node < SBWT->get_C_array()[3]) return 'G';
+            return 'T';
+        }
 
         // Up to 4 in-neighbors will be stored to the given array. The in-degree
         // will be stored to the other parameter. The in-degree means the in-degree in the

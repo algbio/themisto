@@ -13,6 +13,7 @@
 #include "setup_tests.hh"
 #include <cassert>
 
+#include "DBG.hh" // For now
 //#include "test_DBG.hh"
 #include "test_CLI.hh"
 #include "test_misc.hh"

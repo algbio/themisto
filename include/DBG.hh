@@ -8,14 +8,14 @@ using namespace std;
 using namespace sbwt;
 
 // A class that offers an interface to the de Bruijn graph.
-// Implemented internally using the BOSS class. The BOSS is a bit tricky
+// Implemented internally using the SBWT class. The SBWT is a bit tricky
 // because it has the dummy nodes. This class deals with the dummies so 
 // that the caller does not have to care about them.
 class DBG{
 
 private:
 
-    plain_matrix_sbwt_t* SBWT; // Non-owning pointer
+    const plain_matrix_sbwt_t* SBWT; // Non-owning pointer
     SBWT_backward_traversal_support backward_support;
 
 public:
@@ -35,7 +35,7 @@ public:
     class inedge_generator;
 
     DBG(){}
-    DBG(plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT)){}
+    DBG(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT), backward_support(SBWT){}
 
     all_nodes_generator all_nodes(); // Return a generator for a range-for loop
     outedge_generator outedges(Node v); // Return a generator for a range-for loop
@@ -126,9 +126,9 @@ public:
         }
     };
 
-    plain_matrix_sbwt_t* SBWT;
-    sdsl::bit_vector* dummy_marks;
-    all_nodes_generator(const plain_matrix_sbwt_t* boss, const sdsl::bit_vector* is_dummy) : SBWT(SBWT), dummy_marks(dummy_marks){}
+    const plain_matrix_sbwt_t* SBWT;
+    const sdsl::bit_vector* dummy_marks;
+    all_nodes_generator(const plain_matrix_sbwt_t* SBWT, const sdsl::bit_vector* dummy_marks) : SBWT(SBWT), dummy_marks(dummy_marks){}
 
     iterator begin(){return iterator(0, SBWT, dummy_marks);}
     end_iterator end(){return end_iterator();}
@@ -191,56 +191,49 @@ public:
 
 class DBG::inedge_generator{
 
-// This does a lot of redundant work and could be optimized
-
 public:
 
     struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
         int64_t node_idx;
-        int64_t inlabels_start; // Wheeler rank in boss
-        int64_t inlabels_offset;
-        int64_t indegree;
-        char incoming_char;
-        BOSS<sdsl::bit_vector>* boss;
-        vector<bool>* is_dummy;
+        const plain_matrix_sbwt_t* SBWT;
+        const SBWT_backward_traversal_support* backward_support;
 
-        iterator(int64_t node_idx, int64_t edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
-            inlabels_start = boss->indegs_rank0(boss->indegs_select1(node_idx+1));
-            indegree = boss->indegree(node_idx);
-            incoming_char = boss->incoming_character(node_idx);
-            if(indegree == 1){
-                // Check if we are preceeded by a dummy. If yes, there are no DBG in-edges
-                int64_t source = boss->edge_source(inlabels_start);
-                if(is_dummy->at(source)) inlabels_offset++; // Should match the end iterator now
-            }
+        int64_t in_neighbors[4];
+        int64_t indegree = 0;
+        int64_t in_neighbors_idx = 0;
+        char incoming_char = 0;
+
+        iterator(int64_t node_idx, const plain_matrix_sbwt_t* SBWT, const SBWT_backward_traversal_support* backward_support) : node_idx(node_idx), SBWT(SBWT), backward_support(backward_support) {
+            backward_support->list_DBG_in_neighbors(node_idx, in_neighbors, indegree);
+            incoming_char = backward_support->get_incoming_character(node_idx);
         }
 
         iterator operator++(){
-            inlabels_offset++;
+            in_neighbors_idx++;
             return *this;
         }
 
         Edge operator*(){
             int64_t dest = node_idx;
-            int64_t source = boss->edge_source(inlabels_start + inlabels_offset);
+            int64_t source = in_neighbors[in_neighbors_idx];
             return {.source = source, .dest = dest, .label = incoming_char};
         }
 
         bool operator!=(const end_iterator& other){
             (void)other; // This is just a dummy
-            return inlabels_offset < indegree;
+            return in_neighbors_idx < indegree;
         }
     };
 
     Node v;
-    BOSS<sdsl::bit_vector>* boss;
-    vector<bool>* is_dummy;
+    const plain_matrix_sbwt_t* SBWT;
+    const SBWT_backward_traversal_support* backward_support;
 
-    inedge_generator(Node v, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : v(v), boss(boss), is_dummy(is_dummy){}
+    inedge_generator(Node v, const plain_matrix_sbwt_t* SBWT, const SBWT_backward_traversal_support* backward_support) : v(v), SBWT(SBWT), backward_support(backward_support) {}
 
-    iterator begin(){return iterator(v.id, 0, boss, is_dummy);}
+    iterator begin(){return iterator(v.id, SBWT, backward_support);}
     end_iterator end(){return end_iterator();}
 
 };
@@ -248,15 +241,15 @@ public:
 
 
 DBG::all_nodes_generator DBG::all_nodes(){
-    return all_nodes_generator(boss, &is_dummy);
+    return all_nodes_generator(SBWT, &(backward_support.get_dummy_marks()));
 }
 
 DBG::outedge_generator DBG::outedges(Node v){
-    return outedge_generator(v, boss);
+    return outedge_generator(v, SBWT);
 }
 
 DBG::inedge_generator DBG::inedges(Node v){
-    return inedge_generator(v, boss, &is_dummy);
+    return inedge_generator(v, SBWT, &backward_support);
 }
 
 /*
