@@ -27,16 +27,15 @@ public:
         std::unordered_set<std::string> kmers(colex_kmers.begin(), colex_kmers.end());
 
         // Get edges
-        for(string S : reads){
-            for(string x : get_all_distinct_kmers(S,k)){
-                for(char c : string("ACGT")){
-                    if(kmers.count(x.substr(1) + c))
-                        outedges[x].push_back(x.substr(1) + c);
-                    if(kmers.count(c + x.substr(0,k-1)))
-                        inedges[x].push_back(c + x.substr(0,k-1));
-                }
+        for(string x : colex_kmers){
+            for(char c : string("ACGT")){
+                if(kmers.count(x.substr(1) + c))
+                    outedges[x].push_back(x.substr(1) + c);
+                if(kmers.count(c + x.substr(0,k-1)))
+                    inedges[x].push_back(c + x.substr(0,k-1));
             }
         }
+    
     }
 
 
