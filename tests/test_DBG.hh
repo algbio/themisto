@@ -89,9 +89,6 @@ TEST_F(TEST_DBG, indegree){
     for(string kmer : ref.colex_kmers){
         DBG::Node v = dbg.locate(kmer);
         ASSERT_GE(v.id, 0); // Must be found
-        if(dbg.indegree(v) != ref.inedges[kmer].size()){
-            cout << "Break" << endl;
-        }
         ASSERT_EQ(dbg.indegree(v), ref.inedges[kmer].size());
     }
 }
