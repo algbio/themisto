@@ -12,7 +12,7 @@ class SBWT_backward_traversal_support{
 
         // No copying because of pointer business
         SBWT_backward_traversal_support(SBWT_backward_traversal_support const& other) = delete;
-        SBWT_backward_traversal_support(SBWT_backward_traversal_support&&) = default;
+        SBWT_backward_traversal_support(SBWT_backward_traversal_support&) = default;
 
         const plain_matrix_sbwt_t* SBWT;  // Non-owning pointer
         sdsl::select_support_mcl<> select_A, select_C, select_G, select_T;

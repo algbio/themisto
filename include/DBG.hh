@@ -31,7 +31,7 @@ private:
 
     // No copying because of pointer business
     DBG(DBG const& other) = delete;
-    DBG(DBG&&) = default;
+    DBG(DBG&) = default;
 
     const plain_matrix_sbwt_t* SBWT; // Non-owning pointer
     SBWT_backward_traversal_support* backward_support; // Owning pointer
