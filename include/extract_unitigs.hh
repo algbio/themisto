@@ -56,7 +56,7 @@ class UnitigExtractor {
             DBG::Node succ = dbg.succ(u);
             if (succ.id == -1) break;
             if (visited[succ]) break;
-            if (dbg.outdegree(succ) >= 2) break;
+            if (dbg.indegree(succ) >= 2) break;
             u = succ;
             visited[u] = true;
             forward.push_back(u);

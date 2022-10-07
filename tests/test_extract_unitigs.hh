@@ -81,6 +81,8 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     write_as_fasta(seqs, fastafile);
     write_vector(colors, colorfile);
 
+    logger << seqs << endl;
+
     ASSERT_EQ(seqs.size(), colors.size());
 }
 
