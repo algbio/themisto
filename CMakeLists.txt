@@ -38,8 +38,7 @@ set(THEMISTO_SOURCES
   src/build_index_main.cpp 
   src/extract_unitigs_main.cpp 
   src/DBG.cpp 
-  #src/stats_main.cpp 
-  #src/KMC_wrapper.cpp 
+  src/stats_main.cpp 
   )
 
 ## Check if we should compile zlib or bzip2

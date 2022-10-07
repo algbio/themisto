@@ -1,5 +1,6 @@
-#include "Themisto.hh"
-#include "input_reading.hh"
+#include "sbwt/SBWT.hh"
+#include "sbwt/globals.hh"
+#include "globals.hh"
 #include "zpipe.hh"
 #include <string>
 #include <cstring>
@@ -7,6 +8,7 @@
 #include "cxxopts.hpp"
 #include "extract_unitigs.hh"
 
+using namespace sbwt;
 using namespace std;
 
 int stats_main(int argc, char** argv){
@@ -44,46 +46,33 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs) get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
 
-    Themisto themisto;
-
     write_log("Loading the index", LogLevel::MAJOR);    
-    themisto.load_boss(index_dbg_file);
-    themisto.load_colors(index_color_file);
+    plain_matrix_sbwt_t SBWT;
+    Coloring coloring;
+    SBWT.load(index_SBWT_file);
+    coloring.load(index_color_file, SBWT);
 
     write_log("Computing index statistics", LogLevel::MAJOR);
-    vector<bool> dummy_marks = themisto.boss.get_dummy_node_marks();
 
-    LL total_nodes = themisto.boss.number_of_nodes();
-    LL dummy_nodes = 0;
-    for(bool b : dummy_marks) if(b) dummy_nodes++;
-
-    LL total_edges = themisto.boss.number_of_edges();
-    LL dummy_edges = 0;
-    for(LL v = 0; v < themisto.boss.number_of_nodes(); v++){
-        if(dummy_marks[v]) dummy_edges += themisto.boss.outdegree(v);
-    }
-
-    cout << "Node length k: " << themisto.boss.get_k() << endl;
-    cout << "Edge length k+1: " << themisto.boss.get_k() + 1 << endl;
-    cout << "Node count: " << total_nodes - dummy_nodes << endl;
-    cout << "Node count (including technical dummy nodes): " << total_nodes << endl;
-    cout << "Edge count: " << total_edges - dummy_edges << endl;
-    cout << "Edge count (including technical dummy edges): " << total_edges << endl;
-    cout << "Number of colors: " << themisto.coloring.n_colors << endl;
-    cout << "Number of distinct color sets: " << themisto.coloring.get_number_of_distinct_colorsets() << endl;
-    cout << "Sum of sizes of all distinct color sets: " << themisto.coloring.get_color_set_concatenation_length() << endl;
+    cout << "Node length k: " << SBWT.get_k() << endl;
+    cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
+    cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
+    cout << "De Bruijn graph edge count: " << SBWT.number_of_DBG_edges() << endl;
+    cout << "Number of colors: " << coloring.number_of_distinct_colors() << endl;
+    cout << "Number of distinct color sets: " << coloring.number_of_distinct_colorsets() << endl;
+    cout << "Sum of sizes of all distinct color sets: " << themisto.coloring.sum_of_all_color_set_lengths() << endl;
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
         UnitigExtractor UE;
-        string unitigs_file = get_temp_file_manager().create_filename("unitigs-");
+        string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
-        NullStream null_stream;
-        UE.extract_unitigs(themisto, unitigs_out.stream, false, null_stream, null_stream);
+        sbwt::SeqIO::NullStream null_stream;
+        UE.extract_unitigs(SBWT, coloring, unitigs_out.stream, false, null_stream, null_stream);
         unitigs_out.close();
         
         LL unitig_count = 0;
-        Sequence_Reader_Buffered sr(unitigs_file, FASTA_MODE);
+        sbwt::SeqIO::Reader<> sr(unitigs_file);
         LL min_unitig_len = 1e18;
         LL max_unitig_len = 0;
         LL unitig_len_sum = 0;
