@@ -35,12 +35,16 @@ private:
 
     const plain_matrix_sbwt_t* SBWT; // Non-owning pointer
     SBWT_backward_traversal_support* backward_support; // Owning pointer
-    sdsl::rank_support_v5<> dummy_node_rs;
+
+    // Rank support to the internal dummy bit vector of backward_support. This is
+    // a little unsafe I know, but it's probably ok because this object controls the memory
+    // lifetime of the backward support.
+    sdsl::rank_support_v5<> dummy_node_rs; 
 
 public:
 
     struct Node{
-        int64_t id;
+        int64_t id; // From 0 to number of subsets in the SBWT.
 
         Node(int64_t id) : id(id) {}
 
@@ -130,6 +134,11 @@ public:
 
     int64_t get_k() const{
         return SBWT->get_k();
+    }
+
+    // If v is the i-th k-mer in colexicographic order (0-based), returns i.
+    int64_t get_kmer_rank(Node v) const{
+        return v.id - dummy_node_rs.rank(v.id); // Subtract dummy nodes
     }
 
     ~DBG(){
