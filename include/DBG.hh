@@ -1,6 +1,8 @@
 #pragma once
 
-#include "libwheeler/BOSS.hh"
+#include "sbwt/SBWT.hh"
+
+using namespace std;
 
 // A class that offers an interface to the de Bruijn graph.
 // Implemented internally using the BOSS class. The BOSS is a bit tricky
@@ -10,18 +12,18 @@ class DBG{
 
 private:
 
-    BOSS<sdsl::bit_vector>* boss;
+    SBWT* SBWT; // Non-owning pointer
     vector<bool> is_dummy;
 
 public:
 
     struct Node{
-        LL id;
+        int64_t id;
     };
 
     struct Edge{ 
-        LL source;
-        LL dest;
+        int64_t source;
+        int64_t dest;
         char label;
     };
 
@@ -30,7 +32,7 @@ public:
     class inedge_generator;
 
     DBG(){}
-    DBG(BOSS<sdsl::bit_vector>* boss) : boss(boss), is_dummy(boss->get_dummy_node_marks()){}
+    DBG(SBWT* SBWT) : SBWT(SBWT), is_dummy(SBWT->get_dummy_node_marks()){}
 
     all_nodes_generator all_nodes(); // Return a generator for a range-for loop
     outedge_generator outedges(Node v); // Return a generator for a range-for loop
@@ -45,17 +47,17 @@ public:
         return boss->get_node_label(v.id);
     }
 
-    LL indegree(const Node& v){
+    int64_t indegree(const Node& v){
         assert(v.id != -1);
         pair<LL,LL> R = boss->inedge_range(v.id);
         if(R.first == R.second){ // One predecessor. Check whether it's a dummy
-            LL source = boss->edge_source(R.first);
+            int64_t source = boss->edge_source(R.first);
             if(is_dummy.at(source)) return 0;
         } 
         return R.second - R.first + 1;
     }
 
-    LL outdegree(const Node& v){
+    int64_t outdegree(const Node& v){
         assert(v.id != -1);
         return boss->outdegree(v.id);
     }
@@ -90,11 +92,11 @@ public:
     struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
-        LL idx;
+        int64_t idx;
         BOSS<sdsl::bit_vector>* boss;
         vector<bool>* is_dummy;
 
-        iterator(LL node_idx, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : idx(node_idx), boss(boss), is_dummy(is_dummy) {
+        iterator(int64_t node_idx, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : idx(node_idx), boss(boss), is_dummy(is_dummy) {
             // Rewind to first non-dummy
             while(idx < boss->number_of_nodes() && is_dummy->at(idx)) idx++;
         }
@@ -132,13 +134,13 @@ public:
     struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
-        LL node_idx;
-        LL outlabels_start; // In outlabels of boss
-        LL outlabels_offset; // In outlabels of boss
-        LL outdegree;
+        int64_t node_idx;
+        int64_t outlabels_start; // In outlabels of boss
+        int64_t outlabels_offset; // In outlabels of boss
+        int64_t outdegree;
         BOSS<sdsl::bit_vector>* boss;
 
-        iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss){
+        iterator(int64_t node_idx, int64_t edge_offset, BOSS<sdsl::bit_vector>* boss) : node_idx(node_idx), outlabels_offset(edge_offset), boss(boss){
             outlabels_start = boss->outdegs_rank0(boss->outdegs_select1(node_idx+1));
             outdegree = boss->outdegree(node_idx);
         }
@@ -149,9 +151,9 @@ public:
         }
 
         Edge operator*(){
-            LL source = node_idx;
+            int64_t source = node_idx;
             char label = boss->outlabels_at(outlabels_start + outlabels_offset);
-            LL dest = boss->edge_destination(boss->outedge_index_to_wheeler_rank(outlabels_start + outlabels_offset));
+            int64_t dest = boss->edge_destination(boss->outedge_index_to_wheeler_rank(outlabels_start + outlabels_offset));
             return {.source = source, .dest = dest, .label = label};
         }
 
@@ -181,21 +183,21 @@ public:
     struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
-        LL node_idx;
-        LL inlabels_start; // Wheeler rank in boss
-        LL inlabels_offset;
-        LL indegree;
+        int64_t node_idx;
+        int64_t inlabels_start; // Wheeler rank in boss
+        int64_t inlabels_offset;
+        int64_t indegree;
         char incoming_char;
         BOSS<sdsl::bit_vector>* boss;
         vector<bool>* is_dummy;
 
-        iterator(LL node_idx, LL edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
+        iterator(int64_t node_idx, int64_t edge_offset, BOSS<sdsl::bit_vector>* boss, vector<bool>* is_dummy) : node_idx(node_idx), inlabels_offset(edge_offset), boss(boss), is_dummy(is_dummy) {
             inlabels_start = boss->indegs_rank0(boss->indegs_select1(node_idx+1));
             indegree = boss->indegree(node_idx);
             incoming_char = boss->incoming_character(node_idx);
             if(indegree == 1){
                 // Check if we are preceeded by a dummy. If yes, there are no DBG in-edges
-                LL source = boss->edge_source(inlabels_start);
+                int64_t source = boss->edge_source(inlabels_start);
                 if(is_dummy->at(source)) inlabels_offset++; // Should match the end iterator now
             }
         }
@@ -206,8 +208,8 @@ public:
         }
 
         Edge operator*(){
-            LL dest = node_idx;
-            LL source = boss->edge_source(inlabels_start + inlabels_offset);
+            int64_t dest = node_idx;
+            int64_t source = boss->edge_source(inlabels_start + inlabels_offset);
             return {.source = source, .dest = dest, .label = incoming_char};
         }
 
