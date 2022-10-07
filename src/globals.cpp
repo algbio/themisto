@@ -29,8 +29,7 @@ void check_dir_exists(string path){
 }
 
 // Returns filename of a new color file that has one color for each sequence
-// Input format is either "fasta" or "fastq"
-string generate_default_colorfile(string inputfile, string file_format){
+string generate_default_colorfile(string inputfile){
     string colorfile = sbwt::get_temp_file_manager().create_filename();
     sbwt::Buffered_ofstream<> out(colorfile);
     sbwt::SeqIO::Reader<> sr(inputfile);

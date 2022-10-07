@@ -12,7 +12,7 @@ void check_dir_exists(string path);
 
 // Returns filename of a new color file that has one color for each sequence
 // Input format is either "fasta" or "fastq"
-string generate_default_colorfile(string inputfile, string file_format);
+string generate_default_colorfile(string inputfile);
 
 pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfile_format, string colorfile);
 

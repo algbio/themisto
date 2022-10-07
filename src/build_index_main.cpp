@@ -160,10 +160,18 @@ int build_index_main(int argc, char** argv){
     write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
     write_log("Starting", sbwt::LogLevel::MAJOR);
 
+    // Deal with non-ACGT characters
+    if(C.del_non_ACGT){
+        // KMC takes care of this
+    } else {
+        write_log("Replacing non-ACGT characters with random nucleotides", LogLevel::MAJOR);
+        C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
+    }
+
     if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
         sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
-        C.colorfile = generate_default_colorfile(C.inputfile, C.input_format.format == sbwt::SeqIO::FASTA ? "fasta" : "fastq");
+        C.colorfile = generate_default_colorfile(C.inputfile);
     }
 
     std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
