@@ -2,6 +2,7 @@
 
 #include "setup_tests.hh"
 #include <gtest/gtest.h>
+#include "test_tools.hh"
 #include "DBG.hh"
 
 class DBG_Reference_Implementation{
@@ -59,15 +60,18 @@ class TEST_DBG : public ::testing::Test {
     vector<string> reads;
     LL k;
     DBG_Reference_Implementation ref;
-    BOSS<sdsl::bit_vector> boss;
+    plain_matrix_sbwt_t SBWT;
+    SBWT_backward_traversal_support backward_support;
     DBG dbg;
 
     void SetUp() override {
         reads = {"CTGCGTAGTCGTACGATAAATTTCGATGTAGGCTCGTTCGGTCGC", "GACTTCTTTTCTTAGGCTAAAAAAAAA"};
         k = 3;
         ref = DBG_Reference_Implementation(reads,k);
-        boss = build_BOSS_with_maps(reads, k, false);
-        dbg = DBG(&boss);
+        NodeBOSSInMemoryConstructor<plain_matrix_sbwt_t> builder;
+        builder.build(reads, SBWT, k, true);
+        backward_support = SBWT_backward_traversal_support(&SBWT);
+        dbg = DBG(&SBWT);
     }
 
 };
@@ -87,7 +91,7 @@ TEST_F(TEST_DBG, locate){
 TEST_F(TEST_DBG, iterate_all_nodes){
     LL kmer_idx = 0;
     for(DBG::Node v : dbg.all_nodes()){
-        string fetched = boss.get_node_label(v.id);
+        string fetched = backward_support.get_node_label(v.id);
         string correct = ref.colex_kmers[kmer_idx++];
         ASSERT_EQ(fetched, correct);
     }
@@ -107,8 +111,8 @@ TEST_F(TEST_DBG, inedges){
         LL in_idx = 0;
         for(DBG::Edge e : dbg.inedges(v)){
             ASSERT_EQ(e.dest, v.id);
-            string kmer_from = boss.get_node_label(e.source);
-            string kmer_to = boss.get_node_label(e.dest);
+            string kmer_from = backward_support.get_node_label(e.source);
+            string kmer_to = backward_support.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
             ASSERT_EQ(kmer_from, ref.inedges[kmer_to][in_idx++]);
         }
@@ -129,8 +133,8 @@ TEST_F(TEST_DBG, outedges){
         LL out_idx = 0;
         for(DBG::Edge e : dbg.outedges(v)){
             ASSERT_EQ(e.source, v.id);
-            string kmer_from = boss.get_node_label(e.source);
-            string kmer_to = boss.get_node_label(e.dest);
+            string kmer_from = backward_support.get_node_label(e.source);
+            string kmer_to = backward_support.get_node_label(e.dest);
             ASSERT_EQ(kmer_to.back(), e.label);
             ASSERT_EQ(kmer_to, ref.outedges[kmer_from][out_idx++]);
         }

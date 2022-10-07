@@ -488,9 +488,6 @@ public:
     }
 
     void build_representation(const std::string& infile, const sdsl::bit_vector& cores, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
-        
-        string node_to_color_id_pairs_filename = get_temp_file_manager().create_filename();
-        Buffered_ofstream<> node_to_color_id_pairs_out(node_to_color_id_pairs_filename, ios::binary);
 
         SBWT_backward_traversal_support backward_support(index_ptr);
 
@@ -532,7 +529,7 @@ public:
 
             for (const auto node : node_set) {
                 builder.add(node, set_id);
-                store_samples_in_unitig(cores, builder, backward_support, node, set_id, colorset_sampling_distance, node_to_color_id_pairs_out);
+                store_samples_in_unitig(cores, builder, backward_support, node, set_id, colorset_sampling_distance);
             }
 
             ++set_id;
@@ -543,9 +540,7 @@ public:
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
-    void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance, Buffered_ofstream<>& out){
-
-        int64_t n_new_marks = 0;
+    void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
         
         assert(cores[from_node] == 1);
         int64_t in_neighbors[4];

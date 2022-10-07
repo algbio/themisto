@@ -10,10 +10,6 @@ class SBWT_backward_traversal_support{
 
     private:
 
-        // No copying
-        SBWT_backward_traversal_support(throwing_ofstream const& other) = delete;
-        SBWT_backward_traversal_support& operator=(throwing_ofstream const& other) = delete;
-
         const plain_matrix_sbwt_t* SBWT;  // Non-owning pointer
         sdsl::select_support_mcl<> select_A, select_C, select_G, select_T;
         sdsl::bit_vector dummy_marks;
@@ -30,7 +26,7 @@ class SBWT_backward_traversal_support{
 
     public:
 
-        SBWT_backward_traversal_support();
+        SBWT_backward_traversal_support() {}
         SBWT_backward_traversal_support(const plain_matrix_sbwt_t* SBWT) : SBWT(SBWT){
             if(!SBWT->has_streaming_query_support())
                 throw std::runtime_error("Bug: SBWT Streaming query support (=suffix group marks) required for backward traversal.");

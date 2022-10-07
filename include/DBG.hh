@@ -157,6 +157,7 @@ public:
             if(row == 1) return SBWT->get_subset_rank_structure().C_bits[col];
             if(row == 2) return SBWT->get_subset_rank_structure().G_bits[col];
             if(row == 3) return SBWT->get_subset_rank_structure().T_bits[col];
+            return false; // SHould not happen
         }
 
         iterator operator++(){
