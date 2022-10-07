@@ -137,7 +137,8 @@ public:
     }
 
     // If v is the i-th k-mer in colexicographic order (0-based), returns i.
-    int64_t get_kmer_rank(Node v) const{
+    int64_t kmer_rank(Node v) const{
+        if(v.id == -1) return -1;
         return v.id - dummy_node_rs.rank(v.id); // Subtract dummy nodes
     }
 

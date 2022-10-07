@@ -66,6 +66,17 @@ class TEST_DBG : public ::testing::Test {
 
 };
 
+TEST_F(TEST_DBG, kmer_rank){
+    for(int64_t i = 0; i < ref.colex_kmers.size(); i++){
+        DBG::Node v = dbg->locate(ref.colex_kmers[i]);
+        ASSERT_GE(v.id, 0); // Must be found
+        ASSERT_EQ(dbg->kmer_rank(v.id), i);
+    }
+
+    // check non-existent k-mer
+    ASSERT_EQ(dbg->kmer_rank(dbg->locate("CCG")), -1);
+}
+
 TEST_F(TEST_DBG, locate){
     // Check existing k-mers
     for(string kmer : ref.colex_kmers){
