@@ -26,11 +26,11 @@ class UnitigExtractor {
     };
 
     // Assumes that dummy nodes are always visited
-    Unitig get_unitig_containing_node(DBG::Node v, const DBG& dbg, unordered_map<DBG::Node, bool>& visited) {
+    Unitig get_unitig_containing_node(DBG::Node v, const DBG& dbg, vector<bool>& visited) {
         // TODO: visited hash map is slow.
         vector<DBG::Node> backward, forward;
 
-        visited[v] = true;
+        visited[dbg.kmer_rank(v)] = true;
 
         // Walk backward until (indegree >= 2), or (predecessor is visited or
         // has outdegree >= 2)
@@ -40,10 +40,10 @@ class UnitigExtractor {
             if (indeg >= 2 || indeg == 0) break;
             DBG::Node pred = dbg.pred(u);
             if (pred.id == -1) break;
-            if (visited[pred]) break;
+            if (visited[dbg.kmer_rank(pred)]) break;
             if (dbg.outdegree(pred) >= 2) break;
             u = pred;
-            visited[u] = true;
+            visited[dbg.kmer_rank(u)] = true;
             backward.push_back(u);
         }
 
@@ -55,10 +55,10 @@ class UnitigExtractor {
             if (outdeg >= 2 || outdeg == 0) break;
             DBG::Node succ = dbg.succ(u);
             if (succ.id == -1) break;
-            if (visited[succ]) break;
+            if (visited[dbg.kmer_rank(succ)]) break;
             if (dbg.indegree(succ) >= 2) break;
             u = succ;
-            visited[u] = true;
+            visited[dbg.kmer_rank(u)] = true;
             forward.push_back(u);
         }
 
@@ -213,13 +213,13 @@ class UnitigExtractor {
                 << "VN:Z:1.0"
                 << "\n";  // Header
 
-        unordered_map<DBG::Node, bool> visited;
+        vector<bool> visited(dbg.number_of_kmers());
 
         int64_t total_kmers = dbg.number_of_kmers();
         Progress_printer pp(total_kmers, 100);
 
         for(DBG::Node v : dbg.all_nodes()){
-            if (!visited[v.id]) {
+            if (!visited[dbg.kmer_rank(v.id)]) {
                 Unitig U = get_unitig_containing_node(v, dbg, visited);
                 for (int64_t i = 0; i < U.nodes.size(); i++)
                     pp.job_done();  // Record progress
