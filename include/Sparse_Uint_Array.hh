@@ -77,11 +77,12 @@ class Sparse_Uint_Array{
 
     void load(istream& is){
         marks.load(is);
+        marks_rs.set_vector(&marks);
         marks_rs.load(is);
         values.load(is);
         is.read((char*)&max_value, sizeof(max_value));
 
-        marks_rs.set_vector(&marks);
+        
     }
 };
 
