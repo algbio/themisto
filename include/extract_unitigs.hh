@@ -36,7 +36,8 @@ class UnitigExtractor {
         // has outdegree >= 2)
         DBG::Node u = v;
         while (true) {
-            if (dbg.indegree(u) >= 2) break;
+            int64_t indeg = dbg.indegree(u);
+            if (indeg >= 2 || indeg == 0) break;
             DBG::Node pred = dbg.pred(u);
             if (pred.id == -1) break;
             if (visited[pred]) break;
@@ -50,7 +51,8 @@ class UnitigExtractor {
         // indegree >= 2)
         u = v;
         while (true) {
-            if (dbg.outdegree(u) >= 2) break;
+            int64_t outdeg = dbg.outdegree(u);
+            if (outdeg >= 2 || outdeg == 0) break;
             DBG::Node succ = dbg.succ(u);
             if (succ.id == -1) break;
             if (visited[succ]) break;

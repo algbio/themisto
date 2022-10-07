@@ -108,7 +108,7 @@ public:
         else if(SBWT->get_subset_rank_structure().C_bits[node]) return {SBWT->forward(node, 'C')};
         else if(SBWT->get_subset_rank_structure().G_bits[node]) return {SBWT->forward(node, 'G')};
         else if(SBWT->get_subset_rank_structure().T_bits[node]) return {SBWT->forward(node, 'T')};
-        else throw std::invalid_argument("Tried to get the predecessor of a node with indegree " + to_string(indegree(v)));
+        else throw std::invalid_argument("Tried to get the successor of a node with outdegree " + to_string(outdegree(v)));
     }
 
     char incoming_character(const Node& v) const{
