@@ -26,6 +26,8 @@
 
 #include "roaring/roaring.hh"
 
+#include "WorkDispatcher.hh"
+
 
 class Color_Set {
     Roaring roaring;
@@ -113,7 +115,7 @@ public:
 
 class Coloring {
     std::vector<Color_Set> sets;
-    
+
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
@@ -240,7 +242,7 @@ public:
         sdsl::bit_vector cores = ckm.core_kmer_marks;
 
         write_log("Getting node color pairs", LogLevel::MAJOR);
-        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments, cores);
+        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments, cores, n_threads);
 
         write_log("Sorting node color pairs", LogLevel::MAJOR);
         const std::string sorted_pairs = get_temp_file_manager().create_filename();
@@ -281,37 +283,101 @@ public:
         write_log("Representation built", LogLevel::MAJOR);
     }
 
+    class ColorPairAlignerThread : public DispatcherConsumerCallback {
+        const std::vector<std::int64_t>& seq_id_to_color_id;
+        ParallelBinaryOutputWriter& out;
+        const std::size_t output_buffer_max_size;
+        std::size_t output_buffer_size = 0;
+        char* output_buffer;
+        const plain_matrix_sbwt_t& index;
+        const Coloring& coloring;
+        const sdsl::bit_vector& cores;
+
+    public:
+        ColorPairAlignerThread(const std::vector<std::int64_t>& seq_id_to_color_id,
+                      ParallelBinaryOutputWriter& out,
+                      const std::size_t output_buffer_max_size,
+                      const plain_matrix_sbwt_t& index,
+                      const Coloring& coloring,
+                      const sdsl::bit_vector& cores) :
+            seq_id_to_color_id(seq_id_to_color_id),
+            out(out),
+            output_buffer_max_size(output_buffer_max_size),
+            index(index),
+            coloring(coloring),
+            cores(cores) {
+            output_buffer = new char[output_buffer_max_size];
+        }
+
+        ColorPairAlignerThread(const ColorPairAlignerThread&) = delete;
+        ColorPairAlignerThread& operator=(const ColorPairAlignerThread&) = delete;
+
+        void write(const std::int64_t node_id, const std::int64_t color_id) {
+            const std::size_t space_left = output_buffer_max_size - output_buffer_size;
+
+            if (space_left < 8+8) {
+                out.write(output_buffer, output_buffer_size);
+                output_buffer_size = 0;
+            }
+
+            write_big_endian_LL(output_buffer + output_buffer_size, node_id);
+            write_big_endian_LL(output_buffer + output_buffer_size + 8, color_id);
+            output_buffer_size += 8+8;
+        }
+
+        virtual void callback(const char* S,
+                              LL S_size,
+                              int64_t string_id) {
+            const std::int64_t color = seq_id_to_color_id.at(string_id);
+            const std::size_t k = index.get_k();
+
+            write_log("Adding colors for sequence " + std::to_string(string_id), LogLevel::MINOR);
+            if (S_size >= k) {
+                const auto res = index.streaming_search(S, S_size);
+                for (const auto node : res) {
+                    if (node >= 0 && cores[node] == 1)
+                        write(node, color);
+                }
+            }
+        }
+
+        virtual void finish() {
+            if (output_buffer_size > 0) {
+                out.write(output_buffer, output_buffer_size);
+                output_buffer_size = 0;
+            }
+
+            delete[] output_buffer;
+        }
+    };
+
     std::string get_node_color_pairs(const plain_matrix_sbwt_t& index,
                                      const std::string& fasta_file,
                                      const std::vector<std::int64_t>& seq_id_to_color_id,
-                                     const sdsl::bit_vector& cores) {
+                                     const sdsl::bit_vector& cores,
+                                     const std::size_t n_threads) {
         const std::string outfile = get_temp_file_manager().create_filename();
-        Buffered_ofstream<> out(outfile);
-        const auto k = index.get_k();
 
-        SeqIO::Reader<> reader(fasta_file);
-        std::size_t seq_id = 0;
-        std::size_t read_len = 0;
+        ParallelBinaryOutputWriter writer(outfile);
 
-        while ((read_len = reader.get_next_read_to_buffer()) > 0) {
-
-            if (read_len >= k) {
-                const std::string seq(reader.read_buf, read_len);
-
-                const auto res = index.streaming_search(seq);
-                for (const auto node : res) {
-                    if(node >= 0 && cores[node] == 1) {
-                        write_big_endian_LL(out, node);
-                        write_big_endian_LL(out, seq_id_to_color_id.at(seq_id));
-                        largest_color_id = max(largest_color_id, (int64_t)seq_id_to_color_id.at(seq_id));
-                    }
-                }
-            }
-
-            ++seq_id;
-
+        std::vector<DispatcherConsumerCallback*> threads;
+        for (std::size_t i = 0; i < n_threads; ++i) {
+            ColorPairAlignerThread* T = new ColorPairAlignerThread(seq_id_to_color_id,
+                                                 writer,
+                                                 1024*1024,
+                                                 index,
+                                                 *this,
+                                                 cores);
+            threads.push_back(T);
         }
-        out.flush();
+
+        sbwt::SeqIO::Reader<> reader(fasta_file);
+        run_dispatcher(threads, reader, 1024*1024);
+
+        for (DispatcherConsumerCallback* t : threads)
+            delete t;
+
+        writer.flush();
 
         return outfile;
     }
@@ -554,7 +620,7 @@ public:
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
     void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
-        
+
         assert(cores[from_node] == 1);
         int64_t in_neighbors[4];
         int64_t indegree;
