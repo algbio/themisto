@@ -172,7 +172,7 @@ public:
         }
 
         Node operator*(){
-            return {.id = idx};
+            return Node(idx);
         }
 
         bool operator!=(const end_iterator& other){
