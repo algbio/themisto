@@ -292,6 +292,7 @@ public:
         const plain_matrix_sbwt_t& index;
         const Coloring& coloring;
         const sdsl::bit_vector& cores;
+        std::int64_t largest_color_id;
 
     public:
         ColorPairAlignerThread(const std::vector<std::int64_t>& seq_id_to_color_id,
@@ -335,8 +336,10 @@ public:
             if (S_size >= k) {
                 const auto res = index.streaming_search(S, S_size);
                 for (const auto node : res) {
-                    if (node >= 0 && cores[node] == 1)
+                    if (node >= 0 && cores[node] == 1) {
                         write(node, color);
+                        largest_color_id = std::max(largest_color_id, color);
+                    }
                 }
             }
         }
@@ -348,6 +351,10 @@ public:
             }
 
             delete[] output_buffer;
+        }
+
+        std::int64_t get_largest_color_id() const {
+            return largest_color_id;
         }
     };
 
@@ -374,8 +381,14 @@ public:
         sbwt::SeqIO::Reader<> reader(fasta_file);
         run_dispatcher(threads, reader, 1024*1024);
 
-        for (DispatcherConsumerCallback* t : threads)
+        std::vector<std::int64_t> largest_color_ids;
+        for (DispatcherConsumerCallback* t : threads) {
+            ColorPairAlignerThread* cpat = static_cast<ColorPairAlignerThread*>(t);
+            largest_color_ids.push_back(cpat->get_largest_color_id());
             delete t;
+        }
+
+        largest_color_id = *std::max_element(largest_color_ids.begin(), largest_color_ids.end());
 
         writer.flush();
 
