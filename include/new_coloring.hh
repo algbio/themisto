@@ -292,7 +292,7 @@ public:
         const plain_matrix_sbwt_t& index;
         const Coloring& coloring;
         const sdsl::bit_vector& cores;
-        std::int64_t largest_color_id;
+        std::int64_t largest_color_id = 0;
 
     public:
         ColorPairAlignerThread(const std::vector<std::int64_t>& seq_id_to_color_id,
