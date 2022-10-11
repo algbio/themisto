@@ -63,6 +63,32 @@ vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename){
     return just_color_sets;
 }
 
+// ASSUMES x >= -1
+// Buffer must have enough space to fit the ascii representation of integer x
+// Returns the length of the string written to the buffer.
+int64_t fast_int_to_string(int64_t x, char* buffer){
+    // Fast manual integer-to-string conversion
+    
+    LL i = 0;
+    // Write the digits in reverse order (reversed back at the end)
+    if(x == -1){
+        buffer[0] = '1';
+        buffer[1] = '-';
+        i = 2;
+    } else if(x == 0){
+        buffer[0] = '0';
+        i = 1;
+    } else{
+        while(x > 0){
+            buffer[i++] = '0' + (x % 10);
+            x /= 10;
+        }
+    }
+    std::reverse(buffer, buffer + i);
+    buffer[i] = '\0';
+    return i;
+}
+
 class AlignerThread : public DispatcherConsumerCallback{
 
 private:
@@ -76,28 +102,52 @@ private:
         const Coloring* coloring; // Not owned by this class
         ParallelBaseWriter* out;
         bool reverse_complements;
+        LL output_buffer_capacity;
         LL output_buffer_size;
-        string output_buffer; // For printing
         LL k;
 
+        // Buffer for reverse-complementing strings
         vector<char> rc_buffer;
-        
 
-        AlignerThread(const plain_matrix_sbwt_t* SBWT, const Coloring* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_size){
+        // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the 
+        // parallel writer so often to avoid locking the writer from other threads.
+        vector<char> output_buffer;
+
+        AlignerThread(const plain_matrix_sbwt_t* SBWT, const Coloring* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
             this->out = out;
             this->reverse_complements = reverse_complements;
-            this->output_buffer_size = output_buffer_size;
+            this->output_buffer_capacity = output_buffer_capacity;
             this->k = SBWT->get_k();
             rc_buffer.resize(1 << 10); // 1 kb. Will be resized if needed
+            output_buffer.resize(output_buffer_capacity);
+            output_buffer_size = 0;
+        }
+
+        void add_to_output(char* data, int64_t data_length){
+            if(data_length > output_buffer_capacity) throw std::runtime_error("Bug: output buffer too small");
+            
+            if(output_buffer_size + data_length > output_buffer_capacity){
+                // Flush the buffer
+                out->write(output_buffer.data(), output_buffer_size);
+                output_buffer_size = 0;
+            }
+            memcpy(output_buffer.data() + output_buffer_size, data, data_length); // Move data to buffer
+            output_buffer_size += data_length;
         }
 
 
         virtual void callback(const char* S, LL S_size, int64_t string_id){
+            char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
+            char newline = '\n';
+            char space = ' ';
+
             if(S_size < k){
                 write_log("Warning: query is shorter than k", LogLevel::MINOR);
-                output_buffer += std::to_string(string_id) + "\n";
+                int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
+                add_to_output(string_to_int_buffer, len);
+                add_to_output(&newline, 1);
             }
             else{
                 vector<int64_t> colex_ranks = SBWT->streaming_search(S, S_size);
@@ -133,28 +183,20 @@ private:
                     }
                 }
 
-                // Todo: this needs memory allocation which can be bad for parallel performance?
-                // Todo: faster int-to-string conversion by doing it manually
-                output_buffer += std::to_string(string_id);
+                int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
+                add_to_output(string_to_int_buffer, len);
                 for(color_t x : intersection.get_colors_as_vector()){
-                    output_buffer += " " + std::to_string(x);
+                    len = fast_int_to_string(x, string_to_int_buffer);
+                    add_to_output(&space, 1);
+                    add_to_output(string_to_int_buffer, len);
                 }
-                output_buffer += "\n";
-            }
-
-            // Flush buffer if needed
-            if(output_buffer.size() > output_buffer_size){
-                out->write(output_buffer);
-                output_buffer.clear();
-            }
-            
+                add_to_output(&newline, 1);
+            }            
         }
 
         virtual void finish(){
-            if(output_buffer.size() > 0){
-                out->write(output_buffer);
-                output_buffer.clear();
-            }
+            out->write(output_buffer.data(), output_buffer_size);
+            output_buffer_size = 0;
         }
 };
 

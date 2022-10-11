@@ -14,7 +14,8 @@ class ParallelBaseWriter{
 
 public:
 
-virtual void write(const string& result) = 0;
+virtual void write(const string& data) = 0;
+virtual void write(const char* data, int64_t data_length) = 0;
 virtual void flush() = 0;
 virtual ~ParallelBaseWriter(){}
 
@@ -31,11 +32,17 @@ class ParallelOutputWriter : public ParallelBaseWriter{
         outstream.open(outfile);
     }
 
+
     ParallelOutputWriter(ostream &ostream) : outstream(ostream) {}
 
-    virtual void write(const string& result){
+
+    virtual void write(const string& data){
+        write(data.data(), data.size());
+    }
+
+    virtual void write(const char* data, int64_t data_length){
         std::lock_guard<std::mutex> lg(mutex);
-        outstream.write(result.data(), result.size());
+        outstream.write(data, data_length);        
     }
 
     virtual void flush(){
@@ -44,6 +51,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     
 };
 
+// TODO: is not buffered
 class ParallelGzipWriter : public  ParallelBaseWriter{
     public:
 
@@ -60,9 +68,13 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
 	gzip_outstream = unique_ptr<zstr::ostream>(new zstr::ostream(ostream.rdbuf()));
     }
 
-    virtual void write(const string& result){
+    virtual void write(const string& data){
+        write(data.data(), data.size());
+    }
+
+    virtual void write(const char* data, int64_t data_length){
         std::lock_guard<std::mutex> lg(mutex);
-        *gzip_outstream.get() << result;
+        gzip_outstream.get()->write(data, data_length);
     }
 
     virtual void flush(){
@@ -74,6 +86,7 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
     }
 };
 
+// Todo: this class is no longer needed because ParallelBaseWriter now has a write-function with c-string input
 class ParallelBinaryOutputWriter{
     public:
 
