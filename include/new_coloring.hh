@@ -112,7 +112,6 @@ public:
     }
 };
 
-
 class Coloring {
     std::vector<Color_Set> sets;
 
@@ -120,6 +119,7 @@ class Coloring {
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
+    inline static const int64_t VERSION = 0; // Update this after breaking changes. This will be serialized with the index and checked on load.
 
 private:
 
@@ -514,6 +514,9 @@ public:
     std::size_t serialize(std::ostream& os) const {
         std::size_t bytes_written = 0;
 
+        os.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
+        bytes_written += sizeof(VERSION);
+
         std::size_t n_sets = sets.size();
         os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
         bytes_written += sizeof(std::size_t);
@@ -535,6 +538,12 @@ public:
 
     void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
         index_ptr = &index;
+
+        int64_t version_check;
+        is.read(reinterpret_cast<char*>(&version_check), sizeof(version_check));
+        if(version_check != VERSION){
+            throw std::runtime_error("Error: Coloring data structure is corrupt or incompatible with current code");
+        }
 
         std::size_t n_sets = 0;
         is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
