@@ -120,168 +120,13 @@ class Coloring {
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
+    Color_Set empty; // This is used to return a const-reference to an empty set. No need to serialize this.
 
 private:
 
     Coloring(const Coloring& temp_obj) = delete; // No copying
     Coloring& operator=(const Coloring& temp_obj) = delete;  // No copying
 
-public:
-    Coloring() {}
-
-    Coloring(const std::vector<Color_Set>& sets,
-             const Sparse_Uint_Array& node_id_to_color_set_id,
-             const plain_matrix_sbwt_t& index) : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index){
-    }
-
-    std::size_t serialize(std::ostream& os) const {
-        std::size_t bytes_written = 0;
-
-        std::size_t n_sets = sets.size();
-        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-        bytes_written += sizeof(std::size_t);
-
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            bytes_written += sets[i].serialize(os);
-        }
-
-        bytes_written += node_id_to_color_set_id.serialize(os);
-
-        os.write((char*)&largest_color_id, sizeof(largest_color_id));
-        bytes_written += sizeof(largest_color_id);
-
-        os.write((char*)&total_color_set_length, sizeof(total_color_set_length));
-        bytes_written += sizeof(total_color_set_length);
-
-        return bytes_written;
-    }
-
-    void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
-        index_ptr = &index;
-
-        std::size_t n_sets = 0;
-        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            Color_Set cs;
-            cs.load(is);
-            sets.push_back(cs);
-        }
-
-        node_id_to_color_set_id.load(is);
-
-        is.read((char*)&largest_color_id, sizeof(largest_color_id));
-        is.read((char*)&total_color_set_length, sizeof(total_color_set_length));
-    }
-
-    void load(const std::string& filename, const plain_matrix_sbwt_t& index) {
-        throwing_ifstream in(filename, ios::binary);
-        load(in.stream, index);
-    }
-
-    std::int64_t get_color_set_id(std::int64_t node) const {
-        const auto& C_array = index_ptr->get_C_array();
-        const auto& subset_struct= index_ptr->get_subset_rank_structure();
-
-        while (!node_id_to_color_set_id.has_index(node)) {
-            // While we don't have the color set id stored for the current node...
-
-            // Follow an edge forward. The code below works only if we are at the
-            // start of a suffix group. But this is guaranteed by the core k-mer marking
-            // rules. If a suffix group is wider than 1, then all its elements are marked
-            // as core because:
-            //   - If there is at least one outgoing edge from the group, the nodes are marked
-            //     by core k-mer rule (3) (see core_kmer_marker.hh)
-            //   - If there are no outgoing edges from the group, the nodes are marked by
-            //     core k-mer rule (2) (see core_kmer_marker.hh).
-            if (subset_struct.A_bits[node] == 1) {
-                node = C_array[0] + subset_struct.rank(node, 'A');
-            } else if (subset_struct.C_bits[node] == 1) {
-                node = C_array[1] + subset_struct.rank(node, 'C');
-            } else if (subset_struct.G_bits[node] == 1) {
-                node = C_array[2] + subset_struct.rank(node, 'G');
-            } else if (subset_struct.T_bits[node] == 1) {
-                node = C_array[3] + subset_struct.rank(node, 'T');
-            } else {
-                return -1;
-            }
-        }
-
-        return node_id_to_color_set_id.get(node);
-    }
-
-    Color_Set get_color_set(std::int64_t node) const {
-        std::int64_t color_set_id = get_color_set_id(node);
-
-        if (color_set_id == -1) {
-            Color_Set empty;
-            return empty;
-        }
-
-        return sets[color_set_id];
-    }
-
-    std::vector<std::uint32_t> get_color_set_as_vector(std::int64_t node) const {
-        assert(node >= 0);
-        assert(node < node_id_to_color_set_id.size());
-        return get_color_set(node).get_colors_as_vector();
-    }
-
-    void add_colors(const plain_matrix_sbwt_t& index,
-                    const std::string fastafile,
-                    const std::vector<std::int64_t>& colors_assignments,
-                    const std::int64_t ram_bytes,
-                    const std::int64_t n_threads,
-                    int64_t colorset_sampling_distance) {
-
-        index_ptr = &index;
-
-        write_log("Marking core kmers", LogLevel::MAJOR);
-        core_kmer_marker ckm;
-        ckm.mark_core_kmers(fastafile, index);
-        sdsl::bit_vector cores = ckm.core_kmer_marks;
-
-        write_log("Getting node color pairs", LogLevel::MAJOR);
-        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments, cores, n_threads);
-
-        write_log("Sorting node color pairs", LogLevel::MAJOR);
-        const std::string sorted_pairs = get_temp_file_manager().create_filename();
-
-        auto cmp = [&](const char* A, const char* B) -> bool {
-            std::int64_t x_1, y_1, x_2, y_2;
-            x_1 = parse_big_endian_LL(A + 0);
-            y_1 = parse_big_endian_LL(A + 8);
-            x_2 = parse_big_endian_LL(B + 0);
-            y_2 = parse_big_endian_LL(B + 8);
-
-            return std::make_pair(x_1, y_1) < std::make_pair(x_2, y_2);
-        };
-
-        EM_sort_constant_binary(node_color_pairs, sorted_pairs, cmp, ram_bytes, 16, n_threads);
-        get_temp_file_manager().delete_file(node_color_pairs);
-
-        write_log("Removing duplicate node color pairs", LogLevel::MAJOR);
-        const std::string filtered_pairs = delete_duplicate_pairs(sorted_pairs);
-        get_temp_file_manager().delete_file(sorted_pairs);
-
-        write_log("Collecting colors", LogLevel::MAJOR);
-        const std::string collected_sets = collect_colorsets(filtered_pairs);
-        get_temp_file_manager().delete_file(filtered_pairs);
-
-        write_log("Sorting color sets", LogLevel::MAJOR);
-        const std::string sorted_sets = sort_by_colorsets(collected_sets, ram_bytes, n_threads);
-        get_temp_file_manager().delete_file(collected_sets);
-
-        write_log("Collecting nodes", LogLevel::MAJOR);
-        string collected_nodes = collect_nodes_by_colorset(sorted_sets);
-        get_temp_file_manager().delete_file(sorted_sets);
-
-        write_log("Building representation", LogLevel::MAJOR);
-        build_representation(collected_nodes, cores, colorset_sampling_distance, ram_bytes, n_threads);
-        get_temp_file_manager().delete_file(collected_nodes);
-
-        write_log("Representation built", LogLevel::MAJOR);
-    }
 
     class ColorPairAlignerThread : public DispatcherConsumerCallback {
         const std::vector<std::int64_t>& seq_id_to_color_id;
@@ -659,6 +504,171 @@ public:
         }
     }
 
+public:
+    Coloring() {}
+
+    Coloring(const std::vector<Color_Set>& sets,
+             const Sparse_Uint_Array& node_id_to_color_set_id,
+             const plain_matrix_sbwt_t& index) : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index){
+    }
+
+    std::size_t serialize(std::ostream& os) const {
+        std::size_t bytes_written = 0;
+
+        std::size_t n_sets = sets.size();
+        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+        bytes_written += sizeof(std::size_t);
+
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            bytes_written += sets[i].serialize(os);
+        }
+
+        bytes_written += node_id_to_color_set_id.serialize(os);
+
+        os.write((char*)&largest_color_id, sizeof(largest_color_id));
+        bytes_written += sizeof(largest_color_id);
+
+        os.write((char*)&total_color_set_length, sizeof(total_color_set_length));
+        bytes_written += sizeof(total_color_set_length);
+
+        return bytes_written;
+    }
+
+    void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
+        index_ptr = &index;
+
+        std::size_t n_sets = 0;
+        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            Color_Set cs;
+            cs.load(is);
+            sets.push_back(cs);
+        }
+
+        node_id_to_color_set_id.load(is);
+
+        is.read((char*)&largest_color_id, sizeof(largest_color_id));
+        is.read((char*)&total_color_set_length, sizeof(total_color_set_length));
+    }
+
+    void load(const std::string& filename, const plain_matrix_sbwt_t& index) {
+        throwing_ifstream in(filename, ios::binary);
+        load(in.stream, index);
+    }
+
+    std::int64_t get_color_set_id(std::int64_t node) const {
+        const auto& C_array = index_ptr->get_C_array();
+        const auto& subset_struct= index_ptr->get_subset_rank_structure();
+
+        while (!node_id_to_color_set_id.has_index(node)) {
+            // While we don't have the color set id stored for the current node...
+
+            // Follow an edge forward. The code below works only if we are at the
+            // start of a suffix group. But this is guaranteed by the core k-mer marking
+            // rules. If a suffix group is wider than 1, then all its elements are marked
+            // as core because:
+            //   - If there is at least one outgoing edge from the group, the nodes are marked
+            //     by core k-mer rule (3) (see core_kmer_marker.hh)
+            //   - If there are no outgoing edges from the group, the nodes are marked by
+            //     core k-mer rule (2) (see core_kmer_marker.hh).
+            if (subset_struct.A_bits[node] == 1) {
+                node = C_array[0] + subset_struct.rank(node, 'A');
+            } else if (subset_struct.C_bits[node] == 1) {
+                node = C_array[1] + subset_struct.rank(node, 'C');
+            } else if (subset_struct.G_bits[node] == 1) {
+                node = C_array[2] + subset_struct.rank(node, 'G');
+            } else if (subset_struct.T_bits[node] == 1) {
+                node = C_array[3] + subset_struct.rank(node, 'T');
+            } else {
+                return -1;
+            }
+        }
+
+        return node_id_to_color_set_id.get(node);
+    }
+
+    const Color_Set& get_color_set_of_node(std::int64_t node) const {
+        std::int64_t color_set_id = get_color_set_id(node);
+        return get_color_set_by_color_set_id(color_set_id);
+    }
+
+    // Yeah these function names are getting a bit verbose but I want to make it super clear
+    // that the parameter is a color-set id and not a node id.
+    const Color_Set& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
+        if (color_set_id == -1) return empty;
+        return sets[color_set_id];
+    }
+
+    // Note! This function returns a new vector instead of a const-reference. Keep this
+    // in mind if programming for performance. In that case, it's probably better to get the 
+    // color set using `get_color_set_of_node`, which returns a const-reference to a Color_Set object.
+    std::vector<std::uint32_t> get_color_set_of_node_as_vector(std::int64_t node) const {
+        assert(node >= 0);
+        assert(node < node_id_to_color_set_id.size());
+        return get_color_set_of_node(node).get_colors_as_vector();
+    }
+
+    // See the comment on `get_color_set_of_node_as_vector`.
+    std::vector<std::uint32_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
+        return get_color_set_by_color_set_id(color_set_id).get_colors_as_vector();
+    }
+
+    void add_colors(const plain_matrix_sbwt_t& index,
+                    const std::string fastafile,
+                    const std::vector<std::int64_t>& colors_assignments,
+                    const std::int64_t ram_bytes,
+                    const std::int64_t n_threads,
+                    int64_t colorset_sampling_distance) {
+
+        index_ptr = &index;
+
+        write_log("Marking core kmers", LogLevel::MAJOR);
+        core_kmer_marker ckm;
+        ckm.mark_core_kmers(fastafile, index);
+        sdsl::bit_vector cores = ckm.core_kmer_marks;
+
+        write_log("Getting node color pairs", LogLevel::MAJOR);
+        const std::string node_color_pairs = get_node_color_pairs(index, fastafile, colors_assignments, cores, n_threads);
+
+        write_log("Sorting node color pairs", LogLevel::MAJOR);
+        const std::string sorted_pairs = get_temp_file_manager().create_filename();
+
+        auto cmp = [&](const char* A, const char* B) -> bool {
+            std::int64_t x_1, y_1, x_2, y_2;
+            x_1 = parse_big_endian_LL(A + 0);
+            y_1 = parse_big_endian_LL(A + 8);
+            x_2 = parse_big_endian_LL(B + 0);
+            y_2 = parse_big_endian_LL(B + 8);
+
+            return std::make_pair(x_1, y_1) < std::make_pair(x_2, y_2);
+        };
+
+        EM_sort_constant_binary(node_color_pairs, sorted_pairs, cmp, ram_bytes, 16, n_threads);
+        get_temp_file_manager().delete_file(node_color_pairs);
+
+        write_log("Removing duplicate node color pairs", LogLevel::MAJOR);
+        const std::string filtered_pairs = delete_duplicate_pairs(sorted_pairs);
+        get_temp_file_manager().delete_file(sorted_pairs);
+
+        write_log("Collecting colors", LogLevel::MAJOR);
+        const std::string collected_sets = collect_colorsets(filtered_pairs);
+        get_temp_file_manager().delete_file(filtered_pairs);
+
+        write_log("Sorting color sets", LogLevel::MAJOR);
+        const std::string sorted_sets = sort_by_colorsets(collected_sets, ram_bytes, n_threads);
+        get_temp_file_manager().delete_file(collected_sets);
+
+        write_log("Collecting nodes", LogLevel::MAJOR);
+        string collected_nodes = collect_nodes_by_colorset(sorted_sets);
+        get_temp_file_manager().delete_file(sorted_sets);
+
+        write_log("Building representation", LogLevel::MAJOR);
+        build_representation(collected_nodes, cores, colorset_sampling_distance, ram_bytes, n_threads);
+        get_temp_file_manager().delete_file(collected_nodes);
+
+        write_log("Representation built", LogLevel::MAJOR);
+    }
 
     int64_t largest_color() const{
         return largest_color_id;

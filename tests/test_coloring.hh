@@ -112,7 +112,7 @@ TEST(COLORING_TESTS, random_testcases){
             string kmer = tcase.colex_kmers[kmer_id];
             LL node_id = SBWT.search(kmer);
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
-            vector<uint32_t> colorvec = coloring.get_color_set_as_vector(node_id);
+            vector<uint32_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
             set<LL> colorset(colorvec.begin(), colorvec.end());
             logger << node_id << ": " << colorset << " - " << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);
@@ -175,7 +175,7 @@ TEST(COLORING_TESTS, coli3) {
                 // This can happen if the input file has a non-ACGT character, as it does in this case
                 ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));
             } else {
-                auto vec = c.get_color_set_as_vector(node);
+                auto vec = c.get_color_set_of_node_as_vector(node);
                 //cout << "kmer " << i << " " << seq.substr(i,k) << endl;
                 const auto res = std::find(vec.begin(), vec.end(), seq_id);
                 ASSERT_TRUE(res != vec.end());

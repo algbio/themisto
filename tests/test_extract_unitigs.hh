@@ -225,7 +225,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
         string unitig = unitigs_with_colorsplit[unitig_id];
         for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
             LL node = SBWT.search(unitig.substr(i,k));
-            vector<color_t> node_colors = coloring.get_color_set_as_vector(node);
+            vector<color_t> node_colors = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(node_colors, unitig_colors[unitig_id]);
         }
     }
@@ -284,8 +284,8 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
             if(dbg->indegree(first) == 1){ // If indegree != 1, we are good
                 DBG::Node pred = dbg->pred(first);
                 if(dbg->outdegree(pred) == 1){
-                    vector<color_t> A = coloring.get_color_set_as_vector(first.id);
-                    vector<color_t> B = coloring.get_color_set_as_vector(pred.id);
+                    vector<color_t> A = coloring.get_color_set_of_node_as_vector(first.id);
+                    vector<color_t> B = coloring.get_color_set_of_node_as_vector(pred.id);
                     ASSERT_NE(A,B);
                 }
             }
@@ -293,8 +293,8 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
             if(dbg->outdegree(last) == 1){ // If outdegree != 1, we are good
                 DBG::Node succ = dbg->succ(last);
                 if(dbg->indegree(succ) == 1){
-                    vector<color_t> A = coloring.get_color_set_as_vector(last.id);
-                    vector<color_t> B = coloring.get_color_set_as_vector(succ.id);
+                    vector<color_t> A = coloring.get_color_set_of_node_as_vector(last.id);
+                    vector<color_t> B = coloring.get_color_set_of_node_as_vector(succ.id);
                     ASSERT_NE(A,B);
                 }
             }

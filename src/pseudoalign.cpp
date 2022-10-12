@@ -167,9 +167,9 @@ private:
                 for(LL i = 0; i < n_kmers; i++){
                     if(colex_ranks[i] >= 0 || (reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0)){ // k-mer found
                         Color_Set cs; // Empty
-                        if(colex_ranks[i] >= 0) cs = coloring->get_color_set(colex_ranks[i]);
+                        if(colex_ranks[i] >= 0) cs = coloring->get_color_set_of_node(colex_ranks[i]);
                         if(reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0){
-                            Color_Set cs_rc = coloring->get_color_set(rc_colex_ranks[n_kmers-1-i]);
+                            Color_Set cs_rc = coloring->get_color_set_of_node(rc_colex_ranks[n_kmers-1-i]);
                             cs = cs.do_union(cs_rc);
                         }
                         if(cs.size() > 0){

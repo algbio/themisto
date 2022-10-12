@@ -95,7 +95,7 @@ class UnitigExtractor {
             Colored_Unitig colored;
             for (int64_t i = run_start; i <= run_end; i++)
                 colored.nodes.push_back(U.nodes[i]);
-            colored.colorset = coloring.get_color_set_as_vector(U.nodes[run_start].id);
+            colored.colorset = coloring.get_color_set_of_node_as_vector(U.nodes[run_start].id);
             colored.id = U.nodes[run_start].id;
 
             colored_unitigs.push_back(colored);  // Links are added later
@@ -122,7 +122,7 @@ class UnitigExtractor {
                                                   const Coloring& coloring) {
         vector<Colored_Unitig> colored_unitigs;
         auto get_n_colors = [&](DBG::Node node) {
-            return coloring.get_color_set(node.id).size();
+            return coloring.get_color_set_of_node(node.id).size();
         };
 
         int64_t run_start = 0;
