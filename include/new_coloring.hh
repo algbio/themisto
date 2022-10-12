@@ -581,7 +581,7 @@ public:
             } else if (subset_struct.T_bits[node] == 1) {
                 node = C_array[3] + subset_struct.rank(node, 'T');
             } else {
-                return -1;
+                throw std::runtime_error("BUG: dead end in get_color_set_id");
             }
         }
 
@@ -617,7 +617,7 @@ public:
     // If a node is a core k-mer, it has out-degree 1 and the color set of the out-neighbor is the
     // same as the color set of the node.
     bool is_core_kmer(std::int64_t node) const{
-        return !node_id_to_color_set_id.has_index(node);
+        return node_id_to_color_set_id.has_index(node);
     }
 
     void add_colors(const plain_matrix_sbwt_t& index,
