@@ -190,8 +190,8 @@ private:
 
                 Color_Set cs;
                 if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
-                else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(fw_id);
-                else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(rc_id);
+                else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(rc_id);
+                else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
                 else if(fw_id >= 0 && rc_id >= 0){
                     // Take union of forward and reverse complement
                     cs = coloring->get_color_set_by_color_set_id(fw_id).do_union(coloring->get_color_set_by_color_set_id(rc_id));
