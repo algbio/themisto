@@ -561,7 +561,7 @@ public:
         const auto& C_array = index_ptr->get_C_array();
         const auto& subset_struct= index_ptr->get_subset_rank_structure();
 
-        while (!node_id_to_color_set_id.has_index(node)) {
+        while (!is_core_kmer(node)) {
             // While we don't have the color set id stored for the current node...
 
             // Follow an edge forward. The code below works only if we are at the
@@ -612,6 +612,12 @@ public:
     // See the comment on `get_color_set_of_node_as_vector`.
     std::vector<std::uint32_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
         return get_color_set_by_color_set_id(color_set_id).get_colors_as_vector();
+    }
+
+    // If a node is a core k-mer, it has out-degree 1 and the color set of the out-neighbor is the
+    // same as the color set of the node.
+    bool is_core_kmer(std::int64_t node) const{
+        return !node_id_to_color_set_id.has_index(node);
     }
 
     void add_colors(const plain_matrix_sbwt_t& index,

@@ -113,6 +113,10 @@ private:
         // parallel writer so often to avoid locking the writer from other threads.
         vector<char> output_buffer;
 
+        // Buffer for storing color set ids
+        vector<int64_t> color_set_id_buffer;
+        vector<int64_t> rc_color_set_id_buffer;
+
         AlignerThread(const plain_matrix_sbwt_t* SBWT, const Coloring* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
@@ -137,11 +141,90 @@ private:
             output_buffer_size += data_length;
         }
 
+        void push_color_set_ids_to_buffer(const vector<int64_t>& colex_ranks, vector<int64_t>& buffer){
+            // First pass: get all k-mer kmers and the last k-mer
+            for(int64_t v : colex_ranks){
+                if(coloring->is_core_kmer(v) || v == colex_ranks.back()){
+                    int64_t id = coloring->get_color_set_id(v);
+                    buffer.push_back(id);
+                } else{
+                    buffer.push_back(-1);
+                }
+            }
+
+            // Second pass: fill in the rest
+            for(int64_t i = (int64_t)colex_ranks.size()-2; i >= 0; i--){ // -2: skip the last one
+                if(buffer[i] == -1) buffer[i] = buffer[i+1];
+            }
+        }
+
+        // Returns the color set
+        vector<uint32_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
+            LL n_kmers = color_set_id_buffer.size();
+        
+            bool first_nonempty_union_found = false;
+            Color_Set result;
+            for(LL i = 0; i < n_kmers; i++){
+                if(i > 0  
+                && (color_set_id_buffer[i] == color_set_id_buffer[i-1]) 
+                && (rc_color_set_id_buffer[n_kmers-1-i] == rc_color_set_id_buffer[n_kmers-1-i+1])){
+                    continue; // This pair of color set ids was already intersected in the previous iteration
+                }
+
+                const Color_Set& cs_fw = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
+                const Color_Set& cs_rc = coloring->get_color_set_by_color_set_id(rc_color_set_id_buffer[n_kmers-1-i]);
+
+                // Take the union of the forward and reverse complement color sets
+                Color_Set cs = cs_fw.do_union(cs_rc);
+                if(cs.size() > 0){
+                    if(!first_nonempty_union_found){
+                        result = cs; // This is the first nonempty union
+                        first_nonempty_union_found = true;
+                    }
+                    else
+                        result = result.intersection(cs); // Intersection
+                }
+            }
+            return result.get_colors_as_vector();
+        }
+
+        // Returns the color se
+        vector<uint32_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
+            LL n_kmers = color_set_id_buffer.size();
+        
+            bool first_nonempty_color_set_found = false;
+            Color_Set result;
+            for(LL i = 0; i < n_kmers; i++){
+                if(i > 0  && (color_set_id_buffer[i] == color_set_id_buffer[i-1])){
+                    continue; // This color set was already intersected in the previous iteration
+                }
+                const Color_Set& cs = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
+                if(cs.size() > 0){
+                    if(!first_nonempty_color_set_found){
+                        result = cs; // This is the first nonempty color set
+                        first_nonempty_color_set_found = true;
+                    }
+                    else
+                        result = result.intersection(cs); // Intersection
+                }
+            }
+            return result.get_colors_as_vector();
+        }
 
         virtual void callback(const char* S, LL S_size, int64_t string_id){
             char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
             char newline = '\n';
             char space = ' ';
+
+            color_set_id_buffer.resize(0);
+            rc_color_set_id_buffer.resize(0);
+            // Clearing the buffers like this might look bad for performance at first glance because
+            // we will then need to allocate new space for new elements that will be pushed to the buffers.
+            // But in fact it's ok because resize is not supposed to affect the internal capacity of the vector.
+            // cppreference.com says: 
+            //     "Vector capacity is never reduced when resizing to smaller size because that would 
+            //      invalidate all iterators, rather than only the ones that would be invalidated by the 
+            //      equivalent sequence of pop_back() calls."
 
             if(S_size < k){
                 write_log("Warning: query is shorter than k", LogLevel::MINOR);
@@ -150,42 +233,26 @@ private:
                 add_to_output(&newline, 1);
             }
             else{
-                vector<int64_t> colex_ranks = SBWT->streaming_search(S, S_size);
+                vector<int64_t> colex_ranks = SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
+                push_color_set_ids_to_buffer(colex_ranks, color_set_id_buffer);
                 vector<int64_t> rc_colex_ranks;
                 if(reverse_complements){
-
-                    while(S_size > rc_buffer.size()){ // Make sure buffer is long enough
+                    while(S_size > rc_buffer.size()){ // Make sure buffer is long enough. TODO: cleaner code with resize()?
                         rc_buffer.resize(rc_buffer.size()*2);
                     }
                     memcpy(rc_buffer.data(), S, S_size);
                     reverse_complement_c_string(rc_buffer.data(), S_size); // There is no null at the end but that is ok
                     rc_colex_ranks = SBWT->streaming_search(rc_buffer.data(), S_size);
+                    push_color_set_ids_to_buffer(rc_colex_ranks, rc_color_set_id_buffer);
                 }
-                LL n_kmers = colex_ranks.size();
-                Color_Set intersection;
-                bool first_nonempty_found = false;
-                for(LL i = 0; i < n_kmers; i++){
-                    if(colex_ranks[i] >= 0 || (reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0)){ // k-mer found
-                        Color_Set cs; // Empty
-                        if(colex_ranks[i] >= 0) cs = coloring->get_color_set_of_node(colex_ranks[i]);
-                        if(reverse_complements && rc_colex_ranks[n_kmers-1-i] >= 0){
-                            Color_Set cs_rc = coloring->get_color_set_of_node(rc_colex_ranks[n_kmers-1-i]);
-                            cs = cs.do_union(cs_rc);
-                        }
-                        if(cs.size() > 0){
-                            if(!first_nonempty_found){
-                                intersection = cs;
-                                first_nonempty_found = true;
-                            } else{
-                                intersection = intersection.intersection(cs);
-                            }
-                        }
-                    }
-                }
+
+                vector<uint32_t> intersection;
+                if(reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
+                else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
                 int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
                 add_to_output(string_to_int_buffer, len);
-                for(color_t x : intersection.get_colors_as_vector()){
+                for(color_t x : intersection){
                     len = fast_int_to_string(x, string_to_int_buffer);
                     add_to_output(&space, 1);
                     add_to_output(string_to_int_buffer, len);
