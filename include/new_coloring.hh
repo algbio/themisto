@@ -120,7 +120,6 @@ class Coloring {
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
-    Color_Set empty; // This is used to return a const-reference to an empty set. No need to serialize this.
 
 private:
 
@@ -596,7 +595,8 @@ public:
     // Yeah these function names are getting a bit verbose but I want to make it super clear
     // that the parameter is a color-set id and not a node id.
     const Color_Set& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
-        if (color_set_id == -1) return empty;
+        if (color_set_id == -1) 
+            throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
         return sets[color_set_id];
     }
 

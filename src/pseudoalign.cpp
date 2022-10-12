@@ -141,20 +141,34 @@ private:
             output_buffer_size += data_length;
         }
 
+        // -1 if node is not found at all.
         void push_color_set_ids_to_buffer(const vector<int64_t>& colex_ranks, vector<int64_t>& buffer){
+
             // First pass: get all k-mer kmers and the last k-mer
             for(int64_t v : colex_ranks){
-                if(coloring->is_core_kmer(v) || v == colex_ranks.back()){
-                    int64_t id = coloring->get_color_set_id(v);
-                    buffer.push_back(id);
-                } else{
-                    buffer.push_back(-1);
+                if(v == -1) buffer.push_back(-1); // k-mer not found
+                else{
+                    if(coloring->is_core_kmer(v) || v == colex_ranks.back()){
+                        int64_t id = coloring->get_color_set_id(v);
+                        buffer.push_back(id);
+                    } else{
+                        buffer.push_back(-2); // To be filled in the second pass
+                    }
                 }
             }
 
             // Second pass: fill in the rest
             for(int64_t i = (int64_t)colex_ranks.size()-2; i >= 0; i--){ // -2: skip the last one
-                if(buffer[i] == -1) buffer[i] = buffer[i+1];
+                if(buffer[i] == -2){
+                    if(buffer[i+1] == -1){
+                        // Can't copy from the next k-mer because it's not found
+                        buffer[i] = coloring->get_color_set_id(colex_ranks[i]);
+                    }
+                    else {
+                        // Can copy from the next k-mer
+                        buffer[i] = buffer[i+1];
+                    }
+                }
             }
         }
 
@@ -171,11 +185,18 @@ private:
                     continue; // This pair of color set ids was already intersected in the previous iteration
                 }
 
-                const Color_Set& cs_fw = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
-                const Color_Set& cs_rc = coloring->get_color_set_by_color_set_id(rc_color_set_id_buffer[n_kmers-1-i]);
+                int64_t fw_id = color_set_id_buffer[i];
+                int64_t rc_id = rc_color_set_id_buffer[n_kmers-1-i];
 
-                // Take the union of the forward and reverse complement color sets
-                Color_Set cs = cs_fw.do_union(cs_rc);
+                Color_Set cs;
+                if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
+                else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(fw_id);
+                else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(rc_id);
+                else if(fw_id >= 0 && rc_id >= 0){
+                    // Take union of forward and reverse complement
+                    cs = coloring->get_color_set_by_color_set_id(fw_id).do_union(coloring->get_color_set_by_color_set_id(rc_id));
+                }
+
                 if(cs.size() > 0){
                     if(!first_nonempty_union_found){
                         result = cs; // This is the first nonempty union
@@ -198,6 +219,8 @@ private:
                 if(i > 0  && (color_set_id_buffer[i] == color_set_id_buffer[i-1])){
                     continue; // This color set was already intersected in the previous iteration
                 }
+                if(color_set_id_buffer[i] == -1) continue; // k-mer not found
+
                 const Color_Set& cs = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
                 if(cs.size() > 0){
                     if(!first_nonempty_color_set_found){
