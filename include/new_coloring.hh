@@ -138,7 +138,7 @@ class Coloring {
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
-    inline static const int64_t VERSION = 0; // Update this after breaking changes. This will be serialized with the index and checked on load.
+    inline static const int64_t VERSION = 1; // Update this after breaking changes. This will be serialized with the index and checked on load.
 
 private:
 
