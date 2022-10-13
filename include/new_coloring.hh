@@ -93,6 +93,11 @@ public:
         return roaring.cardinality();
     }
 
+
+    std::size_t size_in_bits() const {
+        return roaring.getSizeInBytes(false) * 8;
+    }
+
     bool contains(const std::uint64_t n) const {
         return contains(n);
     }
@@ -714,6 +719,10 @@ public:
 
     int64_t sum_of_all_distinct_color_set_lengths() const{
         return total_color_set_length;
+    }
+
+    const std::vector<Color_Set>& get_all_distinct_color_sets() const{
+        return sets;
     }
 
 };

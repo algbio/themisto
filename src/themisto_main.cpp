@@ -51,6 +51,7 @@ int main(int argc, char** argv){
         else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
         else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
         else if(command == "stats") return stats_main(argc, argv);
+        else if(command == "color-set-diagnostics") return color_set_diagnostics_main(argc, argv); // Undocumented developer feature
         else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");
         else if(command == "lookup-color") throw std::runtime_error("Error: not implemented.");
         else{
