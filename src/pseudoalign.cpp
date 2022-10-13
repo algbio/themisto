@@ -99,7 +99,7 @@ private:
     public:
 
         const plain_matrix_sbwt_t* SBWT; // Not owned by this class
-        const Coloring* coloring; // Not owned by this class
+        const Coloring<>* coloring; // Not owned by this class
         ParallelBaseWriter* out;
         bool reverse_complements;
         LL output_buffer_capacity;
@@ -117,7 +117,7 @@ private:
         vector<int64_t> color_set_id_buffer;
         vector<int64_t> rc_color_set_id_buffer;
 
-        AlignerThread(const plain_matrix_sbwt_t* SBWT, const Coloring* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+        AlignerThread(const plain_matrix_sbwt_t* SBWT, const Coloring<>* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
             this->out = out;
@@ -177,7 +177,7 @@ private:
             LL n_kmers = color_set_id_buffer.size();
 
             bool first_nonempty_union_found = false;
-            Color_Set result;
+            Coloring<>::colorset_type result;
             for(LL i = 0; i < n_kmers; i++){
                 if(i > 0
                 && (color_set_id_buffer[i] == color_set_id_buffer[i-1])
@@ -188,7 +188,7 @@ private:
                 int64_t fw_id = color_set_id_buffer[i];
                 int64_t rc_id = rc_color_set_id_buffer[n_kmers-1-i];
 
-                Color_Set cs;
+                Coloring<>::colorset_type cs;
                 if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
                 else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(rc_id);
                 else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
@@ -214,14 +214,14 @@ private:
             LL n_kmers = color_set_id_buffer.size();
 
             bool first_nonempty_color_set_found = false;
-            Color_Set result;
+            Coloring<>::colorset_type result;
             for(LL i = 0; i < n_kmers; i++){
                 if(i > 0  && (color_set_id_buffer[i] == color_set_id_buffer[i-1])){
                     continue; // This color set was already intersected in the previous iteration
                 }
                 if(color_set_id_buffer[i] == -1) continue; // k-mer not found
 
-                const Color_Set& cs = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
+                const Coloring<>::colorset_type& cs = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
                 if(cs.size() > 0){
                     if(!first_nonempty_color_set_found){
                         result = cs; // This is the first nonempty color set
@@ -310,7 +310,7 @@ void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
     assert(Q.empty());
 }
 
-void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring& coloring, int64_t n_threads, std::string inputfile, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+void pseudoalign(const plain_matrix_sbwt_t& SBWT, const Coloring<>& coloring, int64_t n_threads, std::string inputfile, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
 
     ParallelBaseWriter* out = nullptr;
     if (!outfile.empty()) {

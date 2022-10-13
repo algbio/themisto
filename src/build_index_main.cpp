@@ -200,7 +200,7 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
-        Coloring coloring;
+        Coloring<> coloring;
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
         coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
         sbwt::throwing_ofstream out(C.index_color_file, ios::binary);

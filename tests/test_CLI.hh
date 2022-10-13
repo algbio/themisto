@@ -53,7 +53,7 @@ class CLI_TEST : public ::testing::Test {
 
 };
 
-void load_sbwt_and_coloring(plain_matrix_sbwt_t& SBWT, Coloring& coloring, string indexprefix){
+void load_sbwt_and_coloring(plain_matrix_sbwt_t& SBWT, Coloring<>& coloring, string indexprefix){
     SBWT.load(indexprefix + ".tdbg");
     coloring.load(indexprefix + ".tcolors", SBWT);
 }
@@ -64,7 +64,7 @@ TEST_F(CLI_TEST, auto_colors){
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
-    plain_matrix_sbwt_t SBWT; Coloring coloring;
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
@@ -81,7 +81,7 @@ TEST_F(CLI_TEST, no_colors){
     vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
-    plain_matrix_sbwt_t SBWT; Coloring coloring;
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     SBWT.load(indexprefix + ".tdbg"); // Should work
     try{
         coloring.load(indexprefix, SBWT); // Should throw
@@ -114,7 +114,7 @@ TEST_F(CLI_TEST, build_colors_separately){
     build_index_main(argv2.size, argv2.array);
 
     // Check colors
-    plain_matrix_sbwt_t SBWT; Coloring coloring;
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
@@ -144,8 +144,8 @@ TEST(PREPROCESSING, upper_case){
     ASSERT_TRUE(files_are_equal(f1.indexprefix + ".tdbg", f2.indexprefix + ".tdbg"));
     ASSERT_TRUE(files_are_equal(f1.indexprefix + ".tcolors", f2.indexprefix + ".tcolors"));
 
-    plain_matrix_sbwt_t SBWT_1; Coloring coloring_1;
-    plain_matrix_sbwt_t SBWT_2; Coloring coloring_2;
+    plain_matrix_sbwt_t SBWT_1; Coloring<> coloring_1;
+    plain_matrix_sbwt_t SBWT_2; Coloring<> coloring_2;
 
     load_sbwt_and_coloring(SBWT_1, coloring_1, f1.indexprefix);
     load_sbwt_and_coloring(SBWT_2, coloring_2, f2.indexprefix);

@@ -226,7 +226,7 @@ public:
     };
 
     BOSS<sdsl::bit_vector> boss;
-    Coloring coloring;
+    Coloring<><> coloring;
     vector<string> colors; // sequence id -> color name
 
     void construct_boss(string fastafile, LL k, LL memory_bytes, LL n_threads, bool revcomps){

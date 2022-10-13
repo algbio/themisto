@@ -28,7 +28,7 @@
 #include "roaring/roaring64map.hh"
 
 #include "WorkDispatcher.hh"
-
+#include "sdsl_color_set.hh"
 
 class Color_Set {
     Roaring64Map roaring;
@@ -136,16 +136,22 @@ public:
     }
 };
 
+template<typename colorset_t = SDSL_Color_Set>
 class Coloring {
-    std::vector<Color_Set> sets;
+
+public:
+
+    typedef colorset_t colorset_type;
+
+private:
+
+    std::vector<colorset_t> sets;
 
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
     inline static const int64_t VERSION = 1; // Update this after breaking changes. This will be serialized with the index and checked on load.
-
-private:
 
     Coloring(const Coloring& temp_obj) = delete; // No copying
     Coloring& operator=(const Coloring& temp_obj) = delete;  // No copying
@@ -530,7 +536,7 @@ private:
 public:
     Coloring() {}
 
-    Coloring(const std::vector<Color_Set>& sets,
+    Coloring(const std::vector<colorset_t>& sets,
              const Sparse_Uint_Array& node_id_to_color_set_id,
              const plain_matrix_sbwt_t& index) : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index){
     }
@@ -573,7 +579,7 @@ public:
         is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
 
         for (std::size_t i = 0; i < n_sets; ++i) {
-            Color_Set cs;
+            colorset_t cs;
             cs.load(is);
             sets.push_back(cs);
         }
@@ -620,14 +626,14 @@ public:
         return node_id_to_color_set_id.get(node);
     }
 
-    const Color_Set& get_color_set_of_node(std::int64_t node) const {
+    const colorset_t& get_color_set_of_node(std::int64_t node) const {
         std::int64_t color_set_id = get_color_set_id(node);
         return get_color_set_by_color_set_id(color_set_id);
     }
 
     // Yeah these function names are getting a bit verbose but I want to make it super clear
     // that the parameter is a color-set id and not a node id.
-    const Color_Set& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
+    const colorset_t& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
         if (color_set_id == -1)
             throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
         return sets[color_set_id];
@@ -635,7 +641,7 @@ public:
 
     // Note! This function returns a new vector instead of a const-reference. Keep this
     // in mind if programming for performance. In that case, it's probably better to get the
-    // color set using `get_color_set_of_node`, which returns a const-reference to a Color_Set object.
+    // color set using `get_color_set_of_node`, which returns a const-reference to a colorset_t object.
     std::vector<std::uint64_t> get_color_set_of_node_as_vector(std::int64_t node) const {
         assert(node >= 0);
         assert(node < node_id_to_color_set_id.size());
@@ -721,7 +727,7 @@ public:
         return total_color_set_length;
     }
 
-    const std::vector<Color_Set>& get_all_distinct_color_sets() const{
+    const std::vector<colorset_t>& get_all_distinct_color_sets() const{
         return sets;
     }
 

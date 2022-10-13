@@ -89,7 +89,7 @@ int extract_unitigs_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);    
 
     sbwt::plain_matrix_sbwt_t SBWT;
-    Coloring coloring;
+    Coloring<> coloring;
 
     SBWT.load(index_dbg_file);
     if(do_colors){    

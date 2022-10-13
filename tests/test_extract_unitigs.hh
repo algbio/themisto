@@ -142,7 +142,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
     string indexprefix;
     plain_matrix_sbwt_t SBWT;
-    Coloring coloring;
+    Coloring<> coloring;
     sdsl::bit_vector is_dummy;
     vector<string> unitigs_with_colorsplit;
     vector<vector<color_t>> unitig_colors;

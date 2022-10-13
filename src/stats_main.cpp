@@ -56,7 +56,7 @@ int stats_main(int argc, char** argv){
 
     write_log("Loading the index", LogLevel::MAJOR);    
     plain_matrix_sbwt_t SBWT;
-    Coloring coloring;
+    Coloring<> coloring;
     SBWT.load(index_dbg_file);
     coloring.load(index_color_file, SBWT);
 

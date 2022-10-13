@@ -31,7 +31,7 @@ int color_set_diagnostics_main(int argc, char** argv){
 
     write_log("Loading the index", LogLevel::MAJOR);
     plain_matrix_sbwt_t SBWT;
-    Coloring coloring;
+    Coloring<> coloring;
     SBWT.load(index_dbg_file);
     coloring.load(index_color_file, SBWT);
 
@@ -40,7 +40,7 @@ int color_set_diagnostics_main(int argc, char** argv){
     vector<int64_t> sum_of_bit_sizes(coloring.largest_color()+1); // 0..largest_color
     vector<int64_t> count_of_occurrences(coloring.largest_color()+1); // 0..largest_color
 
-    for(const Color_Set& cs : coloring.get_all_distinct_color_sets()){
+    for(const Coloring<>::colorset_type & cs : coloring.get_all_distinct_color_sets()){
         sum_of_bit_sizes[cs.size()] += cs.size_in_bits();
         count_of_occurrences[cs.size()]++;
     }

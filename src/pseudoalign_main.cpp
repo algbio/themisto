@@ -152,7 +152,7 @@ int pseudoalign_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);
     plain_matrix_sbwt_t SBWT;
     SBWT.load(C.index_dbg_file);
-    Coloring coloring;
+    Coloring<> coloring;
     throwing_ifstream colors_in(C.index_color_file, ios::binary);
     coloring.load(colors_in.stream, SBWT);
 
