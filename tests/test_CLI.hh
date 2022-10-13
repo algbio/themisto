@@ -69,7 +69,7 @@ TEST_F(CLI_TEST, auto_colors){
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
             LL node = SBWT.search(kmer);
-            vector<uint32_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            vector<uint64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], seq_id);
         }
@@ -119,7 +119,7 @@ TEST_F(CLI_TEST, build_colors_separately){
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
             LL node = SBWT.search(kmer);
-            vector<uint32_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            vector<uint64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], colors[seq_id]);
         }
@@ -172,6 +172,6 @@ TEST(PREPROCESSING, upper_case){
     ASSERT_EQ(res1, res2);
     vector<set<LL> > correct = {{0},{0}};
     ASSERT_EQ(res1, correct);
-    
+
 
 }

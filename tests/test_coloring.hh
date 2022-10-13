@@ -10,7 +10,7 @@
 #include "sbwt/globals.hh"
 #include "new_coloring.hh"
 
-// Testcase: put in a couple of reference sequences, sweep different k. For each k-mer, 
+// Testcase: put in a couple of reference sequences, sweep different k. For each k-mer,
 // ask what is the color set of that k-mer. It should coincide with the reads that contain
 // that k-mer
 
@@ -112,7 +112,7 @@ TEST(COLORING_TESTS, random_testcases){
             string kmer = tcase.colex_kmers[kmer_id];
             LL node_id = SBWT.search(kmer);
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
-            vector<uint32_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
+            vector<uint64_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
             set<LL> colorset(colorvec.begin(), colorvec.end());
             logger << node_id << ": " << colorset << " - " << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);

@@ -9,7 +9,7 @@
 using namespace std;
 using namespace sbwt;
 
-typedef uint32_t color_t;
+typedef uint64_t color_t;
 
 // Stores the intersection into buf1 and returns the number of elements in the
 // intersection (does not resize buf1). Buffer elements must be sorted.

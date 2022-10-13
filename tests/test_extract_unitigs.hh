@@ -41,8 +41,8 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     colors.push_back(0);
 
     // Self-loop
-    seqs.push_back(random_data.substr(150,50) 
-                    + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" 
+    seqs.push_back(random_data.substr(150,50)
+                    + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
                     + random_data.substr(200,50));
     colors.push_back(0);
 
@@ -84,7 +84,7 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
 
     // Shotert than k
     seqs.push_back(random_data.substr(730,20));
-    colors.push_back(0);    
+    colors.push_back(0);
 
     write_as_fasta(seqs, fastafile);
     write_vector(colors, colorfile);
@@ -94,7 +94,7 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     ASSERT_EQ(seqs.size(), colors.size());
 }
 
-typedef uint32_t color_t;
+typedef uint64_t color_t;
 
 class EXTRACT_UNITIGS_TEST : public testing::Test {
 
@@ -110,10 +110,10 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         if(split_by_colors) argstring2 << " --colors-out " << colors_outfile;
         Argv argv2(split(argstring2.str()));
         extract_unitigs_main(argv2.size, argv2.array);
-        
+
         // Parse unitigs
         throwing_ifstream unitigs_in(unitigs_outfile);
-        
+
         string line;
         vector<string> parsed_unitigs;
         while(getline(unitigs_in.stream, line)){
@@ -150,7 +150,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     DBG* dbg = nullptr;
 
     void SetUp() override {
-        
+
         set_log_level(LogLevel::OFF);
 
         string seqfile = get_temp_file_manager().create_filename("",".fna");
@@ -171,7 +171,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
         unitigs_without_colorsplit = run_and_return_unitigs(indexprefix, false);
         unitigs_with_colorsplit = run_and_return_unitigs(indexprefix, true);
-        
+
         SBWT.load(indexprefix + ".tdbg");
         coloring.load(indexprefix + ".tcolors", SBWT);
         logger << "Getting dummy marks" << endl;
@@ -211,7 +211,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
             if(i == (LL)unitig.size()-k){ // Last node
                 ASSERT_LT(dbg->indegree(node), 2);
             }
-            
+
         }
     }
 }

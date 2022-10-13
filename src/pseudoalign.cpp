@@ -24,8 +24,8 @@ LL intersect_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, 
 LL union_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, LL buf2_len, vector<color_t>& result_buf){
 
     auto end = std::set_union(
-                    buf1.begin(), buf1.begin() + buf1_len, 
-                    buf2.begin(), buf2.begin() + buf2_len, 
+                    buf1.begin(), buf1.begin() + buf1_len,
+                    buf2.begin(), buf2.begin() + buf2_len,
                     result_buf.begin()
     );
     return end - result_buf.begin();
@@ -43,7 +43,7 @@ vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename){
     check_readable(filename);
     throwing_ifstream input(filename);
     string line;
-    
+
     LL line_number = 0;
     while(input.getline(line)){
         vector<LL> tokens = parse_tokens<LL>(line);
@@ -68,7 +68,7 @@ vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename){
 // Returns the length of the string written to the buffer.
 int64_t fast_int_to_string(int64_t x, char* buffer){
     // Fast manual integer-to-string conversion
-    
+
     LL i = 0;
     // Write the digits in reverse order (reversed back at the end)
     if(x == -1){
@@ -109,7 +109,7 @@ private:
         // Buffer for reverse-complementing strings
         vector<char> rc_buffer;
 
-        // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the 
+        // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the
         // parallel writer so often to avoid locking the writer from other threads.
         vector<char> output_buffer;
 
@@ -131,7 +131,7 @@ private:
 
         void add_to_output(char* data, int64_t data_length){
             if(data_length > output_buffer_capacity) throw std::runtime_error("Bug: output buffer too small");
-            
+
             if(output_buffer_size + data_length > output_buffer_capacity){
                 // Flush the buffer
                 out->write(output_buffer.data(), output_buffer_size);
@@ -173,14 +173,14 @@ private:
         }
 
         // Returns the color set
-        vector<uint32_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
+        vector<uint64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
             LL n_kmers = color_set_id_buffer.size();
-        
+
             bool first_nonempty_union_found = false;
             Color_Set result;
             for(LL i = 0; i < n_kmers; i++){
-                if(i > 0  
-                && (color_set_id_buffer[i] == color_set_id_buffer[i-1]) 
+                if(i > 0
+                && (color_set_id_buffer[i] == color_set_id_buffer[i-1])
                 && (rc_color_set_id_buffer[n_kmers-1-i] == rc_color_set_id_buffer[n_kmers-1-i+1])){
                     continue; // This pair of color set ids was already intersected in the previous iteration
                 }
@@ -210,9 +210,9 @@ private:
         }
 
         // Returns the color se
-        vector<uint32_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
+        vector<uint64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
             LL n_kmers = color_set_id_buffer.size();
-        
+
             bool first_nonempty_color_set_found = false;
             Color_Set result;
             for(LL i = 0; i < n_kmers; i++){
@@ -244,9 +244,9 @@ private:
             // Clearing the buffers like this might look bad for performance at first glance because
             // we will then need to allocate new space for new elements that will be pushed to the buffers.
             // But in fact it's ok because resize is not supposed to affect the internal capacity of the vector.
-            // cppreference.com says: 
-            //     "Vector capacity is never reduced when resizing to smaller size because that would 
-            //      invalidate all iterators, rather than only the ones that would be invalidated by the 
+            // cppreference.com says:
+            //     "Vector capacity is never reduced when resizing to smaller size because that would
+            //      invalidate all iterators, rather than only the ones that would be invalidated by the
             //      equivalent sequence of pop_back() calls."
 
             if(S_size < k){
@@ -269,7 +269,7 @@ private:
                     push_color_set_ids_to_buffer(rc_colex_ranks, rc_color_set_id_buffer);
                 }
 
-                vector<uint32_t> intersection;
+                vector<uint64_t> intersection;
                 if(reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
                 else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
@@ -281,7 +281,7 @@ private:
                     add_to_output(string_to_int_buffer, len);
                 }
                 add_to_output(&newline, 1);
-            }            
+            }
         }
 
         virtual void finish(){
@@ -296,7 +296,7 @@ void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
     string line;
     vector<string> tokens;
     LL current_query_id = 0;
-    
+
     while(getline(instream,line)){
         stringstream ss(line);
         LL priority; ss >> priority;

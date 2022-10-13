@@ -25,47 +25,66 @@
 #include <cstdint>
 
 #include "roaring/roaring.hh"
+#include "roaring/roaring64map.hh"
 
 #include "WorkDispatcher.hh"
 
 
 class Color_Set {
-    Roaring roaring;
+    Roaring64Map roaring;
 
 public:
     Color_Set() {}
 
-    Color_Set(Roaring r) : roaring(r) {}
+    Color_Set(Roaring64Map r) : roaring(r) {}
 
     Color_Set(const vector<std::int64_t>& colors) {
         for (const auto x : colors)
-            roaring.add(x);
+            roaring.add(static_cast<std::uint64_t>(x));
 
         roaring.runOptimize();
+        roaring.shrinkToFit();
     }
 
     Color_Set(const std::size_t n, const std::uint32_t* colors) {
         roaring.addMany(n, colors);
 
         roaring.runOptimize();
+        roaring.shrinkToFit();
+    }
+
+    Color_Set(const std::size_t n, const std::uint64_t* colors) {
+        roaring.addMany(n, colors);
+
+        roaring.runOptimize();
+        roaring.shrinkToFit();
     }
 
     void add(const vector<std::int64_t>& colors) {
         for (const auto x : colors)
-            roaring.add(x);
+            roaring.add(static_cast<std::uint64_t>(x));
 
         roaring.runOptimize();
+        roaring.shrinkToFit();
     }
 
     void add(const std::size_t n, const std::uint32_t* colors) {
         roaring.addMany(n, colors);
 
         roaring.runOptimize();
+        roaring.shrinkToFit();
     }
 
-    std::vector<std::uint32_t> get_colors_as_vector() const {
-        std::vector<std::uint32_t> v(roaring.cardinality());
-        roaring.toUint32Array(v.data());
+    void add(const std::size_t n, const std::uint64_t* colors) {
+        roaring.addMany(n, colors);
+
+        roaring.runOptimize();
+        roaring.shrinkToFit();
+    }
+
+    std::vector<std::uint64_t> get_colors_as_vector() const {
+        std::vector<std::uint64_t> v(roaring.cardinality());
+        roaring.toUint64Array(v.data());
 
         return v;
     }
@@ -74,7 +93,7 @@ public:
         return roaring.cardinality();
     }
 
-    bool contains(const std::uint32_t n) const {
+    bool contains(const std::uint64_t n) const {
         return contains(n);
     }
 
@@ -88,10 +107,10 @@ public:
     }
 
     std::size_t serialize(std::ostream& os) const {
-        std::size_t expected_size = roaring.getSizeInBytes();
+        std::size_t expected_size = roaring.getSizeInBytes(false);
         char* serialized_bytes = new char[expected_size];
 
-        roaring.write(serialized_bytes);
+        roaring.write(serialized_bytes, false);
         os.write(reinterpret_cast<char*>(&expected_size), sizeof(std::size_t));
         os.write(serialized_bytes, expected_size);
         delete[] serialized_bytes;
@@ -105,7 +124,7 @@ public:
 
         char* serialized_bytes = new char[n];
         is.read(serialized_bytes, n);
-        roaring = Roaring::readSafe(serialized_bytes, n);
+        roaring = Roaring64Map::read(serialized_bytes, false);
         delete[] serialized_bytes;
 
         return sizeof(std::size_t) + n;
@@ -604,22 +623,22 @@ public:
     // Yeah these function names are getting a bit verbose but I want to make it super clear
     // that the parameter is a color-set id and not a node id.
     const Color_Set& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
-        if (color_set_id == -1) 
+        if (color_set_id == -1)
             throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
         return sets[color_set_id];
     }
 
     // Note! This function returns a new vector instead of a const-reference. Keep this
-    // in mind if programming for performance. In that case, it's probably better to get the 
+    // in mind if programming for performance. In that case, it's probably better to get the
     // color set using `get_color_set_of_node`, which returns a const-reference to a Color_Set object.
-    std::vector<std::uint32_t> get_color_set_of_node_as_vector(std::int64_t node) const {
+    std::vector<std::uint64_t> get_color_set_of_node_as_vector(std::int64_t node) const {
         assert(node >= 0);
         assert(node < node_id_to_color_set_id.size());
         return get_color_set_of_node(node).get_colors_as_vector();
     }
 
     // See the comment on `get_color_set_of_node_as_vector`.
-    std::vector<std::uint32_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
+    std::vector<std::uint64_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
         return get_color_set_by_color_set_id(color_set_id).get_colors_as_vector();
     }
 
