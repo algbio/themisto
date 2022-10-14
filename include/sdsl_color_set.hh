@@ -114,11 +114,11 @@ public:
         return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + sdsl::size_in_bytes(element_array)) * 8;
     }
 
+    // This is O(1) time for dense color sets but O(set size) for sparse sets.
     bool contains(const int64_t color) const {
         if(color < 0) throw std::runtime_error("Called Color Set contains-method with a negative color id");
         if(is_bitmap) return color < bitmap.size() && bitmap[color];
         else{
-            // TODO: binary search
             for(int64_t x : element_array) if(x == color) return true;
             return false;
         }
@@ -136,10 +136,29 @@ public:
 
         // Do the rest one bit at a time
         for(int64_t i = words*64; i < n; i++){
-            result[i] = A[i] & B[i];
+            result[i] = A[i] && B[i];
         }
 
         return result;    
+    }
+
+    sdsl::bit_vector bitmap_vs_bitmap_union(const sdsl::bit_vector& A, const sdsl::bit_vector& B) const{
+        int64_t n = max(A.size(), B.size()); // Length of union
+        sdsl::bit_vector result(n, 0);
+
+        int64_t words = min(A.size(), B.size()) / 64; // Number of 64-bit words common to A and B
+
+        // Do 64-bit bitwise ors
+        for(int64_t w = 0; w < words; w++){
+            result.set_int(w*64, A.get_int(w*64) | B.get_int(w*64));
+        }
+
+        // Do the rest one bit at a time
+        for(int64_t i = words*64; i < n; i++){
+            result[i] = (i < A.size() && A[i]) || (i < B.size() && B[i]);
+        }
+
+        return result;
     }
 
     element_array_t bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const element_array_t& ea) const{
@@ -151,12 +170,41 @@ public:
         return element_array_t(new_elements);
     }
 
+    sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const element_array_t& ea) const{
+        if(ea.size() == 0) return bm;
+
+        // Decode the integers in the element array
+        vector<int64_t> elements;
+        for(int64_t x : ea) elements.push_back(x);
+
+        // Allocate space for the union
+        int64_t union_size = max(elements.back()+1, (int64_t)bm.size());
+        sdsl::bit_vector result(union_size, 0);
+
+        // Add the bit map
+        for(int64_t i = 0; i < bm.size(); i++) result[i] = bm[i];
+
+        // Add the elements
+        for(int64_t x : elements) result[x] = 1;
+
+        return result;
+    }    
+
     element_array_t element_array_vs_element_array_intersection(const element_array_t& A, const element_array_t& B) const{
         vector<int64_t> A_vec(A.begin(), A.end());
         vector<int64_t> B_vec(B.begin(), B.end());
         int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
         A_vec.resize(size);
         return element_array_t(A_vec);
+    }
+
+    element_array_t element_array_vs_element_array_union(const element_array_t& A, const element_array_t& B) const{
+        vector<int64_t> A_vec(A.begin(), A.end());
+        vector<int64_t> B_vec(B.begin(), B.end());
+        vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
+        int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
+        AB_vec.resize(size);
+        return element_array_t(AB_vec);
     }
 
     Bitmap_Or_Deltas_ColorSet intersection(const Bitmap_Or_Deltas_ColorSet& c) const {
@@ -173,17 +221,15 @@ public:
 
     // union is a reserved word in C++ so this function is called do_union
     Bitmap_Or_Deltas_ColorSet do_union(const Bitmap_Or_Deltas_ColorSet& c) const {
-        // TODO: SUPER SLOW
-        set<std::int64_t> result;
-        for(std::int64_t x : get_colors_as_vector()){
-            result.insert(x);
+        if(is_bitmap && c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_bitmap_union(bitmap, c.bitmap));
+        } else if(is_bitmap && !c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_element_array_union(bitmap, c.element_array));
+        } else if(!is_bitmap && c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_element_array_union(c.bitmap, element_array));
+        } else{ // Element array vs element array
+            return Bitmap_Or_Deltas_ColorSet(element_array_vs_element_array_union(element_array, c.element_array));
         }
-        for(std::int64_t x : c.get_colors_as_vector()){
-            result.insert(x);
-        }
-
-        vector<std::int64_t> vec(result.begin(), result.end());
-        return Bitmap_Or_Deltas_ColorSet(vec);
     }
 
     std::size_t serialize(std::ostream& os) const {

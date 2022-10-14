@@ -43,6 +43,8 @@ TEST(TEST_COLOR_SET, sparse){
         bool found = std::find(v.begin(), v.end(), x) != v.end();
         ASSERT_EQ(cs.contains(x), found);
     }
+
+    ASSERT_EQ(cs.size(), v.size());
 }
 
 TEST(TEST_COLOR_SET, dense){
@@ -53,6 +55,12 @@ TEST(TEST_COLOR_SET, dense){
     vector<int64_t> v2 = cs.get_colors_as_vector();
 
     ASSERT_EQ(v,v2);
+
+    for(int64_t i = 0; i < 1000 + 10; i++){
+        ASSERT_EQ(cs.contains(i), (i < 1000 && i % 3 == 0));
+    }
+
+    ASSERT_EQ(cs.size(), v.size());
 }
 
 TEST(TEST_COLOR_SET, sparse_vs_sparse){
