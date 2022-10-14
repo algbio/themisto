@@ -94,7 +94,7 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     ASSERT_EQ(seqs.size(), colors.size());
 }
 
-typedef uint64_t color_t;
+typedef int64_t color_t;
 
 class EXTRACT_UNITIGS_TEST : public testing::Test {
 

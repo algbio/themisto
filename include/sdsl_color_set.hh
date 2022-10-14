@@ -4,38 +4,52 @@
 
 class Bitmap_Or_Deltas_ColorSet{
 
+// 4096 is a sampling parameter for random access. We don't really need random access so it is set to a high number.
+typedef sdsl::enc_vector<coder::elias_delta, 4096> element_array_t;
+
 private:
 
-// Stores the result to buf1 and returns the number of elements stored
-int64_t intersect_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, int64_t buf2_len) const{
+    // Stores the intersection into buf1 and returns the number of elements in the
+    // intersection (does not resize buf1). Buffer elements must be sorted.
+    // Assumes all elements in a buffer are distinct
+    int64_t intersect_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, int64_t buf2_len) const{
 
-    int64_t i = 0, j = 0, k = 0;
-    while(i < buf1_len && j < buf2_len){
-        if(buf1[i] < buf2[j]) i++;
-        else if(buf1[i] > buf2[j]) j++;
-        else{
-            buf1[k] = buf1[i];
-            i++; j++; k++;
+        int64_t i = 0, j = 0, k = 0;
+        while(i < buf1_len && j < buf2_len){
+            if(buf1[i] < buf2[j]) i++;
+            else if(buf1[i] > buf2[j]) j++;
+            else{
+                buf1[k] = buf1[i];
+                i++; j++; k++;
+            }
         }
+        return k;
     }
-    return k;
 
-}
+    // Stores the union into result_buf and returns the number of elements in the
+    // union (does not resize result_buf). Buffers elements must be sorted.
+    // Assumes all elements in a buffer are distinct. result_buf must have enough
+    // space to accommodate the union
+    int64_t union_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, LL buf2_len, vector<int64_t>& result_buf) const{
 
-int64_t union_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, LL buf2_len, vector<int64_t>& result_buf) const{
+        auto end = std::set_union(
+                        buf1.begin(), buf1.begin() + buf1_len,
+                        buf2.begin(), buf2.begin() + buf2_len,
+                        result_buf.begin()
+        );
+        return end - result_buf.begin();
+    }
 
-    auto end = std::set_union(
-                    buf1.begin(), buf1.begin() + buf1_len,
-                    buf2.begin(), buf2.begin() + buf2_len,
-                    result_buf.begin()
-    );
-    return end - result_buf.begin();
-}
+    Bitmap_Or_Deltas_ColorSet(const sdsl::bit_vector& bits) : is_bitmap(true) {
+        bitmap = bits;
+    }
+
+    Bitmap_Or_Deltas_ColorSet(const element_array_t& elements) : is_bitmap(false) {
+        element_array = elements;
+    }
+
 
 public:
-
-    // 4096 is a sampling parameter for random access. We don't really need random access so it is set to a high number.
-    typedef sdsl::enc_vector<coder::elias_delta, 4096> element_array_t;
 
     bool is_bitmap; // Is encoded as a bitmap or with gap encoding?
 
@@ -45,13 +59,15 @@ public:
 
     Bitmap_Or_Deltas_ColorSet() : is_bitmap(true){}
 
-    Bitmap_Or_Deltas_ColorSet(const sdsl::bit_vector& bits) : is_bitmap(true) {
-        bitmap = bits;
-    }
-
-    Bitmap_Or_Deltas_ColorSet(const element_array_t& elements) : is_bitmap(false) {
-        element_array = elements;
-    }
+    // Delete these constructors because they would be implicitly converted into an
+    // element_array_t and then that constructor would be called, which we don't want
+    Bitmap_Or_Deltas_ColorSet(const vector<std::uint64_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::int32_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::uint32_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::int16_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::uint16_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::int8_t>& colors) = delete;
+    Bitmap_Or_Deltas_ColorSet(const vector<std::uint8_t>& colors) = delete;
 
     Bitmap_Or_Deltas_ColorSet(const vector<std::int64_t>& colors) {
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
@@ -70,9 +86,8 @@ public:
         }
     }
 
-
-    std::vector<std::uint64_t> get_colors_as_vector() const {
-        std::vector<std::uint64_t> vec;
+    std::vector<int64_t> get_colors_as_vector() const {
+        std::vector<int64_t> vec;
         if(is_bitmap){    
             for(int64_t i = 0; i < bitmap.size(); i++){
                 if(bitmap[i]) vec.push_back(i);
@@ -99,7 +114,7 @@ public:
         return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + sdsl::size_in_bytes(element_array)) * 8;
     }
 
-    bool contains(const std::uint64_t color) const {
+    bool contains(const int64_t color) const {
         if(is_bitmap) return bitmap[color];
         else{
             // TODO: binary search

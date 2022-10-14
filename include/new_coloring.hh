@@ -645,14 +645,14 @@ public:
     // Note! This function returns a new vector instead of a const-reference. Keep this
     // in mind if programming for performance. In that case, it's probably better to get the
     // color set using `get_color_set_of_node`, which returns a const-reference to a colorset_t object.
-    std::vector<std::uint64_t> get_color_set_of_node_as_vector(std::int64_t node) const {
+    std::vector<std::int64_t> get_color_set_of_node_as_vector(std::int64_t node) const {
         assert(node >= 0);
         assert(node < node_id_to_color_set_id.size());
         return get_color_set_of_node(node).get_colors_as_vector();
     }
 
     // See the comment on `get_color_set_of_node_as_vector`.
-    std::vector<std::uint64_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
+    std::vector<std::int64_t> get_color_set_as_vector_by_color_set_id(std::int64_t color_set_id) const {
         return get_color_set_by_color_set_id(color_set_id).get_colors_as_vector();
     }
 

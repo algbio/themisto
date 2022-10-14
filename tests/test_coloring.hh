@@ -112,7 +112,7 @@ TEST(COLORING_TESTS, random_testcases){
             string kmer = tcase.colex_kmers[kmer_id];
             LL node_id = SBWT.search(kmer);
             set<LL> correct_colorset = tcase.color_sets[kmer_id];
-            vector<uint64_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
+            vector<int64_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
             set<LL> colorset(colorvec.begin(), colorvec.end());
             logger << node_id << ": " << colorset << " - " << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);

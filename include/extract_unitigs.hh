@@ -19,7 +19,7 @@ class UnitigExtractor {
 
     struct Colored_Unitig {
         vector<DBG::Node> nodes;
-        vector<uint64_t> colorset;
+        vector<int64_t> colorset;
         vector<int64_t>
             links;  // Outgoing edges from this unitig, as a list of unitig ids
         int64_t id;
@@ -171,7 +171,7 @@ class UnitigExtractor {
         return first_kmer + rest;
     }
 
-    void write_colorset(int64_t unitig_id, vector<uint64_t>& colorset,
+    void write_colorset(int64_t unitig_id, vector<int64_t>& colorset,
                         ostream& colorsets_out) {
         colorsets_out << unitig_id;
         for (int64_t color : colorset) colorsets_out << " " << color;

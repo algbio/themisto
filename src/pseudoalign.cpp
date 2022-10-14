@@ -149,7 +149,7 @@ private:
         }
 
         // Returns the color set
-        vector<uint64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
+        vector<int64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
             LL n_kmers = color_set_id_buffer.size();
 
             bool first_nonempty_union_found = false;
@@ -186,7 +186,7 @@ private:
         }
 
         // Returns the color se
-        vector<uint64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
+        vector<int64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
             LL n_kmers = color_set_id_buffer.size();
 
             bool first_nonempty_color_set_found = false;
@@ -245,7 +245,7 @@ private:
                     push_color_set_ids_to_buffer(rc_colex_ranks, rc_color_set_id_buffer);
                 }
 
-                vector<uint64_t> intersection;
+                vector<int64_t> intersection;
                 if(reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
                 else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
