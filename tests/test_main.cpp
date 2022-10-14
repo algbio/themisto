@@ -21,6 +21,7 @@
 #include "test_pseudoalignment.hh"
 #include "test_sparse_uint_array.hh"
 #include "test_extract_unitigs.hh"
+#include "test_color_set.hh"
 
 
 int main(int argc, char **argv) {

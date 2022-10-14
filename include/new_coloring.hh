@@ -24,12 +24,13 @@
 
 #include <cstdint>
 
-#include "roaring/roaring.hh"
-#include "roaring/roaring64map.hh"
+//#include "roaring/roaring.hh"
+//#include "roaring/roaring64map.hh"
 
 #include "WorkDispatcher.hh"
 #include "sdsl_color_set.hh"
 
+/*
 class Color_Set {
     Roaring64Map roaring;
 
@@ -135,6 +136,8 @@ public:
         return sizeof(std::size_t) + n;
     }
 };
+
+*/
 
 template<typename colorset_t = Bitmap_Or_Deltas_ColorSet>
 class Coloring {

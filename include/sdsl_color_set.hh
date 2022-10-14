@@ -1,5 +1,6 @@
-#include "sdsl/bit_vectors.hpp"
+#pragma once
 
+#include "sdsl/bit_vectors.hpp"
 
 class Bitmap_Or_Deltas_ColorSet{
 
@@ -56,7 +57,7 @@ public:
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         
         element_array_t size_test(colors);
-        if(sdsl::size_in_bytes(size_test) > max_color+1){
+        if(sdsl::size_in_bytes(size_test)*8 > max_color+1){
             // Bitmap is smaller
             is_bitmap = true;
             sdsl::bit_vector bv(max_color+1, 0);
@@ -178,6 +179,8 @@ public:
 
         n_bytes_written += bitmap.serialize(os);
         n_bytes_written += element_array.serialize(os);
+
+        return n_bytes_written;
     }
 
     void load(std::ifstream& is) {
@@ -211,6 +214,7 @@ public:
         for(int64_t i = 0; i < data.size(); i++){
             if(data[i]) vec.push_back(i);
         }
+        return vec;
     }
 
     std::size_t size() const {
