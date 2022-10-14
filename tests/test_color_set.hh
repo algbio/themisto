@@ -60,10 +60,13 @@ TEST(TEST_COLOR_SET, sparse_vs_sparse){
     ASSERT_FALSE(c1.is_bitmap);
     ASSERT_FALSE(c2.is_bitmap);
 
-    vector<int64_t> v12 = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> correct_inter = {4,4003};
+    ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> correct = {4,4003};
-    ASSERT_EQ(v12, correct);
+    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    vector<int64_t> correct_union = {4, 1532, 2000, 4003, 5000, 8903};
+    ASSERT_EQ(v12_union, correct_union);
 }
 
 
@@ -78,10 +81,16 @@ TEST(TEST_COLOR_SET, dense_vs_dense){
     ASSERT_TRUE(c1.is_bitmap);
     ASSERT_TRUE(c2.is_bitmap);
 
-    vector<int64_t> v12 = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> correct_inter = get_dense_example(6, 1000); // 6 = lcm(2,3)
+    ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> correct = get_dense_example(6, 1000); // 6 = lcm(2,3)
-    ASSERT_EQ(v12, correct);
+    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    vector<int64_t> correct_union;
+    for(int64_t i = 0; i < 1000; i++){
+        if(i % 2 == 0 || i % 3 == 0) correct_union.push_back(i);
+    }
+    ASSERT_EQ(v12_union, correct_union);
 }
 
 TEST(TEST_COLOR_SET, sparse_vs_dense){
@@ -95,10 +104,16 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
     ASSERT_TRUE(c1.is_bitmap);
     ASSERT_FALSE(c2.is_bitmap);
 
-    vector<int64_t> v12 = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> correct_inter = {3, 3000, 9999};
+    ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> correct = {3, 3000, 9999};
-    ASSERT_EQ(v12, correct);
+    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    vector<int64_t> correct_union;
+    for(int64_t i = 0; i < 1000; i++){
+        if(i % 3 == 0 || std::find(v2.begin(), v2.end(), i) != v2.end()) correct_union.push_back(i);
+    }
+    ASSERT_EQ(v12_union, correct_union);
 }
 
 Bitmap_Or_Deltas_ColorSet to_disk_and_back(Bitmap_Or_Deltas_ColorSet& c){
