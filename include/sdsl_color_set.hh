@@ -115,7 +115,8 @@ public:
     }
 
     bool contains(const int64_t color) const {
-        if(is_bitmap) return bitmap[color];
+        if(color < 0) throw std::runtime_error("Called Color Set contains-method with a negative color id");
+        if(is_bitmap) return color < bitmap.size() && bitmap[color];
         else{
             // TODO: binary search
             for(int64_t x : element_array) if(x == color) return true;

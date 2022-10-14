@@ -37,6 +37,12 @@ TEST(TEST_COLOR_SET, sparse){
     vector<int64_t> v2 = cs.get_colors_as_vector();
 
     ASSERT_EQ(v,v2);
+
+    int64_t n = *std::max_element(v.begin(), v.end());
+    for(int64_t x = 0; x <= n + 10; x++){ // +10: test over the boundary too.
+        bool found = std::find(v.begin(), v.end(), x) != v.end();
+        ASSERT_EQ(cs.contains(x), found);
+    }
 }
 
 TEST(TEST_COLOR_SET, dense){
