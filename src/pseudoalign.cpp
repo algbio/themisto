@@ -6,30 +6,6 @@
 using namespace std;
 using namespace sbwt;
 
-LL intersect_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, LL buf2_len){
-
-    LL i = 0, j = 0, k = 0;
-    while(i < buf1_len && j < buf2_len){
-        if(buf1[i] < buf2[j]) i++;
-        else if(buf1[i] > buf2[j]) j++;
-        else{
-            buf1[k] = buf1[i];
-            i++; j++; k++;
-        }
-    }
-    return k;
-
-}
-
-LL union_buffers(vector<color_t>& buf1, LL buf1_len, vector<color_t>& buf2, LL buf2_len, vector<color_t>& result_buf){
-
-    auto end = std::set_union(
-                    buf1.begin(), buf1.begin() + buf1_len,
-                    buf2.begin(), buf2.begin() + buf2_len,
-                    result_buf.begin()
-    );
-    return end - result_buf.begin();
-}
 
 template <typename T>
 string vec_to_string(const vector<T>& v){

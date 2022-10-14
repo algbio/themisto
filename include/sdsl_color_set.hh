@@ -1,13 +1,204 @@
 #include "sdsl/bit_vectors.hpp"
 
-class SDSL_Color_Set {
+
+class Bitmap_Or_Deltas_ColorSet{
+
+private:
+
+// Stores the result to buf1 and returns the number of elements stored
+int64_t intersect_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, int64_t buf2_len) const{
+
+    int64_t i = 0, j = 0, k = 0;
+    while(i < buf1_len && j < buf2_len){
+        if(buf1[i] < buf2[j]) i++;
+        else if(buf1[i] > buf2[j]) j++;
+        else{
+            buf1[k] = buf1[i];
+            i++; j++; k++;
+        }
+    }
+    return k;
+
+}
+
+int64_t union_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, LL buf2_len, vector<int64_t>& result_buf) const{
+
+    auto end = std::set_union(
+                    buf1.begin(), buf1.begin() + buf1_len,
+                    buf2.begin(), buf2.begin() + buf2_len,
+                    result_buf.begin()
+    );
+    return end - result_buf.begin();
+}
+
+public:
+
+    // 4096 is a sampling parameter for random access. We don't really need random access so it is set to a high number.
+    typedef sdsl::enc_vector<coder::elias_delta, 4096> element_array_t;
+
+    bool is_bitmap; // Is encoded as a bitmap or with gap encoding?
+
+    sdsl::bit_vector bitmap;
+
+    element_array_t element_array; // Todo: possibility of encoding deltas between non-existent colors
+
+    Bitmap_Or_Deltas_ColorSet() : is_bitmap(true){}
+
+    Bitmap_Or_Deltas_ColorSet(const sdsl::bit_vector& bits) : is_bitmap(true) {
+        bitmap = bits;
+    }
+
+    Bitmap_Or_Deltas_ColorSet(const element_array_t& elements) : is_bitmap(false) {
+        element_array = elements;
+    }
+
+    Bitmap_Or_Deltas_ColorSet(const vector<std::int64_t>& colors) {
+        int64_t max_color = *std::max_element(colors.begin(), colors.end());
+        
+        element_array_t size_test(colors);
+        if(sdsl::size_in_bytes(size_test) > max_color+1){
+            // Bitmap is smaller
+            is_bitmap = true;
+            sdsl::bit_vector bv(max_color+1, 0);
+            for(int64_t x : colors) bv[x] = 1;
+            bitmap = bv;
+        } else{
+            // Delta array is smaller
+            is_bitmap = false;
+            element_array = size_test;
+        }
+    }
+
+
+    std::vector<std::uint64_t> get_colors_as_vector() const {
+        std::vector<std::uint64_t> vec;
+        if(is_bitmap){    
+            for(int64_t i = 0; i < bitmap.size(); i++){
+                if(bitmap[i]) vec.push_back(i);
+            }
+        } else{
+            for(int64_t x : element_array){
+                vec.push_back(x);
+            }
+        }
+        return vec;
+    }
+
+    std::size_t size() const {
+        if(is_bitmap){
+            int64_t count = 0;
+            for(bool b : bitmap) count += b;
+            return count;
+        }
+        else return element_array.size();
+    }
+
+
+    std::size_t size_in_bits() const {
+        return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + sdsl::size_in_bytes(element_array)) * 8;
+    }
+
+    bool contains(const std::uint64_t color) const {
+        if(is_bitmap) return bitmap[color];
+        else{
+            // TODO: binary search
+            for(int64_t x : element_array) if(x == color) return true;
+            return false;
+        }
+    }
+
+    sdsl::bit_vector bitmap_vs_bitmap_intersection(const sdsl::bit_vector& A, const sdsl::bit_vector& B) const{
+        int64_t n = min(A.size(), B.size());
+        sdsl::bit_vector result(n, 0);
+        int64_t words = n / 64;
+
+        // Do 64-bit bitwise ands
+        for(int64_t w = 0; w < words; w++){
+            result.set_int(w*64, A.get_int(w*64) & B.get_int(w*64));
+        }
+
+        // Do the rest one bit at a time
+        for(int64_t i = words*64; i < n; i++){
+            result[i] = A[i] & B[i];
+        }
+
+        return result;    
+    }
+
+    element_array_t bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const element_array_t& ea) const{
+        vector<int64_t> new_elements;
+        for(int64_t x : ea){
+            if(x >= bm.size()) break;
+            if(bm[x] == 1) new_elements.push_back(x);
+        }
+        return element_array_t(new_elements);
+    }
+
+    element_array_t element_array_vs_element_array_intersection(const element_array_t& A, const element_array_t& B) const{
+        vector<int64_t> A_vec(A.begin(), A.end());
+        vector<int64_t> B_vec(B.begin(), B.end());
+        int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
+        A_vec.resize(size);
+        return element_array_t(A_vec);
+    }
+
+    Bitmap_Or_Deltas_ColorSet intersection(const Bitmap_Or_Deltas_ColorSet& c) const {
+        if(is_bitmap && c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_bitmap_intersection(bitmap, c.bitmap));
+        } else if(is_bitmap && !c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_element_array_intersection(bitmap, c.element_array));
+        } else if(!is_bitmap && c.is_bitmap){
+            return Bitmap_Or_Deltas_ColorSet(bitmap_vs_element_array_intersection(c.bitmap, element_array));
+        } else{ // Element array vs element array
+            return Bitmap_Or_Deltas_ColorSet(element_array_vs_element_array_intersection(element_array, c.element_array));
+        }
+    }
+
+    // union is a reserved word in C++ so this function is called do_union
+    Bitmap_Or_Deltas_ColorSet do_union(const Bitmap_Or_Deltas_ColorSet& c) const {
+        // TODO: SUPER SLOW
+        set<std::int64_t> result;
+        for(std::int64_t x : get_colors_as_vector()){
+            result.insert(x);
+        }
+        for(std::int64_t x : c.get_colors_as_vector()){
+            result.insert(x);
+        }
+
+        vector<std::int64_t> vec(result.begin(), result.end());
+        return Bitmap_Or_Deltas_ColorSet(vec);
+    }
+
+    std::size_t serialize(std::ostream& os) const {
+        int64_t n_bytes_written = 0;
+
+        char flag = is_bitmap;
+        os.write(&flag, 1);
+        n_bytes_written  += 1;
+
+        n_bytes_written += bitmap.serialize(os);
+        n_bytes_written += element_array.serialize(os);
+    }
+
+    void load(std::ifstream& is) {
+        char flag;
+        is.read(&flag, 1);
+        is_bitmap = flag;
+        bitmap.load(is);
+        element_array.load(is);
+    }
+
+};
+
+
+class SDSL_Hybrid_Set {
     sdsl::hyb_vector<> data;
 
 public:
 
-    SDSL_Color_Set(){}
+    SDSL_Hybrid_Set(){}
 
-    SDSL_Color_Set(const vector<std::int64_t>& colors) {
+    SDSL_Hybrid_Set(const vector<std::int64_t>& colors) {
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         sdsl::bit_vector vec(max_color+1, 0);
         for(int64_t x : colors) vec[x] = 1;
@@ -35,7 +226,7 @@ public:
         return data[n];
     }
 
-    SDSL_Color_Set intersection(const SDSL_Color_Set& c) const {
+    SDSL_Hybrid_Set intersection(const SDSL_Hybrid_Set& c) const {
         // TODO: SLOW
         vector<std::int64_t> result;
         int64_t n = min(data.size(), c.data.size());
@@ -43,11 +234,11 @@ public:
             if(data[i] && c.data[i])
                 result.push_back(i);
         }
-        return SDSL_Color_Set(result);
+        return SDSL_Hybrid_Set(result);
     }
 
     // union is a reserved word in C++ so this function is called do_union
-    SDSL_Color_Set do_union(const SDSL_Color_Set& c) const {
+    SDSL_Hybrid_Set do_union(const SDSL_Hybrid_Set& c) const {
         // TODO: SUPER SLOW
         set<std::int64_t> result;
         for(std::int64_t x : get_colors_as_vector()){
@@ -58,7 +249,7 @@ public:
         }
 
         vector<std::int64_t> vec(result.begin(), result.end());
-        return SDSL_Color_Set(vec);
+        return SDSL_Hybrid_Set(vec);
     }
 
     std::size_t serialize(std::ostream& os) const {

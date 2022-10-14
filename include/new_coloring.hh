@@ -136,7 +136,7 @@ public:
     }
 };
 
-template<typename colorset_t = SDSL_Color_Set>
+template<typename colorset_t = Bitmap_Or_Deltas_ColorSet>
 class Coloring {
 
 public:
