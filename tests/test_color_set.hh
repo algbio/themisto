@@ -65,7 +65,7 @@ TEST(TEST_COLOR_SET, sparse_vs_sparse){
     ASSERT_EQ(v12_inter, correct_inter);
 
     vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
-    vector<int64_t> correct_union = {4, 1532, 2000, 4003, 5000, 8903};
+    vector<int64_t> correct_union = {4, 1534, 2000, 4003, 5000, 8903};
     ASSERT_EQ(v12_union, correct_union);
 }
 
@@ -110,9 +110,10 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
 
     vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
     vector<int64_t> correct_union;
-    for(int64_t i = 0; i < 1000; i++){
+    for(int64_t i = 0; i < 10000; i++){
         if(i % 3 == 0 || std::find(v2.begin(), v2.end(), i) != v2.end()) correct_union.push_back(i);
     }
+
     ASSERT_EQ(v12_union, correct_union);
 }
 
