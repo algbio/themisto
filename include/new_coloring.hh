@@ -581,10 +581,11 @@ public:
         std::size_t n_sets = 0;
         is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
 
+        sets.resize(n_sets);
         for (std::size_t i = 0; i < n_sets; ++i) {
             colorset_t cs;
             cs.load(is);
-            sets.push_back(cs);
+            sets[i] = cs;
         }
 
         node_id_to_color_set_id.load(is);
