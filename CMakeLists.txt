@@ -180,7 +180,7 @@ include_directories(
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
 add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
-target_compile_definitions(themisto PUBLIC KMER_MAX_LENGTH=MAX_KMER_LENGTH) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
+target_compile_definitions(themisto PUBLIC KMER_MAX_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
 
 ## Fix compilation order
 add_dependencies(sdsl divsufsort64)
