@@ -69,17 +69,34 @@ int stats_main(int argc, char** argv){
     if(do_unitigs) get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
 
     write_log("Loading the index", LogLevel::MAJOR);    
+
     plain_matrix_sbwt_t SBWT;
-    Coloring<> coloring;
     SBWT.load(index_dbg_file);
-    coloring.load(index_color_file, SBWT);
+
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>> coloring;
+    load_coloring(index_color_file, SBWT, coloring);
+
+    if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring)){
+        cout << "Coloring data structure type: sdsl" << endl;
+    } else if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring)){
+        cout << "Coloring data structure type: roaring" << endl;
+    }
+
+    // Helper functions to be able to call member functions of coloring with std::visit.
+    // This cleans up the code so that we don't have the branch where we check which
+    // variant we currently have.
+    auto call_largest_color = [](auto& obj) { return obj.largest_color(); };
+    auto call_number_of_distinct_color_sets = [](auto& obj) { return obj.number_of_distinct_color_sets(); };
+    auto call_sum_of_all_distinct_color_set_lengths = [](auto& obj) { return obj.sum_of_all_distinct_color_set_lengths(); };
+    auto call_space_breakdown = [](auto& obj) { return obj.space_breakdown(); };
+
 
     cout << "Node length k: " << SBWT.get_k() << endl;
     cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
     cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
-    cout << "Color id range: 0.." << coloring.largest_color() << endl;
-    cout << "Number of distinct color sets: " << coloring.number_of_distinct_color_sets() << endl;
-    cout << "Sum of sizes of all distinct color sets: " << coloring.sum_of_all_distinct_color_set_lengths() << endl;
+    cout << "Color id range: 0.." << std::visit(call_largest_color, coloring) << endl;
+    cout << "Number of distinct color sets: " << std::visit(call_number_of_distinct_color_sets, coloring) << endl;
+    cout << "Sum of sizes of all distinct color sets: " << std::visit(call_sum_of_all_distinct_color_set_lengths, coloring) << endl;
 
     write_log("Computing more statistics...", LogLevel::MAJOR);
     DBG dbg(&SBWT);
@@ -87,7 +104,7 @@ int stats_main(int argc, char** argv){
 
     if(space_breakdown){
         cout << "== Space breakdown of the coloring structure ==" << endl;
-        for(auto [component, space] : coloring.space_breakdown()){
+        for(auto [component, space] : std::visit(call_space_breakdown, coloring)){
             cout << component << ": " << human_readable_bytes(space) << endl;
         }
         cout << "== Space taken for the de Bruijn graph ==" << endl;
@@ -100,12 +117,17 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
-        UnitigExtractor<Coloring<>> UE;
+        
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
         sbwt::SeqIO::NullStream null_stream;
         
-        UE.extract_unitigs(dbg, coloring, unitigs_out.stream, false, null_stream, null_stream);
+        auto call_extract_unitigs = [&](auto& obj) {
+            UnitigExtractor<decltype(obj)> UE;
+            UE.extract_unitigs(dbg, obj, unitigs_out.stream, false, null_stream, null_stream);
+        };
+
+        std::visit(call_extract_unitigs, coloring);
         unitigs_out.close();
         
         LL unitig_count = 0;
