@@ -86,9 +86,16 @@ int stats_main(int argc, char** argv){
     cout << "De Bruijn graph edge count: " << count_DBG_edges(dbg) << endl;
 
     if(space_breakdown){
+        cout << "== Space breakdown of the coloring structure ==" << endl;
         for(auto [component, space] : coloring.space_breakdown()){
             cout << component << ": " << human_readable_bytes(space) << endl;
         }
+        cout << "== Space taken for the de Bruijn graph ==" << endl;
+        sbwt::SeqIO::NullStream ns;
+        int64_t bytes = SBWT.serialize(ns);
+        cout << "SBWT: " << human_readable_bytes(bytes) << endl;
+        cout << "==" << endl;
+
     }
 
     if(do_unitigs){
