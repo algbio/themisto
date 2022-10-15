@@ -33,6 +33,11 @@ template<typename colorset_t = Bitmap_Or_Deltas_ColorSet>
 class Coloring {
 
 public:
+    class WrongTemplateParameterException : public std::exception{
+        const char * what() const noexcept override{
+            return "Template type id in a serialized Coloring structure does not match the class template parameter.";
+        }
+    };
 
     typedef colorset_t colorset_type;
 
@@ -473,11 +478,11 @@ public:
         // Check that the type id is correct for this class
         if(type_id == "bitmap-or-deltas-v0"){
             if(!std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
-                throw std::runtime_error("Error: Index has incompatible color set type: " + type_id);
+                throw WrongTemplateParameterException();
             }
         } else if(type_id == "roaring-v0"){
             if(!std::is_same<colorset_t, Roaring_Color_Set>::value){
-                throw std::runtime_error("Error: Index has incompatible color set type: " + type_id);
+                throw WrongTemplateParameterException();
             }
         } else{
             throw std::runtime_error("Unknown color set type:" + type_id);

@@ -32,15 +32,15 @@ public:
         roaring.shrinkToFit();
     }
 
-    Roaring_Color_Set(const std::size_t n, const std::uint32_t* colors) {
-        roaring.addMany(n, colors);
+    Roaring_Color_Set(const std::size_t n, const std::int32_t* colors) {
+        roaring.addMany(n, reinterpret_cast<const std::uint32_t*>(colors));
 
         roaring.runOptimize();
         roaring.shrinkToFit();
     }
 
-    Roaring_Color_Set(const std::size_t n, const std::uint64_t* colors) {
-        roaring.addMany(n, colors);
+    Roaring_Color_Set(const std::size_t n, const std::int64_t* colors) {
+        roaring.addMany(n, reinterpret_cast<const std::uint64_t*>(colors));
 
         roaring.runOptimize();
         roaring.shrinkToFit();
@@ -54,23 +54,23 @@ public:
         roaring.shrinkToFit();
     }
 
-    void add(const std::size_t n, const std::uint32_t* colors) {
-        roaring.addMany(n, colors);
+    void add(const std::size_t n, const std::int32_t* colors) {
+        roaring.addMany(n, reinterpret_cast<const std::uint32_t*>(colors));
 
         roaring.runOptimize();
         roaring.shrinkToFit();
     }
 
-    void add(const std::size_t n, const std::uint64_t* colors) {
-        roaring.addMany(n, colors);
+    void add(const std::size_t n, const std::int64_t* colors) {
+        roaring.addMany(n, reinterpret_cast<const std::uint64_t*>(colors));
 
         roaring.runOptimize();
         roaring.shrinkToFit();
     }
 
-    std::vector<std::uint64_t> get_colors_as_vector() const {
-        std::vector<std::uint64_t> v(roaring.cardinality());
-        roaring.toUint64Array(v.data());
+    std::vector<std::int64_t> get_colors_as_vector() const {
+        std::vector<std::int64_t> v(roaring.cardinality());
+        roaring.toUint64Array(reinterpret_cast<std::uint64_t*>(v.data()));
 
         return v;
     }
@@ -84,7 +84,7 @@ public:
         return roaring.getSizeInBytes(false) * 8;
     }
 
-    bool contains(const std::uint64_t n) const {
+    bool contains(const std::int64_t n) const {
         return contains(n);
     }
 

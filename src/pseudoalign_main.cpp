@@ -152,28 +152,55 @@ int pseudoalign_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);
     plain_matrix_sbwt_t SBWT;
     SBWT.load(C.index_dbg_file);
-    Coloring<> coloring;
-    throwing_ifstream colors_in(C.index_color_file, ios::binary);
-    coloring.load(colors_in.stream, SBWT);
 
-    for(LL i = 0; i < C.query_files.size(); i++){
-	if (C.outfiles.size() > 0) {
-	    write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
-	} else {
-	    write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
-	}
+    // Load whichever coloring data structure type is stored on disk
+    Coloring<Bitmap_Or_Deltas_ColorSet> coloring1;
+    Coloring<Roaring_Color_Set> coloring2;
+    
+    bool have_coloring1 = false;
+    bool have_coloring2 = false;
 
-    string inputfile = C.query_files[i];
-    SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
-    if(format.gzipped){
-        string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
-        check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-        inputfile = new_name;
+    try{
+        throwing_ifstream colors_in(C.index_color_file, ios::binary);
+        coloring1.load(colors_in.stream, SBWT);
+        have_coloring1 = true; // This is not reached if an exception is thrown
+        write_log("SDSL coloring structure loaded", LogLevel::MAJOR);
+    } catch(Coloring<Bitmap_Or_Deltas_ColorSet>::WrongTemplateParameterException& e){
+        // Was not this one
+    }
+    
+    try{
+        throwing_ifstream colors_in(C.index_color_file, ios::binary);
+        coloring2.load(colors_in.stream, SBWT);
+        have_coloring2 = true; // This is not reached if an exception is thrown
+        write_log("Roaring coloring structure loaded", LogLevel::MAJOR);
+    } catch(Coloring<Roaring_Color_Set>::WrongTemplateParameterException& e){
+        // Was not this one
     }
 
-    pseudoalign(SBWT, coloring, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
-    //Sequence_Reader_Buffered sr(inputfile, file_format == "fasta" ? FASTA_MODE : FASTQ_MODE);
-    //themisto.pseudoalign_parallel(C.n_threads, sr, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1000000, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+    if(!have_coloring1 && !have_coloring2){
+        throw std::runtime_error("Error: could not load color structure.");
+    }
+
+
+    for(LL i = 0; i < C.query_files.size(); i++){
+        if (C.outfiles.size() > 0) {
+            write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
+        } else {
+            write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
+        }
+
+        string inputfile = C.query_files[i];
+        SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
+        if(format.gzipped){
+            string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
+            check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
+            inputfile = new_name;
+        }
+        if(have_coloring1)
+            pseudoalign(SBWT, coloring1, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        else if(have_coloring2)
+            pseudoalign(SBWT, coloring2, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);
