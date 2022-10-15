@@ -89,20 +89,26 @@ int extract_unitigs_main(int argc, char** argv){
     write_log("Loading the index", LogLevel::MAJOR);    
 
     sbwt::plain_matrix_sbwt_t SBWT;
-    Coloring<> coloring;
-
     SBWT.load(index_dbg_file);
+
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>> coloring;
     if(do_colors){    
-        throwing_ifstream colors_in(index_color_file, ios::binary);
-        coloring.load(colors_in.stream, SBWT);
+        // Load whichever coloring data structure type is stored on disk
+        load_coloring(index_color_file, SBWT, coloring);
     }
 
     DBG dbg(&SBWT);
 
     write_log("Extracting unitigs", LogLevel::MAJOR);
-    
-    UnitigExtractor<Coloring<>> UE;
-    UE.extract_unitigs(dbg, coloring, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+
+    if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring)){
+        UnitigExtractor<Coloring<Bitmap_Or_Deltas_ColorSet>> UE;
+        UE.extract_unitigs(dbg, std::get<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+    }
+    if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring)){
+        UnitigExtractor<Coloring<Roaring_Color_Set>> UE;
+        UE.extract_unitigs(dbg, std::get<Coloring<Roaring_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+    }
 
     return 0;
     

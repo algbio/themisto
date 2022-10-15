@@ -120,7 +120,7 @@ class UnitigExtractor {
     // Extracts maximal unitigs that have at least n_min_colors colors
     vector<Colored_Unitig> split_by_colorset_size(const int64_t n_min_colors,
                                                   Unitig& U,
-                                                  const Coloring<>& coloring) {
+                                                  const coloring_t& coloring) {
         vector<Colored_Unitig> colored_unitigs;
         auto get_n_colors = [&](DBG::Node node) {
             return coloring.get_color_set_of_node(node.id).size();
