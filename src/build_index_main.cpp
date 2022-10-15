@@ -53,7 +53,7 @@ struct Build_Config{
             sbwt::check_readable(colorfile);
         }
 
-        if(coloring_structure_type != "sdsl" && coloring_structure_type != "sdsl"){
+        if(coloring_structure_type != "sdsl" && coloring_structure_type != "roaring"){
             throw std::runtime_error("Unknown coloring structure type: " + coloring_structure_type);
         }
 

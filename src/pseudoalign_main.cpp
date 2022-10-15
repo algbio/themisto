@@ -154,34 +154,13 @@ int pseudoalign_main(int argc, char** argv){
     SBWT.load(C.index_dbg_file);
 
     // Load whichever coloring data structure type is stored on disk
-    Coloring<Bitmap_Or_Deltas_ColorSet> coloring1;
-    Coloring<Roaring_Color_Set> coloring2;
-    
-    bool have_coloring1 = false;
-    bool have_coloring2 = false;
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>> coloring;
+    load_coloring(C.index_color_file, SBWT, coloring);
 
-    try{
-        throwing_ifstream colors_in(C.index_color_file, ios::binary);
-        coloring1.load(colors_in.stream, SBWT);
-        have_coloring1 = true; // This is not reached if an exception is thrown
+    if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
         write_log("SDSL coloring structure loaded", LogLevel::MAJOR);
-    } catch(Coloring<Bitmap_Or_Deltas_ColorSet>::WrongTemplateParameterException& e){
-        // Was not this one
-    }
-    
-    try{
-        throwing_ifstream colors_in(C.index_color_file, ios::binary);
-        coloring2.load(colors_in.stream, SBWT);
-        have_coloring2 = true; // This is not reached if an exception is thrown
+    if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
         write_log("Roaring coloring structure loaded", LogLevel::MAJOR);
-    } catch(Coloring<Roaring_Color_Set>::WrongTemplateParameterException& e){
-        // Was not this one
-    }
-
-    if(!have_coloring1 && !have_coloring2){
-        throw std::runtime_error("Error: could not load color structure.");
-    }
-
 
     for(LL i = 0; i < C.query_files.size(); i++){
         if (C.outfiles.size() > 0) {
@@ -197,10 +176,11 @@ int pseudoalign_main(int argc, char** argv){
             check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
             inputfile = new_name;
         }
-        if(have_coloring1)
-            pseudoalign(SBWT, coloring1, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
-        else if(have_coloring2)
-            pseudoalign(SBWT, coloring2, C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+
+        if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
+            pseudoalign(SBWT, std::get<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
+            pseudoalign(SBWT, std::get<Coloring<Roaring_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);

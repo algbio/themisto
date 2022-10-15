@@ -27,6 +27,7 @@
 #include "WorkDispatcher.hh"
 #include "sdsl_color_set.hh"
 #include "Roaring_Color_Set.hh"
+#include <variant>
 
 // Takes as parameter a class that encodes a single color set
 template<typename colorset_t = Bitmap_Or_Deltas_ColorSet>
@@ -49,10 +50,6 @@ private:
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
-
-    Coloring(const Coloring& temp_obj) = delete; // No copying
-    Coloring& operator=(const Coloring& temp_obj) = delete;  // No copying
-
 
     class ColorPairAlignerThread : public DispatcherConsumerCallback {
         const std::vector<std::int64_t>& seq_id_to_color_id;
@@ -444,7 +441,7 @@ public:
         if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
             string type_id = "bitmap-or-deltas-v0";
             bytes_written += sbwt::serialize_string(type_id, os);
-        } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+        } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else{
@@ -662,3 +659,11 @@ public:
     }
 
 };
+
+
+// Load whichever coloring data structure type is stored on disk
+// The returned pointer must be eventually freed by the caller with delete
+void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT, 
+std::variant<
+Coloring<Bitmap_Or_Deltas_ColorSet>, 
+Coloring<Roaring_Color_Set>>& coloring);
