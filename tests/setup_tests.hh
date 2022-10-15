@@ -33,8 +33,8 @@ void setup_tests(int argc, char** argv){
     sbwt::write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), sbwt::LogLevel::MAJOR);
     sbwt::write_log("Built at " + std::string(THEMISTO_BUILD_TIMESTAMP), sbwt::LogLevel::MAJOR);
     
-    sbwt::write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH-1), sbwt::LogLevel::MAJOR);
-    if(KMER_MAX_LENGTH != 255 + 1){
+    sbwt::write_log("Maximum k-mer length: " + std::to_string(KMER_MAX_LENGTH), sbwt::LogLevel::MAJOR);
+    if(KMER_MAX_LENGTH != 255){
         throw std::runtime_error("Error: tests must be compiled with -DMAX_KMER_LENGTH=255 to cmake"); // 255 is kmer length, 255+1 is edgemer length
     }
 
