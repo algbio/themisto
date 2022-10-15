@@ -101,7 +101,7 @@ int extract_unitigs_main(int argc, char** argv){
 
     write_log("Extracting unitigs", LogLevel::MAJOR);
     
-    UnitigExtractor UE;
+    UnitigExtractor<Coloring<>> UE;
     UE.extract_unitigs(dbg, coloring, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
 
     return 0;

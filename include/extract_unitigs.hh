@@ -8,6 +8,7 @@
 
 using namespace std;
 
+template<class coloring_t>
 class UnitigExtractor {
    private:
     struct Unitig {
@@ -80,7 +81,7 @@ class UnitigExtractor {
         return U;
     }
 
-    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U, const Coloring<>& coloring) {
+    vector<Colored_Unitig> split_to_colorset_runs(Unitig& U, const coloring_t& coloring) {
         vector<Colored_Unitig> colored_unitigs;
         auto get_id = [&](int64_t node) {
             return coloring.get_color_set_id(node);
@@ -204,7 +205,7 @@ class UnitigExtractor {
     // The colorsets are written one per line, in the same order as unitigs, in
     // a space-separated format "id c1 c2 ..", where id is the fasta header of
     // the colorset, and c1 c2... are the colors.
-    void extract_unitigs(const DBG& dbg, const Coloring<>& coloring, ostream& unitigs_out,
+    void extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& unitigs_out,
                          bool split_by_colorset_runs, ostream& colorsets_out,
                          ostream& gfa_out, int64_t min_colors = 0) {
 

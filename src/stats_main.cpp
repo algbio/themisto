@@ -100,7 +100,7 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
-        UnitigExtractor UE;
+        UnitigExtractor<Coloring<>> UE;
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
         sbwt::SeqIO::NullStream null_stream;
