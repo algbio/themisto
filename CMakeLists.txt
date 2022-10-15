@@ -199,7 +199,7 @@ endif()
 target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
 
 ## Build tests if doing a Debug build
-if (BUILD_TESTS)
+if (BUILD_THEMISTO_TESTS)
 
   add_subdirectory(${CMAKE_SOURCE_DIR}/googletest
     ${CMAKE_BINARY_DIR}/external/googletest/build)
@@ -209,7 +209,7 @@ if (BUILD_TESTS)
   #find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
-  target_compile_definitions(themisto_tests KMER_MAX_LENGTH=255) # 255 required in tests
+  target_compile_definitions(themisto_tests PUBLIC KMER_MAX_LENGTH=255) # 255 required in tests
   
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
