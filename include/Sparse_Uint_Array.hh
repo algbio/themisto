@@ -82,6 +82,16 @@ class Sparse_Uint_Array{
         is.read((char*)&max_value, sizeof(max_value));
         
     }
+
+    // Returns map: component -> number of bytes
+    map<string, int64_t> space_breakdown() const{
+        map<string, int64_t> breakdown;
+        breakdown["marks"] = sdsl::size_in_bytes(marks);
+        breakdown["marks-rank-support"] = sdsl::size_in_bytes(marks_rs);
+        breakdown["values"] = sdsl::size_in_bytes(values);
+        breakdown["max-value"] = sizeof(max_value);
+        return breakdown;
+    }
 };
 
 class Sparse_Uint_Array_Builder{

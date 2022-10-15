@@ -4,6 +4,8 @@
 #include "zpipe.hh"
 #include <string>
 #include <cstring>
+#include <sstream>
+#include <iomanip>
 #include "version.h"
 #include "cxxopts.hpp"
 #include "extract_unitigs.hh"
@@ -19,6 +21,16 @@ int64_t count_DBG_edges(const DBG& dbg){
     return ans;
 }
 
+string human_readable_bytes(int64_t bytes){
+    stringstream ss;
+    ss << std::fixed << std::setprecision(3); // 3 digits after decimal point
+    if(bytes < (1<<10)) ss << bytes << " bytes";
+    else if(bytes < (1<<20)) ss << (double)bytes / (1 << 10) << " kB";
+    else if(bytes < (1<<30)) ss << (double)bytes / (1 << 20) << " MB";
+    else ss << (double)bytes / (1 << 30) << " GB";
+    return ss.str();
+}
+
 int stats_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
@@ -26,6 +38,7 @@ int stats_main(int argc, char** argv){
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("unitigs", "Also compute statistics on unitigs. This takes a while and requires the temporary directory to be set.", cxxopts::value<bool>()->default_value("false"))
+        ("space-breakdown", "Also give a space breakdown for the components of the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
@@ -43,6 +56,7 @@ int stats_main(int argc, char** argv){
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     bool do_unitigs = opts["unitigs"].as<bool>();
+    bool space_breakdown = opts["space-breakdown"].as<bool>();
 
     if(opts["verbose"].as<bool>() && opts["silent"].as<bool>())
         throw runtime_error("Can not give both --verbose and --silent");
@@ -70,6 +84,12 @@ int stats_main(int argc, char** argv){
     write_log("Computing more statistics...", LogLevel::MAJOR);
     DBG dbg(&SBWT);
     cout << "De Bruijn graph edge count: " << count_DBG_edges(dbg) << endl;
+
+    if(space_breakdown){
+        for(auto [component, space] : coloring.space_breakdown()){
+            cout << component << ": " << human_readable_bytes(space) << endl;
+        }
+    }
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);

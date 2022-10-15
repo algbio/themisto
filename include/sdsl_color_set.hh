@@ -326,4 +326,5 @@ public:
         data.load(is);
         return sdsl::size_in_bytes(data);
     }
+
 };

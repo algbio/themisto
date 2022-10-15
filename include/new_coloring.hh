@@ -734,4 +734,20 @@ public:
         return sets;
     }
 
+    // Returns map: component -> number of bytes
+    map<string, int64_t> space_breakdown() const{
+        map<string, int64_t> breakdown;
+        int64_t color_set_total_size = 0;
+        sbwt::SeqIO::NullStream ns;
+        for(const colorset_t& cs : sets) color_set_total_size += cs.serialize(ns);
+        breakdown["distinct-color-sets"] = color_set_total_size;
+        
+
+        for(auto [component, bytes] : node_id_to_color_set_id.space_breakdown()){
+            breakdown["node-id-to-color-set-id-" + component] = bytes;
+        }
+
+        return breakdown;
+    }
+
 };
