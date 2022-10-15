@@ -44,7 +44,6 @@ private:
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
-    inline static const int64_t VERSION = 1; // Update this after breaking changes. This will be serialized with the index and checked on load.
 
     Coloring(const Coloring& temp_obj) = delete; // No copying
     Coloring& operator=(const Coloring& temp_obj) = delete;  // No copying
@@ -437,8 +436,15 @@ public:
     std::size_t serialize(std::ostream& os) const {
         std::size_t bytes_written = 0;
 
-        os.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
-        bytes_written += sizeof(VERSION);
+        if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+            string type_id = "bitmap-or-deltas-v0";
+            bytes_written += sbwt::serialize_string(type_id, os);
+        } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+            string type_id = "roaring-v0";
+            bytes_written += sbwt::serialize_string(type_id, os);
+        } else{
+            throw std::runtime_error("Unsupported color set template");
+        }
 
         std::size_t n_sets = sets.size();
         os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
@@ -462,10 +468,19 @@ public:
     void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
         index_ptr = &index;
 
-        int64_t version_check;
-        is.read(reinterpret_cast<char*>(&version_check), sizeof(version_check));
-        if(version_check != VERSION){
-            throw std::runtime_error("Error: Coloring data structure is corrupt or incompatible with current code");
+        string type_id = sbwt::load_string(is);
+
+        // Check that the type id is correct for this class
+        if(type_id == "bitmap-or-deltas-v0"){
+            if(!std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+                throw std::runtime_error("Error: Index has incompatible color set type: " + type_id);
+            }
+        } else if(type_id == "roaring-v0"){
+            if(!std::is_same<colorset_t, Roaring_Color_Set>::value){
+                throw std::runtime_error("Error: Index has incompatible color set type: " + type_id);
+            }
+        } else{
+            throw std::runtime_error("Unknown color set type:" + type_id);
         }
 
         std::size_t n_sets = 0;
