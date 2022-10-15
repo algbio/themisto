@@ -4,14 +4,13 @@ include(ExternalProject)
 
 ## Set maximum k-mer length
 if(NOT MAX_KMER_LENGTH)
-  set(MAX_KMER_LENGTH 31) ## Default max k-mer length is 31, so that edges are 32-mers and fit into a single machine word
+  set(MAX_KMER_LENGTH 31) ## Default max k-mer length is 31
 endif()
 if(MAX_KMER_LENGTH GREATER 255)
   message(${MAX_KMER_LENGTH})
   message(FATAL_ERROR "Error: MAX_KMER_LENGTH can be at most 255")
 endif()
-MATH(EXPR K_PLUS_1_MER_LENGTH "${MAX_KMER_LENGTH}+1") # +1 because the construction requires (k+1)-mers
-add_definitions(-DKMER_MAX_LENGTH=${K_PLUS_1_MER_LENGTH}) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
+
 message(STATUS "Maximum k-mer length is: " ${MAX_KMER_LENGTH})
 message(STATUS "To change the maximum k-mer length, use the option -DMAX_KMER_LENGTH=n")
 message(STATUS "(n can be up to 255)")
@@ -181,6 +180,8 @@ include_directories(
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
 add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
+target_compile_definitions(themisto PUBLIC KMER_MAX_LENGTH=MAX_KMER_LENGTH) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
+
 ## Fix compilation order
 add_dependencies(sdsl divsufsort64)
 
@@ -198,7 +199,8 @@ endif()
 target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
 
 ## Build tests if doing a Debug build
-if (CMAKE_BUILD_TYPE MATCHES Debug)
+if (BUILD_TESTS)
+
   add_subdirectory(${CMAKE_SOURCE_DIR}/googletest
     ${CMAKE_BINARY_DIR}/external/googletest/build)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
@@ -207,6 +209,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   #find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+  target_compile_definitions(themisto_tests KMER_MAX_LENGTH=255) # 255 required in tests
   
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)

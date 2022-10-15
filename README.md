@@ -265,7 +265,7 @@ cd build
 cmake ..
 make
 cd ../../build
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DMAX_KMER_LENGTH=255
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=1
 make
 ```
 
