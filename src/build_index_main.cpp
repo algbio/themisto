@@ -21,6 +21,7 @@ struct Build_Config{
     string index_dbg_file;
     string index_color_file;
     string temp_dir;
+    string coloring_structure_type;
     sbwt::SeqIO::FileFormat input_format;
     bool load_dbg = false;
     LL memory_megas = 1000;
@@ -52,6 +53,10 @@ struct Build_Config{
             sbwt::check_readable(colorfile);
         }
 
+        if(coloring_structure_type != "sdsl" && coloring_structure_type != "sdsl"){
+            throw std::runtime_error("Unknown coloring structure type: " + coloring_structure_type);
+        }
+
         sbwt::check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
 
@@ -74,6 +79,7 @@ struct Build_Config{
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
+        ss << "Coloring structure type: " << coloring_structure_type << "\n"; 
 
         string verbose_level = "normal";
         if(verbose) verbose_level = "verbose";
@@ -111,6 +117,7 @@ int build_index_main(int argc, char** argv){
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
+        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl\" or \"roaring\" ).", cxxopts::value<string>()->default_value("sdsl"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -147,6 +154,7 @@ int build_index_main(int argc, char** argv){
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
+    C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -200,11 +208,18 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
-        Coloring<> coloring;
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
-        coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
-        sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-        coloring.serialize(out.stream);
+        if(C.coloring_structure_type == "sdsl"){
+            Coloring<Bitmap_Or_Deltas_ColorSet> coloring;
+            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
+            coloring.serialize(out.stream);
+        } else if(C.coloring_structure_type == "roaring"){
+            Coloring<Roaring_Color_Set> coloring;
+            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
+            coloring.serialize(out.stream);
+        }
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
