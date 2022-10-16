@@ -22,6 +22,7 @@
 #include "test_sparse_uint_array.hh"
 #include "test_extract_unitigs.hh"
 #include "test_color_set.hh"
+#include "test_delta_vector.hh"
 
 
 int main(int argc, char **argv) {
