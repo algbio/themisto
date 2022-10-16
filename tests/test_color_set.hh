@@ -131,18 +131,6 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
     ASSERT_EQ(v12_union, correct_union);
 }
 
-Bitmap_Or_Deltas_ColorSet to_disk_and_back(Bitmap_Or_Deltas_ColorSet& c){
-    string f = get_temp_file_manager().create_filename();
-    throwing_ofstream out(f, ios::binary);
-    c.serialize(out.stream);
-    out.close();
-
-    Bitmap_Or_Deltas_ColorSet c_loaded;
-    throwing_ifstream in(f, ios::binary);
-    c_loaded.load(in.stream);
-    return c_loaded;
-}
-
 TEST(TEST_COLOR_SET, dense_serialization){
     vector<int64_t> v = get_dense_example(3, 10000); // Multiples of 3
     Bitmap_Or_Deltas_ColorSet c(v);

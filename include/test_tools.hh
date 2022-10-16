@@ -55,3 +55,15 @@ void write_as_fastq(vector<string>& seqs, string fastq_filename);
 
 vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT);
 
+template<typename T>
+T to_disk_and_back(T& c){
+    string f = sbwt::get_temp_file_manager().create_filename();
+    sbwt::throwing_ofstream out(f, ios::binary);
+    c.serialize(out.stream);
+    out.close();
+
+    T c_loaded;
+    sbwt::throwing_ifstream in(f, ios::binary);
+    c_loaded.load(in.stream);
+    return c_loaded;
+}
