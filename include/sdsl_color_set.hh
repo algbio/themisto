@@ -1,11 +1,12 @@
 #pragma once
 
 #include "sdsl/bit_vectors.hpp"
+#include "delta_vector.hh"
 
 class Bitmap_Or_Deltas_ColorSet{
 
 // 4096 is a sampling parameter for random access. We don't really need random access so it is set to a high number.
-typedef sdsl::enc_vector<coder::elias_delta, 4096> element_array_t;
+typedef Delta_Vector element_array_t;
 
 private:
 
@@ -73,7 +74,7 @@ public:
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         
         element_array_t size_test(colors);
-        if(sdsl::size_in_bytes(size_test)*8 > max_color+1){
+        if(size_test.size_in_bytes()*8 > max_color+1){
             // Bitmap is smaller
             is_bitmap = true;
             sdsl::bit_vector bv(max_color+1, 0);
@@ -93,9 +94,7 @@ public:
                 if(bitmap[i]) vec.push_back(i);
             }
         } else{
-            for(int64_t x : element_array){
-                vec.push_back(x);
-            }
+            return element_array.get_values();
         }
         return vec;
     }
@@ -111,7 +110,7 @@ public:
 
 
     std::size_t size_in_bits() const {
-        return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + sdsl::size_in_bytes(element_array)) * 8;
+        return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + element_array.size_in_bytes()) * 8;
     }
 
     // This is O(1) time for dense color sets but O(set size) for sparse sets.
@@ -119,8 +118,8 @@ public:
         if(color < 0) throw std::runtime_error("Called Color Set contains-method with a negative color id");
         if(is_bitmap) return color < bitmap.size() && bitmap[color];
         else{
-            for(int64_t x : element_array) if(x == color) return true;
-            return false;
+            vector<int64_t> values = element_array.get_values();
+            return std::find(values.begin(), values.end(), color) != values.end();
         }
     }
 
@@ -163,7 +162,7 @@ public:
 
     element_array_t bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const element_array_t& ea) const{
         vector<int64_t> new_elements;
-        for(int64_t x : ea){
+        for(int64_t x : ea.get_values()){
             if(x >= bm.size()) break;
             if(bm[x] == 1) new_elements.push_back(x);
         }
@@ -175,7 +174,7 @@ public:
 
         // Decode the integers in the element array
         vector<int64_t> elements;
-        for(int64_t x : ea) elements.push_back(x);
+        for(int64_t x : ea.get_values()) elements.push_back(x);
 
         // Allocate space for the union
         int64_t union_size = max(elements.back()+1, (int64_t)bm.size());
@@ -191,16 +190,16 @@ public:
     }    
 
     element_array_t element_array_vs_element_array_intersection(const element_array_t& A, const element_array_t& B) const{
-        vector<int64_t> A_vec(A.begin(), A.end());
-        vector<int64_t> B_vec(B.begin(), B.end());
+        vector<int64_t> A_vec = A.get_values();
+        vector<int64_t> B_vec = B.get_values();
         int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
         A_vec.resize(size);
         return element_array_t(A_vec);
     }
 
     element_array_t element_array_vs_element_array_union(const element_array_t& A, const element_array_t& B) const{
-        vector<int64_t> A_vec(A.begin(), A.end());
-        vector<int64_t> B_vec(B.begin(), B.end());
+        vector<int64_t> A_vec = A.get_values();
+        vector<int64_t> B_vec = B.get_values();
         vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
         int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
         AB_vec.resize(size);
