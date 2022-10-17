@@ -95,7 +95,7 @@ public:
         return vector<int64_t>(v.begin(), v.end());
     }
 
-    int64_t serialize(std::ostream& os){
+    int64_t serialize(std::ostream& os) const{
         return v.serialize(os);
     }
 

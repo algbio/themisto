@@ -455,8 +455,11 @@ public:
     std::size_t serialize(std::ostream& os) const {
         std::size_t bytes_written = 0;
 
-        if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
-            string type_id = "bitmap-or-deltas-v1";
+        if(std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
+            string type_id = "sdsl-fixed-v0";
+            bytes_written += sbwt::serialize_string(type_id, os);            
+        } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+            string type_id = "sdsl-delta-v1";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
@@ -490,7 +493,11 @@ public:
         string type_id = sbwt::load_string(is);
 
         // Check that the type id is correct for this class
-        if(type_id == "bitmap-or-deltas-v1"){
+        if(type_id == "sdsl-fixed-v0"){
+            if(!std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
+                throw WrongTemplateParameterException();
+            }
+        }  else if(type_id == "bitmap-or-deltas-v1"){
             if(!std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
                 throw WrongTemplateParameterException();
             }
@@ -683,4 +690,5 @@ public:
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT, 
 std::variant<
 Coloring<Bitmap_Or_Deltas_ColorSet>, 
-Coloring<Roaring_Color_Set>>& coloring);
+Coloring<Roaring_Color_Set>,
+Coloring<Fixed_Width_Int_Color_Set>>& coloring);
