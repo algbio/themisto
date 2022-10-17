@@ -96,15 +96,6 @@ TEST(COLORING_TESTS, random_testcases){
         plain_matrix_sbwt_t SBWT;
         build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
 
-/*
-        sbwt::throwing_ofstream debug_out("debug/sbwt-" + to_string(testcase_id), ios::binary);
-        sbwt::serialize_string("plain-matrix", debug_out.stream); // Write variant string to file
-        SBWT.serialize(debug_out.stream); // For debug
-        vector<string> labels = dump_node_labels(SBWT);
-        for(LL i = 0; i < labels.size(); i++)
-            cout << i << " " << labels[i] << endl;
-*/
-
         Coloring coloring;
         coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
 
@@ -126,38 +117,15 @@ bool is_valid_kmer(const string& S){
     return true;
 }
 
-TEST(COLORING_TESTS, coli3) {
-    std::string filename = "example_input/coli3.fna";
-
-    std::vector<std::string> seqs;
-    SeqIO::Unbuffered_Reader sr(filename);
-    while(!sr.done()){
-        string S = sr.get_next_query_stream().get_all();
-        seqs.push_back(S);
-    }
-
-    const std::size_t k = 31;
-    //plain_matrix_sbwt_t matrix;
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, int64_t k){
 
     std::vector<std::int64_t> colors;
     for(std::int64_t i = 0; i < seqs.size(); ++i){
         colors.push_back(i);
     }
 
-    //
-    plain_matrix_sbwt_t::BuildConfig config;
-    config.input_files = {filename};
-    config.k = k;
-    config.build_streaming_support = true;
-    config.ram_gigas = 2;
-    config.n_threads = 2;
-    config.min_abundance = 1;
-    plain_matrix_sbwt_t matrix(config);
-    //
-
-    //build_nodeboss_in_memory<plain_matrix_sbwt_t>(seqs, matrix, k, true);
-
-    Coloring c;
+    Coloring<color_set_t> c;
     c.add_colors(matrix, filename, colors, 1<<30, 3, 3);
 
     std::size_t seq_id = 0;
@@ -176,7 +144,6 @@ TEST(COLORING_TESTS, coli3) {
                 ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));
             } else {
                 auto vec = c.get_color_set_of_node_as_vector(node);
-                //cout << "kmer " << i << " " << seq.substr(i,k) << endl;
                 const auto res = std::find(vec.begin(), vec.end(), seq_id);
                 ASSERT_TRUE(res != vec.end());
             }
@@ -185,4 +152,30 @@ TEST(COLORING_TESTS, coli3) {
     }
 
     //TODO: also test that there are no extra colors in the color sets.
+}
+
+TEST(COLORING_TESTS, coli3) {
+    std::string filename = "example_input/coli3.fna";
+
+    std::vector<std::string> seqs;
+    SeqIO::Unbuffered_Reader sr(filename);
+    while(!sr.done()){
+        string S = sr.get_next_query_stream().get_all();
+        seqs.push_back(S);
+    }
+
+    const std::size_t k = 31;
+
+    plain_matrix_sbwt_t::BuildConfig config;
+    config.input_files = {filename};
+    config.k = k;
+    config.build_streaming_support = true;
+    config.ram_gigas = 2;
+    config.n_threads = 2;
+    config.min_abundance = 1;
+    plain_matrix_sbwt_t matrix(config);
+
+    test_coloring_on_coli3<Bitmap_Or_Deltas_ColorSet>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<Fixed_Width_Int_Color_Set>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<Roaring_Color_Set>(matrix, filename, seqs, k);
 }
