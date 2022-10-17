@@ -4,10 +4,7 @@
 #include "delta_vector.hh"
 
 class Bitmap_Or_Deltas_ColorSet{
-
-// 4096 is a sampling parameter for random access. We don't really need random access so it is set to a high number.
-typedef Delta_Vector element_array_t;
-
+    
 private:
 
     // Stores the intersection into buf1 and returns the number of elements in the
@@ -45,7 +42,7 @@ private:
         bitmap = bits;
     }
 
-    Bitmap_Or_Deltas_ColorSet(const element_array_t& elements) : is_bitmap(false) {
+    Bitmap_Or_Deltas_ColorSet(const Delta_Vector& elements) : is_bitmap(false) {
         element_array = elements;
     }
 
@@ -56,12 +53,12 @@ public:
 
     sdsl::bit_vector bitmap;
 
-    element_array_t element_array; // Todo: possibility of encoding deltas between non-existent colors
+    Delta_Vector element_array; // Todo: possibility of encoding deltas between non-existent colors
 
     Bitmap_Or_Deltas_ColorSet() : is_bitmap(false){}
 
     // Delete these constructors because they would be implicitly converted into an
-    // element_array_t and then that constructor would be called, which we don't want
+    // Delta_Vector and then that constructor would be called, which we don't want
     Bitmap_Or_Deltas_ColorSet(const vector<std::uint64_t>& colors) = delete;
     Bitmap_Or_Deltas_ColorSet(const vector<std::int32_t>& colors) = delete;
     Bitmap_Or_Deltas_ColorSet(const vector<std::uint32_t>& colors) = delete;
@@ -73,7 +70,7 @@ public:
     Bitmap_Or_Deltas_ColorSet(const vector<std::int64_t>& colors) {
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         
-        element_array_t size_test(colors);
+        Delta_Vector size_test(colors);
         if(colors.size() > 0 && size_test.size_in_bytes()*8 > max_color+1){
             // Bitmap is smaller
             // Empty sets are never encoded as bit maps because we want a constant-time
@@ -171,16 +168,16 @@ public:
         return result;
     }
 
-    element_array_t bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const element_array_t& ea) const{
+    Delta_Vector bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const Delta_Vector& ea) const{
         vector<int64_t> new_elements;
         for(int64_t x : ea.get_values()){
             if(x >= bm.size()) break;
             if(bm[x] == 1) new_elements.push_back(x);
         }
-        return element_array_t(new_elements);
+        return Delta_Vector(new_elements);
     }
 
-    sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const element_array_t& ea) const{
+    sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const Delta_Vector& ea) const{
         if(ea.empty()) return bm;
 
         // Decode the integers in the element array
@@ -200,21 +197,21 @@ public:
         return result;
     }    
 
-    element_array_t element_array_vs_element_array_intersection(const element_array_t& A, const element_array_t& B) const{
+    Delta_Vector element_array_vs_element_array_intersection(const Delta_Vector& A, const Delta_Vector& B) const{
         vector<int64_t> A_vec = A.get_values();
         vector<int64_t> B_vec = B.get_values();
         int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
         A_vec.resize(size);
-        return element_array_t(A_vec);
+        return Delta_Vector(A_vec);
     }
 
-    element_array_t element_array_vs_element_array_union(const element_array_t& A, const element_array_t& B) const{
+    Delta_Vector element_array_vs_element_array_union(const Delta_Vector& A, const Delta_Vector& B) const{
         vector<int64_t> A_vec = A.get_values();
         vector<int64_t> B_vec = B.get_values();
         vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
         int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
         AB_vec.resize(size);
-        return element_array_t(AB_vec);
+        return Delta_Vector(AB_vec);
     }
 
     Bitmap_Or_Deltas_ColorSet intersection(const Bitmap_Or_Deltas_ColorSet& c) const {
