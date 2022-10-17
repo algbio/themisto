@@ -19,7 +19,7 @@ private:
     // Stores the intersection into buf1 and returns the number of elements in the
     // intersection (does not resize buf1). Buffer elements must be sorted.
     // Assumes all elements in a buffer are distinct
-    int64_t intersect_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, int64_t buf2_len) const{
+    int64_t intersect_buffers(sdsl::int_vector<>& buf1, LL buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len) const{
 
         int64_t i = 0, j = 0, k = 0;
         while(i < buf1_len && j < buf2_len){
@@ -37,7 +37,7 @@ private:
     // union (does not resize result_buf). Buffers elements must be sorted.
     // Assumes all elements in a buffer are distinct. result_buf must have enough
     // space to accommodate the union
-    int64_t union_buffers(vector<int64_t>& buf1, LL buf1_len, vector<int64_t>& buf2, LL buf2_len, vector<int64_t>& result_buf) const{
+    int64_t union_buffers(const sdsl::int_vector<>& buf1, LL buf1_len, const sdsl::int_vector<>& buf2, LL buf2_len, sdsl::int_vector<>& result_buf) const{
 
         auto end = std::set_union(
                         buf1.begin(), buf1.begin() + buf1_len,
@@ -50,6 +50,7 @@ private:
 public:
 
     Fixed_Width_Int_Color_Set() {}
+    Fixed_Width_Int_Color_Set(const sdsl::int_vector<>& v) : v(v){}
     Fixed_Width_Int_Color_Set(const vector<int64_t>& colors){
         if(colors.size() > 0){
             int64_t max = *std::max_element(colors.begin(), colors.end());
@@ -77,22 +78,17 @@ public:
     }
 
     Fixed_Width_Int_Color_Set intersection(const Fixed_Width_Int_Color_Set& other) const{
-        // TODO: intersect sdsl::int_vectors directly
-        vector<int64_t> A_vec = this->get_colors_as_vector();
-        vector<int64_t> B_vec = other.get_colors_as_vector();
-        int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
-        A_vec.resize(size);
-        return Fixed_Width_Int_Color_Set(A_vec);
+        sdsl::int_vector this_copy = v;
+        int64_t size = intersect_buffers(this_copy, this_copy.size(), other.v, other.v.size());
+        this_copy.resize(size);
+        return Fixed_Width_Int_Color_Set(this_copy);
     }
 
     Fixed_Width_Int_Color_Set do_union(const Fixed_Width_Int_Color_Set& other) const{
-        // TODO: intersect sdsl::int_vectors directly
-        vector<int64_t> A_vec = this->get_colors_as_vector();
-        vector<int64_t> B_vec = other.get_colors_as_vector();
-        vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
-        int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
-        AB_vec.resize(size);
-        return AB_vec;
+        sdsl::int_vector<> result(this->v.size() + other.v.size()); // Space for the union
+        int64_t size = union_buffers(v, v.size(), other.v, other.v.size(), result);
+        result.resize(size);
+        return Fixed_Width_Int_Color_Set(result);
     }
 
     vector<int64_t> get_colors_as_vector() const{
