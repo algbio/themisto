@@ -59,7 +59,7 @@ public:
     }
 
     bool empty() const{
-        return v.size() > 0;
+        return v.size() == 0;
     }
 
     int64_t size() const{
@@ -77,6 +77,7 @@ public:
     }
 
     Fixed_Width_Int_Color_Set intersection(const Fixed_Width_Int_Color_Set& other) const{
+        // TODO: intersect sdsl::int_vectors directly
         vector<int64_t> A_vec = this->get_colors_as_vector();
         vector<int64_t> B_vec = other.get_colors_as_vector();
         int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
@@ -85,6 +86,7 @@ public:
     }
 
     Fixed_Width_Int_Color_Set do_union(const Fixed_Width_Int_Color_Set& other) const{
+        // TODO: intersect sdsl::int_vectors directly
         vector<int64_t> A_vec = this->get_colors_as_vector();
         vector<int64_t> B_vec = other.get_colors_as_vector();
         vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
