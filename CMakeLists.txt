@@ -91,7 +91,7 @@ else()
   find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2)
 endif()
 
-## Require c++17
+## Require c++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
