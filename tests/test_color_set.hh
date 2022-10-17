@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <cassert>
 #include "sdsl_color_set.hh"
+#include "Fixed_Width_Int_Color_Set.hh"
 
 using namespace sbwt;
 
@@ -28,11 +29,10 @@ vector<int64_t> get_dense_example(int64_t gap, int64_t total_length){
     return v;
 }
 
-TEST(TEST_COLOR_SET, sparse){
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_sparse_color_set(){
     vector<int64_t> v = get_sparse_example();
-    Bitmap_Or_Deltas_ColorSet cs(v);
-
-    ASSERT_FALSE(cs.is_bitmap);
+    color_set_t cs(v);
 
     vector<int64_t> v2 = cs.get_colors_as_vector();
 
@@ -45,10 +45,16 @@ TEST(TEST_COLOR_SET, sparse){
     }
 }
 
-TEST(TEST_COLOR_SET, dense){
+TEST(TEST_COLOR_SET, sparse){
+    test_sparse_color_set<Bitmap_Or_Deltas_ColorSet>();
+    test_sparse_color_set<Fixed_Width_Int_Color_Set>();
+    test_sparse_color_set<Roaring_Color_Set>();
+}
+
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_dense_color_set(){
     vector<int64_t> v = get_dense_example(3, 1000);
-    Bitmap_Or_Deltas_ColorSet cs(v);
-    ASSERT_TRUE(cs.is_bitmap);
+    color_set_t cs(v);
 
     vector<int64_t> v2 = cs.get_colors_as_vector();
 
@@ -59,16 +65,19 @@ TEST(TEST_COLOR_SET, dense){
     }
 }
 
-TEST(TEST_COLOR_SET, sparse_vs_sparse){
+TEST(TEST_COLOR_SET, dense){
+    test_dense_color_set<Bitmap_Or_Deltas_ColorSet>();
+    test_dense_color_set<Fixed_Width_Int_Color_Set>();
+    test_dense_color_set<Roaring_Color_Set>();
+}
 
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_sparse_vs_sparse(){
     vector<int64_t> v1 = {4, 1534, 4003, 8903};
     vector<int64_t> v2 = {4, 2000, 4003, 5000};
 
-    Bitmap_Or_Deltas_ColorSet c1(v1);
-    Bitmap_Or_Deltas_ColorSet c2(v2);
-
-    ASSERT_FALSE(c1.is_bitmap);
-    ASSERT_FALSE(c2.is_bitmap);
+    color_set_t c1(v1);
+    color_set_t c2(v2);
 
     vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
     vector<int64_t> correct_inter = {4,4003};
@@ -78,18 +87,19 @@ TEST(TEST_COLOR_SET, sparse_vs_sparse){
     vector<int64_t> correct_union = {4, 1534, 2000, 4003, 5000, 8903};
     ASSERT_EQ(v12_union, correct_union);
 }
+TEST(TEST_COLOR_SET, sparse_vs_sparse){
+    test_sparse_vs_sparse<Bitmap_Or_Deltas_ColorSet>();
+    test_sparse_vs_sparse<Fixed_Width_Int_Color_Set>();
+    test_sparse_vs_sparse<Roaring_Color_Set>();
+}
 
-
-TEST(TEST_COLOR_SET, dense_vs_dense){
-
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_dense_vs_dense(){
     vector<int64_t> v1 = get_dense_example(2, 1000); // Multiples of 2
     vector<int64_t> v2 = get_dense_example(3, 1000); // Multiples of 3
 
-    Bitmap_Or_Deltas_ColorSet c1(v1);
-    Bitmap_Or_Deltas_ColorSet c2(v2);
-
-    ASSERT_TRUE(c1.is_bitmap);
-    ASSERT_TRUE(c2.is_bitmap);
+    color_set_t c1(v1);
+    color_set_t c2(v2);
 
     vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
     vector<int64_t> correct_inter = get_dense_example(6, 1000); // 6 = lcm(2,3)
@@ -103,16 +113,19 @@ TEST(TEST_COLOR_SET, dense_vs_dense){
     ASSERT_EQ(v12_union, correct_union);
 }
 
-TEST(TEST_COLOR_SET, sparse_vs_dense){
+TEST(TEST_COLOR_SET, dense_vs_dense){
+    test_dense_vs_dense<Bitmap_Or_Deltas_ColorSet>();
+    test_dense_vs_dense<Fixed_Width_Int_Color_Set>();
+    test_dense_vs_dense<Roaring_Color_Set>();
+}
 
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_sparse_vs_dense(){
     vector<int64_t> v1 = get_dense_example(3, 10000); // Multiples of 3
     vector<int64_t> v2 = {3, 4, 5, 3000, 6001, 9999};
 
-    Bitmap_Or_Deltas_ColorSet c1(v1);
-    Bitmap_Or_Deltas_ColorSet c2(v2);
-
-    ASSERT_TRUE(c1.is_bitmap);
-    ASSERT_FALSE(c2.is_bitmap);
+    color_set_t c1(v1);
+    color_set_t c2(v2);
 
     vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
     vector<int64_t> correct_inter = {3, 3000, 9999};
@@ -127,27 +140,53 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
     ASSERT_EQ(v12_union, correct_union);
 }
 
-TEST(TEST_COLOR_SET, empty){
+TEST(TEST_COLOR_SET, sparse_vs_dense){
+    test_sparse_vs_dense<Bitmap_Or_Deltas_ColorSet>();
+    test_sparse_vs_dense<Fixed_Width_Int_Color_Set>();
+    test_sparse_vs_dense<Roaring_Color_Set>();
+}
+
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_empty_color_set(){
     vector<int64_t> v = get_sparse_example();
 
-    Bitmap_Or_Deltas_ColorSet c1(v);
-    Bitmap_Or_Deltas_ColorSet c2;
+    color_set_t c1(v);
+    color_set_t c2;
 
     ASSERT_FALSE(c1.empty());
     ASSERT_TRUE(c2.empty());
 }
 
-TEST(TEST_COLOR_SET, dense_serialization){
+TEST(TEST_COLOR_SET, empty){
+    test_empty_color_set<Bitmap_Or_Deltas_ColorSet>();
+    test_empty_color_set<Fixed_Width_Int_Color_Set>();
+    test_empty_color_set<Roaring_Color_Set>();
+}
+
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_dense_color_set_serialization(){
     vector<int64_t> v = get_dense_example(3, 10000); // Multiples of 3
-    Bitmap_Or_Deltas_ColorSet c(v);
-    Bitmap_Or_Deltas_ColorSet c2 = to_disk_and_back(c);
+    color_set_t c(v);
+    color_set_t c2 = to_disk_and_back(c);
     ASSERT_EQ(c2.get_colors_as_vector(), v);
 }
 
+TEST(TEST_COLOR_SET, dense_serialization){
+    test_dense_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
+    test_dense_color_set_serialization<Fixed_Width_Int_Color_Set>();
+    test_dense_color_set_serialization<Roaring_Color_Set>();
+}
+
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_sparse_color_set_serialization(){
+    vector<int64_t> v = get_sparse_example();
+    color_set_t c(v);
+    color_set_t c2 = to_disk_and_back(c);
+    ASSERT_EQ(c2.get_colors_as_vector(), v);
+}
 
 TEST(TEST_COLOR_SET, sparse_serialization){
-    vector<int64_t> v = get_sparse_example();
-    Bitmap_Or_Deltas_ColorSet c(v);
-    Bitmap_Or_Deltas_ColorSet c2 = to_disk_and_back(c);
-    ASSERT_EQ(c2.get_colors_as_vector(), v);
+    test_sparse_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
+    test_sparse_color_set_serialization<Fixed_Width_Int_Color_Set>();
+    test_sparse_color_set_serialization<Roaring_Color_Set>();
 }

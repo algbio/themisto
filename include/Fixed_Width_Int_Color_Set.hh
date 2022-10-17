@@ -8,7 +8,7 @@ class Fixed_Width_Int_Color_Set{
 
 private:
 
-    sdsl::int_vector v;
+    sdsl::int_vector<> v;
 
     // Number of bits required to represent x
     int64_t bits_needed(uint64_t x){
@@ -54,7 +54,7 @@ private:
 public:
 
     Fixed_Width_Int_Color_Set() {}
-    Fixed_Width_Int_Color_Set(vector<int64_t>& colors){
+    Fixed_Width_Int_Color_Set(const vector<int64_t>& colors){
         if(colors.size() > 0){
             int64_t max = *std::max_element(colors.begin(), colors.end());
             v = sdsl::int_vector<>(colors.size(), 0, bits_needed(max));
@@ -75,7 +75,7 @@ public:
 
     // Takes linear time
     bool contains(int64_t color) const{
-        for(int64_t x : v) if(color == v) return true;
+        for(int64_t x : v) if(color == x) return true;
         return false;
     }
 
@@ -93,7 +93,7 @@ public:
         vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
         int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
         AB_vec.resize(size);
-        return AB;
+        return AB_vec;
     }
 
     vector<int64_t> get_colors_as_vector() const{
@@ -107,4 +107,4 @@ public:
     void load(std::istream& is){
         v.load(is);
     }
-}
+};
