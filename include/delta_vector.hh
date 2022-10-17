@@ -35,8 +35,8 @@ public:
         return values;
     }
 
-    int64_t empty() const {
-        return data.size() == 0;
+    bool empty() const {
+        return data.bit_size() == 0;
     }
 
     int64_t size_in_bytes() const{

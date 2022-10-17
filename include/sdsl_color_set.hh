@@ -58,7 +58,7 @@ public:
 
     element_array_t element_array; // Todo: possibility of encoding deltas between non-existent colors
 
-    Bitmap_Or_Deltas_ColorSet() : is_bitmap(true){}
+    Bitmap_Or_Deltas_ColorSet() : is_bitmap(false){}
 
     // Delete these constructors because they would be implicitly converted into an
     // element_array_t and then that constructor would be called, which we don't want
@@ -181,7 +181,7 @@ public:
     }
 
     sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const element_array_t& ea) const{
-        if(ea.empty() == 0) return bm;
+        if(ea.empty()) return bm;
 
         // Decode the integers in the element array
         vector<int64_t> elements;
