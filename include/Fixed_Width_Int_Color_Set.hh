@@ -3,6 +3,7 @@
 #include "sdsl/int_vector.hpp"
 #include <vector>
 #include <algorithm>
+#include <bit>
 
 class Fixed_Width_Int_Color_Set{
 
@@ -12,12 +13,7 @@ private:
 
     // Number of bits required to represent x
     int64_t bits_needed(uint64_t x){
-        int64_t ans = 0;
-        while(x > 0){
-            x >>= 1;
-            ans++;
-        }
-        return max(ans, (int64_t) 1); // Need at least 1 bit even for zero
+        return max((int64_t)std::bit_width(x), (int64_t)1); // Need at least 1 bit (for zero)
     }
 
     // Stores the intersection into buf1 and returns the number of elements in the
@@ -58,6 +54,7 @@ public:
         if(colors.size() > 0){
             int64_t max = *std::max_element(colors.begin(), colors.end());
             v = sdsl::int_vector<>(colors.size(), 0, bits_needed(max));
+            for(int64_t i = 0; i < colors.size(); i++) v[i] = colors[i];
         }
     }
 

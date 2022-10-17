@@ -89,7 +89,7 @@ public:
     }
 
     bool contains(const std::int64_t n) const {
-        return contains(n);
+        return roaring.contains((uint64_t)n);
     }
 
     Roaring_Color_Set intersection(const Roaring_Color_Set& c) const {
