@@ -92,7 +92,7 @@ else()
 endif()
 
 ## Require c++17
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Fix for GCC (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90050 )

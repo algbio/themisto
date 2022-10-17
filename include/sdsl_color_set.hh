@@ -99,7 +99,7 @@ public:
         return vec;
     }
 
-    std::size_t size() const {
+    int64_t size() const {
         if(is_bitmap){
             int64_t count = 0;
             for(bool b : bitmap) count += b;
@@ -109,7 +109,7 @@ public:
     }
 
 
-    std::size_t size_in_bits() const {
+    int64_t size_in_bits() const {
         return (sizeof(is_bitmap) + sdsl::size_in_bytes(bitmap) + element_array.size_in_bytes()) * 8;
     }
 
@@ -231,7 +231,7 @@ public:
         }
     }
 
-    std::size_t serialize(std::ostream& os) const {
+    int64_t serialize(std::ostream& os) const {
         int64_t n_bytes_written = 0;
 
         char flag = is_bitmap;
@@ -244,7 +244,7 @@ public:
         return n_bytes_written;
     }
 
-    void load(std::ifstream& is) {
+    void load(std::istream& is) {
         char flag;
         is.read(&flag, 1);
         is_bitmap = flag;

@@ -29,8 +29,22 @@
 #include "Roaring_Color_Set.hh"
 #include <variant>
 
+template <typename T>
+concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is)
+{
+    { t.size() } -> std::same_as<int64_t>;
+    { t.size_in_bits() } -> std::same_as<int64_t>;
+    { t.contains(int64_t()) } -> std::same_as<bool>;
+    { t.intersection(t) } -> std::same_as<T>;
+    { t.do_union(t) } -> std::same_as<T>;
+    { t.serialize(os) } -> std::same_as<int64_t>;
+    { t.load(is) } -> std::same_as<void>;
+    { t.get_colors_as_vector() } -> std::same_as<std::vector<int64_t>>;
+};
+
+
 // Takes as parameter a class that encodes a single color set
-template<typename colorset_t = Bitmap_Or_Deltas_ColorSet>
+template<typename colorset_t = Bitmap_Or_Deltas_ColorSet> requires Color_Set_Interface<colorset_t>
 class Coloring {
 
 public:

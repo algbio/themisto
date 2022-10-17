@@ -75,12 +75,12 @@ public:
         return v;
     }
 
-    std::size_t size() const {
+    int64_t size() const {
         return roaring.cardinality();
     }
 
 
-    std::size_t size_in_bits() const {
+    int64_t size_in_bits() const {
         return roaring.getSizeInBytes(false) * 8;
     }
 
@@ -97,7 +97,7 @@ public:
         return Roaring_Color_Set(roaring | c.roaring);
     }
 
-    std::size_t serialize(std::ostream& os) const {
+    int64_t serialize(std::ostream& os) const {
         std::size_t expected_size = roaring.getSizeInBytes(false);
         char* serialized_bytes = new char[expected_size];
 
@@ -109,7 +109,7 @@ public:
         return sizeof(std::size_t) + expected_size;
     }
 
-    std::size_t load(std::ifstream& is) {
+    void load(std::istream& is) {
         std::size_t n;
         is.read(reinterpret_cast<char*>(&n), sizeof(std::size_t));
 
@@ -117,7 +117,5 @@ public:
         is.read(serialized_bytes, n);
         roaring = Roaring64Map::read(serialized_bytes, false);
         delete[] serialized_bytes;
-
-        return sizeof(std::size_t) + n;
     }
 };
