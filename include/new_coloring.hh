@@ -32,9 +32,10 @@
 template <typename T>
 concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is)
 {
-    { t.size() } -> std::same_as<int64_t>;
+    { t.empty() } -> std::same_as<bool>; // This should take constant time
+    { t.size() } -> std::same_as<int64_t>; // This may take linear time
     { t.size_in_bits() } -> std::same_as<int64_t>;
-    { t.contains(int64_t()) } -> std::same_as<bool>;
+    { t.contains(int64_t()) } -> std::same_as<bool>; // This may take linear time
     { t.intersection(t) } -> std::same_as<T>;
     { t.do_union(t) } -> std::same_as<T>;
     { t.serialize(os) } -> std::same_as<int64_t>;

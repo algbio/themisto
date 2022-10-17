@@ -74,14 +74,16 @@ public:
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         
         element_array_t size_test(colors);
-        if(size_test.size_in_bytes()*8 > max_color+1){
+        if(colors.size() > 0 && size_test.size_in_bytes()*8 > max_color+1){
             // Bitmap is smaller
+            // Empty sets are never encoded as bit maps because we want a constant-time
+            // check for whether the set is empty.
             is_bitmap = true;
             sdsl::bit_vector bv(max_color+1, 0);
             for(int64_t x : colors) bv[x] = 1;
             bitmap = bv;
         } else{
-            // Delta array is smaller
+            // Delta array is smaller (or set is empty)
             is_bitmap = false;
             element_array = size_test;
         }
@@ -99,13 +101,22 @@ public:
         return vec;
     }
 
+    bool empty() const{
+        if(is_bitmap) return false; // Empty sets are always encoded as sparse
+        else return element_array.empty();
+    }
+
+    // Warning: THIS TAKES LINEAR TIME. If you just need to know if the set is
+    // empty, call empty()
     int64_t size() const {
+        int64_t count = 0;
         if(is_bitmap){
-            int64_t count = 0;
             for(bool b : bitmap) count += b;
-            return count;
         }
-        else return element_array.size();
+        else {
+            for(int64_t x : element_array.get_values()) count++;
+        }
+        return count;
     }
 
 
@@ -170,7 +181,7 @@ public:
     }
 
     sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const element_array_t& ea) const{
-        if(ea.size() == 0) return bm;
+        if(ea.empty() == 0) return bm;
 
         // Decode the integers in the element array
         vector<int64_t> elements;

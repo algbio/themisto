@@ -79,6 +79,10 @@ public:
         return roaring.cardinality();
     }
 
+    bool empty() const{
+        return size() == 0;
+    }
+
 
     int64_t size_in_bits() const {
         return roaring.getSizeInBytes(false) * 8;

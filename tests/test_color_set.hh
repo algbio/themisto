@@ -43,8 +43,6 @@ TEST(TEST_COLOR_SET, sparse){
         bool found = std::find(v.begin(), v.end(), x) != v.end();
         ASSERT_EQ(cs.contains(x), found);
     }
-
-    ASSERT_EQ(cs.size(), v.size());
 }
 
 TEST(TEST_COLOR_SET, dense){
@@ -59,8 +57,6 @@ TEST(TEST_COLOR_SET, dense){
     for(int64_t i = 0; i < 1000 + 10; i++){
         ASSERT_EQ(cs.contains(i), (i < 1000 && i % 3 == 0));
     }
-
-    ASSERT_EQ(cs.size(), v.size());
 }
 
 TEST(TEST_COLOR_SET, sparse_vs_sparse){
@@ -129,6 +125,16 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
     }
 
     ASSERT_EQ(v12_union, correct_union);
+}
+
+TEST(TEST_COLOR_SET, empty){
+    vector<int64_t> v = get_sparse_example();
+
+    Bitmap_Or_Deltas_ColorSet c1(v);
+    Bitmap_Or_Deltas_ColorSet c2;
+
+    ASSERT_FALSE(c1.empty());
+    ASSERT_TRUE(c2.empty());
 }
 
 TEST(TEST_COLOR_SET, dense_serialization){
