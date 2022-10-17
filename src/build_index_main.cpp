@@ -117,7 +117,7 @@ int build_index_main(int argc, char** argv){
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
-        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-fixed\", \"sdsl-delta\" or \"roaring\" ).", cxxopts::value<string>()->default_value("sdsl-delta"))
+        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-fixed\", \"sdsl-hybrid\" or \"roaring\" ).", cxxopts::value<string>()->default_value("sdsl-hybrid"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -214,7 +214,7 @@ int build_index_main(int argc, char** argv){
             coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
             sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
             coloring.serialize(out.stream);
-        } if(C.coloring_structure_type == "sdsl-delta"){
+        } if(C.coloring_structure_type == "sdsl-hybrid"){
             Coloring<Bitmap_Or_Deltas_ColorSet> coloring;
             coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
             sbwt::throwing_ofstream out(C.index_color_file, ios::binary);

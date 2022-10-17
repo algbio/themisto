@@ -263,6 +263,7 @@ public:
 };
 
 
+/*
 class SDSL_Hybrid_Set {
     sdsl::hyb_vector<> data;
 
@@ -335,3 +336,5 @@ public:
     }
 
 };
+
+*/
