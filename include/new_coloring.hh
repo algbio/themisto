@@ -37,7 +37,7 @@ concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is)
     { t.contains(int64_t()) } -> std::same_as<bool>; // This may take linear time
     { t.intersection(t) } -> std::same_as<T>;
     { t.do_union(t) } -> std::same_as<T>;
-    { t.serialize(os) } -> std::same_as<int64_t>;
+    { t.serialize(os) } -> std::same_as<int64_t>; // Returns the number of bytes written
     { t.load(is) } -> std::same_as<void>;
     { t.get_colors_as_vector() } -> std::same_as<std::vector<int64_t>>;
     requires std::constructible_from<T, vector<int64_t>>;
