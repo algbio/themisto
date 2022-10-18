@@ -93,7 +93,7 @@ struct Build_Config{
 };
 
 // A gzipped sequence reader with the possibility to reset the stream (required in color construction)
-// This class exists because seekg(0) function in zstr::ifstream does not seem to work correctly
+// This class exists because seekg(0) function in zstr::ifstream does not seem to work correctly.
 class Gzip_Sequence_Reader_With_Reset{
 
     public:
@@ -133,6 +133,24 @@ class Gzip_Sequence_Reader_With_Reset{
 
 
 };
+
+// Returns filename of a new color file that has one color for each sequence
+template<typename sequence_reader_t>
+string generate_default_colorfile(sequence_reader_t& reader){
+    string colorfile = sbwt::get_temp_file_manager().create_filename();
+    sbwt::Buffered_ofstream<> out(colorfile);
+    stringstream ss;
+    int64_t seq_id = 0;
+    while(true){
+        int64_t len = reader.get_next_read_to_buffer();
+        if(len == 0) break;
+        ss.str(""); ss << seq_id << "\n";
+        out.write(ss.str().data(), ss.str().size());
+        seq_id++;
+    }
+    return colorfile;
+}
+
 
 // Builds and serializes to disk
 template<typename colorset_t> 
@@ -239,7 +257,14 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors && C.colorfile == ""){
         // Automatic colors
         sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
-        C.colorfile = generate_default_colorfile(C.inputfile);
+        if(C.input_format.gzipped){
+            sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(C.inputfile);
+            C.colorfile = generate_default_colorfile(reader);
+        } else{
+            sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
+            C.colorfile = generate_default_colorfile(reader);
+        }
+        
     }
 
     std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;

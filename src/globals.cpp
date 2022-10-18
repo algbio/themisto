@@ -29,24 +29,6 @@ void check_dir_exists(string path){
     }
 }
 
-// Returns filename of a new color file that has one color for each sequence
-string generate_default_colorfile(string inputfile){
-    string colorfile = sbwt::get_temp_file_manager().create_filename();
-    sbwt::Buffered_ofstream<> out(colorfile);
-    sbwt::SeqIO::Reader<> sr(inputfile);
-    stringstream ss;
-    int64_t seq_id = 0;
-    while(true){
-        int64_t len = sr.get_next_read_to_buffer();
-        if(len == 0) break;
-        ss.str(""); ss << seq_id << "\n";
-        out.write(ss.str().data(), ss.str().size());
-        seq_id++;
-    }
-    return colorfile;
-}
-
-
 // We need this function because the standard library stoll function accepts all kinds of crap,
 // such as "123aasfjhk" and "1 2 3 4" as a number. This function check that the string is a valid
 // number and returns that number, or throws an error otherwise.
