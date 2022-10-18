@@ -100,7 +100,7 @@ TEST(COLORING_TESTS, random_testcases){
         Coloring<> coloring;
         Coloring_Builder<> cb;
         sbwt::SeqIO::Reader<> reader(fastafilename);
-        cb.build_coloring(coloring, SBWT, reader, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
+        cb.build_coloring(coloring, SBWT, reader, tcase.seq_id_to_color_id, 2048, 3, rand() % 3, false);
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
@@ -131,7 +131,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     Coloring<color_set_t> c;
     Coloring_Builder<color_set_t> cb;
     sbwt::SeqIO::Reader reader(filename);
-    cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
+    cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3, false);
 
     std::size_t seq_id = 0;
     write_log("Checking colors", LogLevel::MAJOR);

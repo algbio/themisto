@@ -31,6 +31,7 @@ struct Build_Config{
     LL colorset_sampling_distance = 1;
     bool verbose = false;
     bool silent = false;
+    bool reverse_complements = false;
     
     void check_valid(){
         sbwt::check_true(inputfile != "", "Input file not set");
@@ -73,6 +74,7 @@ struct Build_Config{
         if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
         ss << "Index de Bruijn graph output file = " << index_dbg_file << "\n";
         ss << "Index coloring output file = " << index_color_file << "\n";
+        ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Temporary directory = " << temp_dir << "\n";
         ss << "k = " << k << "\n";
         ss << "Number of threads = " << n_threads << "\n";
@@ -159,11 +161,11 @@ void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assig
     if(C.input_format.gzipped){
         Coloring_Builder<colorset_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
         Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
-        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance, C.reverse_complements);
     } else{
         Coloring_Builder<colorset_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
         sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
-        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
+        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance, C.reverse_complements);
     }
     sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
     coloring.serialize(out.stream);
@@ -187,6 +189,7 @@ int build_index_main(int argc, char** argv){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
+        ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<LL>()->default_value("2048"))
@@ -233,6 +236,7 @@ int build_index_main(int argc, char** argv){
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
+    C.reverse_complements = opts["reverse-complements"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -276,7 +280,7 @@ int build_index_main(int argc, char** argv){
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
-        sbwt_config.add_reverse_complements = false;
+        sbwt_config.add_reverse_complements = C.reverse_complements;
         sbwt_config.build_streaming_support = true;
         sbwt_config.input_files = {C.inputfile};
         sbwt_config.k = C.k;
