@@ -68,12 +68,12 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs) get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
 
-    write_log("Loading the index", LogLevel::MAJOR);    
+    write_log("Loading the index", LogLevel::MAJOR);
 
     plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>> coloring;
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>, Coloring<Bit_Magic_Color_Set>> coloring;
     load_coloring(index_color_file, SBWT, coloring);
 
     if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
@@ -82,6 +82,8 @@ int stats_main(int argc, char** argv){
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Fixed_Width_Int_Color_Set>>(coloring))
         write_log("sdsl-fixed coloring structure loaded", LogLevel::MAJOR);
+    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
+        write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
 
     // Helper functions to be able to call member functions of coloring with std::visit.
     // This cleans up the code so that we don't have the branch where we check which
@@ -118,11 +120,11 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs){
         write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
-        
+
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
         sbwt::SeqIO::NullStream null_stream;
-        
+
         auto call_extract_unitigs = [&](auto& obj) {
             UnitigExtractor<decltype(obj)> UE;
             UE.extract_unitigs(dbg, obj, unitigs_out.stream, false, null_stream, null_stream);
@@ -130,7 +132,7 @@ int stats_main(int argc, char** argv){
 
         std::visit(call_extract_unitigs, coloring);
         unitigs_out.close();
-        
+
         LL unitig_count = 0;
         sbwt::SeqIO::Reader<> sr(unitigs_file);
         LL min_unitig_len = 1e18;
@@ -145,12 +147,12 @@ int stats_main(int argc, char** argv){
             unitig_len_sum += len;
         }
 
-        cout << "Min unitig length: " << min_unitig_len << endl;    
+        cout << "Min unitig length: " << min_unitig_len << endl;
         cout << "Max unitig length: " << max_unitig_len << endl;
         cout << "Avg unitig length: " << (double)unitig_len_sum / unitig_count << endl;
 
     }
 
     return 0;
-    
+
 }

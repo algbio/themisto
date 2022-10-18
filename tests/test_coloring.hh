@@ -181,4 +181,7 @@ TEST(COLORING_TESTS, coli3) {
     test_coloring_on_coli3<Fixed_Width_Int_Color_Set>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set>(matrix, filename, seqs, k);
+    write_log("Testing Bit_Magic_Color_Set", LogLevel::MAJOR);
+    test_coloring_on_coli3<Bit_Magic_Color_Set>(matrix, filename, seqs, k);
+
 }

@@ -23,6 +23,7 @@
 #include "test_extract_unitigs.hh"
 #include "test_color_set.hh"
 #include "test_delta_vector.hh"
+#include "test_color_set.hh"
 
 
 int main(int argc, char **argv) {

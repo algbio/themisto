@@ -22,7 +22,7 @@ struct Pseudoalign_Config{
     string index_dbg_file;
     string index_color_file;
     string temp_dir;
-    
+
     bool gzipped_output = false;
     bool reverse_complements = false;
     bool sort_output = false;
@@ -45,17 +45,17 @@ struct Pseudoalign_Config{
             check_writable(outfile);
         }
 
-	if (outfiles.size() == 0 && query_files.size() > 1) {
-	    check_true(query_files.size() == 1, "Can't print results when aligning multiple files; supply " + to_string(query_files.size()) + " outfiles with --out-file-list.");
-	}
-	if (outfiles.size() > 0) {
-	    check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
-	}
+    if (outfiles.size() == 0 && query_files.size() > 1) {
+        check_true(query_files.size() == 1, "Can't print results when aligning multiple files; supply " + to_string(query_files.size()) + " outfiles with --out-file-list.");
+    }
+    if (outfiles.size() > 0) {
+        check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
+    }
 
-	if (sort_output) {
-	    check_true(outfiles.size() > 0, "Can't sort output when printing results");
-	}
-	check_true(temp_dir != "", "Temp directory not set");
+    if (sort_output) {
+        check_true(outfiles.size() > 0, "Can't sort output when printing results");
+    }
+    check_true(temp_dir != "", "Temp directory not set");
         check_dir_exists(temp_dir);
     }
 };
@@ -84,13 +84,13 @@ int pseudoalign_main(int argc, char** argv){
     cxxopts::Options options(argv[0], "This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.\n\nIf the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.\n\n The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.\n\nThe query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq");
 
     options.add_options()
-        ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value("")) 
+        ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value(""))
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
         ("o,out-file", "Output filename. Print results if no output filename is given.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
-        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false")) 
+        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
@@ -116,11 +116,11 @@ int pseudoalign_main(int argc, char** argv){
 
     Pseudoalign_Config C;
     if(opts.count("query-file") && opts["query-file"].as<string>() != "") C.query_files.push_back(opts["query-file"].as<string>());
-    if(opts.count("query-file-list") && opts["query-file-list"].as<string>() != "") 
+    if(opts.count("query-file-list") && opts["query-file-list"].as<string>() != "")
         for(string line : read_lines(opts["query-file-list"].as<string>()))
             C.query_files.push_back(line);
     if(opts.count("out-file") && opts["out-file"].as<string>() != "") C.outfiles.push_back(opts["out-file"].as<string>());
-    if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "") 
+    if(opts.count("out-file-list") && opts["out-file-list"].as<string>() != "")
         for(string line : read_lines(opts["out-file-list"].as<string>()))
             C.outfiles.push_back(line);
     C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
@@ -130,7 +130,7 @@ int pseudoalign_main(int argc, char** argv){
     C.n_threads = opts["n-threads"].as<LL>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
-    C.verbose = opts["verbose"].as<bool>(); 
+    C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
@@ -154,7 +154,10 @@ int pseudoalign_main(int argc, char** argv){
     SBWT.load(C.index_dbg_file);
 
     // Load whichever coloring data structure type is stored on disk
-    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>> coloring;
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>,
+                 Coloring<Roaring_Color_Set>,
+                 Coloring<Fixed_Width_Int_Color_Set>,
+                 Coloring<Bit_Magic_Color_Set>> coloring;
     load_coloring(C.index_color_file, SBWT, coloring);
 
     if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
@@ -163,6 +166,8 @@ int pseudoalign_main(int argc, char** argv){
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Fixed_Width_Int_Color_Set>>(coloring))
         write_log("sdsl-fixed coloring structure loaded", LogLevel::MAJOR);
+    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
+        write_log("bitmagic coloring structure loaded", LogLevel::MAJOR);
 
     for(LL i = 0; i < C.query_files.size(); i++){
         if (C.outfiles.size() > 0) {
@@ -185,6 +190,8 @@ int pseudoalign_main(int argc, char** argv){
             pseudoalign(SBWT, std::get<Coloring<Roaring_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
         if(std::holds_alternative<Coloring<Fixed_Width_Int_Color_Set>>(coloring))
             pseudoalign(SBWT, std::get<Coloring<Fixed_Width_Int_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+        if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
+            pseudoalign(SBWT, std::get<Coloring<Bit_Magic_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
     }
 
     write_log("Finished", LogLevel::MAJOR);

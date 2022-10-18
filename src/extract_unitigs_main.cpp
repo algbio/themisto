@@ -46,24 +46,24 @@ int extract_unitigs_main(int argc, char** argv){
     bool do_colors = (colors_outfile != "") || min_colors > 0;
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
-    
+
     check_readable(index_dbg_file);
     if(do_colors) check_readable(index_color_file);
-    
+
     if(unitigs_outfile == "" && colors_outfile == "" && gfa_outfile == ""){
         throw std::runtime_error("Error: no output files given");
     }
     if (colors_outfile != "" && min_colors != 0) { // Colors may not make sense for --min-colors
-	throw std::runtime_error("Error: Colorset extraction not allowed when --min-colors is given");
+    throw std::runtime_error("Error: Colorset extraction not allowed when --min-colors is given");
     }
-    
+
     // Prepare output streams
 
     sbwt::SeqIO::NullStream null_stream;
     throwing_ofstream unitigs_ofstream;
     throwing_ofstream gfa_ofstream;
     throwing_ofstream colors_ofstream;
-    
+
     ostream* unitigs_out = &null_stream;
     ostream* gfa_out = &null_stream;
     ostream* colors_out = &null_stream;
@@ -86,13 +86,13 @@ int extract_unitigs_main(int argc, char** argv){
     // Start
 
     write_log("Starting", LogLevel::MAJOR);
-    write_log("Loading the index", LogLevel::MAJOR);    
+    write_log("Loading the index", LogLevel::MAJOR);
 
     sbwt::plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>> coloring;
-    if(do_colors){    
+    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>, Coloring<Bit_Magic_Color_Set>> coloring;
+    if(do_colors){
         // Load whichever coloring data structure type is stored on disk
         load_coloring(index_color_file, SBWT, coloring);
     }
@@ -113,8 +113,12 @@ int extract_unitigs_main(int argc, char** argv){
         UnitigExtractor<Coloring<Fixed_Width_Int_Color_Set>> UE;
         UE.extract_unitigs(dbg, std::get<Coloring<Fixed_Width_Int_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
     }
+    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring)){
+        UnitigExtractor<Coloring<Bit_Magic_Color_Set>> UE;
+        UE.extract_unitigs(dbg, std::get<Coloring<Bit_Magic_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+    }
 
 
     return 0;
-    
+
 }

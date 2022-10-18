@@ -29,6 +29,7 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 #include <variant>
+#include "Bit_Magic_Color_Set.hh"
 
 template <typename T>
 concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is){
@@ -457,7 +458,7 @@ public:
 
         if(std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
             string type_id = "sdsl-fixed-v0";
-            bytes_written += sbwt::serialize_string(type_id, os);            
+            bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
             string type_id = "sdsl-hybrid-v1";
             bytes_written += sbwt::serialize_string(type_id, os);
@@ -673,7 +674,7 @@ public:
         sbwt::SeqIO::NullStream ns;
         for(const colorset_t& cs : sets) color_set_total_size += cs.serialize(ns);
         breakdown["distinct-color-sets"] = color_set_total_size;
-        
+
 
         for(auto [component, bytes] : node_id_to_color_set_id.space_breakdown()){
             breakdown["node-id-to-color-set-id-" + component] = bytes;
@@ -687,8 +688,9 @@ public:
 
 // Load whichever coloring data structure type is stored on disk
 // The returned pointer must be eventually freed by the caller with delete
-void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT, 
+void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
-Coloring<Bitmap_Or_Deltas_ColorSet>, 
+Coloring<Bitmap_Or_Deltas_ColorSet>,
 Coloring<Roaring_Color_Set>,
-Coloring<Fixed_Width_Int_Color_Set>>& coloring);
+Coloring<Fixed_Width_Int_Color_Set>,
+Coloring<Bit_Magic_Color_Set>>& coloring);

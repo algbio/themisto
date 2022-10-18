@@ -13,6 +13,7 @@
 #include <cassert>
 #include "sdsl_color_set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
+#include "Bit_Magic_Color_Set.hh"
 
 using namespace sbwt;
 
@@ -49,6 +50,7 @@ TEST(TEST_COLOR_SET, sparse){
     test_sparse_color_set<Bitmap_Or_Deltas_ColorSet>();
     test_sparse_color_set<Fixed_Width_Int_Color_Set>();
     test_sparse_color_set<Roaring_Color_Set>();
+    test_sparse_color_set<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -69,6 +71,7 @@ TEST(TEST_COLOR_SET, dense){
     test_dense_color_set<Bitmap_Or_Deltas_ColorSet>();
     test_dense_color_set<Fixed_Width_Int_Color_Set>();
     test_dense_color_set<Roaring_Color_Set>();
+    test_dense_color_set<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -91,6 +94,7 @@ TEST(TEST_COLOR_SET, sparse_vs_sparse){
     test_sparse_vs_sparse<Bitmap_Or_Deltas_ColorSet>();
     test_sparse_vs_sparse<Fixed_Width_Int_Color_Set>();
     test_sparse_vs_sparse<Roaring_Color_Set>();
+    test_sparse_vs_sparse<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -117,6 +121,7 @@ TEST(TEST_COLOR_SET, dense_vs_dense){
     test_dense_vs_dense<Bitmap_Or_Deltas_ColorSet>();
     test_dense_vs_dense<Fixed_Width_Int_Color_Set>();
     test_dense_vs_dense<Roaring_Color_Set>();
+    test_dense_vs_dense<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -144,6 +149,7 @@ TEST(TEST_COLOR_SET, sparse_vs_dense){
     test_sparse_vs_dense<Bitmap_Or_Deltas_ColorSet>();
     test_sparse_vs_dense<Fixed_Width_Int_Color_Set>();
     test_sparse_vs_dense<Roaring_Color_Set>();
+    test_sparse_vs_dense<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -161,6 +167,7 @@ TEST(TEST_COLOR_SET, empty){
     test_empty_color_set<Bitmap_Or_Deltas_ColorSet>();
     test_empty_color_set<Fixed_Width_Int_Color_Set>();
     test_empty_color_set<Roaring_Color_Set>();
+    test_empty_color_set<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -175,6 +182,7 @@ TEST(TEST_COLOR_SET, dense_serialization){
     test_dense_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
     test_dense_color_set_serialization<Fixed_Width_Int_Color_Set>();
     test_dense_color_set_serialization<Roaring_Color_Set>();
+    test_dense_color_set_serialization<Bit_Magic_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -189,4 +197,5 @@ TEST(TEST_COLOR_SET, sparse_serialization){
     test_sparse_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
     test_sparse_color_set_serialization<Fixed_Width_Int_Color_Set>();
     test_sparse_color_set_serialization<Roaring_Color_Set>();
+    test_sparse_color_set_serialization<Bit_Magic_Color_Set>();
 }
