@@ -242,8 +242,8 @@ void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
     assert(Q.empty());
 }
 
-template<class coloring_t>
-void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, std::string inputfile, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+template<typename coloring_t, typename sequence_reader_t>
+void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
 
     ParallelBaseWriter* out = nullptr;
     if (!outfile.empty()) {
@@ -264,8 +264,7 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
         threads.push_back(T);
     }
 
-    sbwt::SeqIO::Reader<> sr(inputfile);
-    run_dispatcher(threads, sr, buffer_size);
+    run_dispatcher(threads, reader, buffer_size);
 
     // Clean up
     for (DispatcherConsumerCallback* t : threads) delete t;

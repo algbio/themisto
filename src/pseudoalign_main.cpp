@@ -71,7 +71,17 @@ vector<string> read_lines(string filename){
     return lines;
 }
 
-
+// If outputfile is an empty string, prints to stdout
+template<typename coloring_t> 
+void call_pseudoalign(plain_matrix_sbwt_t& SBWT, coloring_t coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
+    if(SeqIO::figure_out_file_format(inputfile).gzipped){
+        SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, 1<<23, C.gzipped_output, C.sort_output); // Buffer size 8 MB
+    } else{
+        SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, 1<<23, C.gzipped_output, C.sort_output); // Buffer size 8 MB
+    }
+}
 
 int pseudoalign_main(int argc, char** argv){
 
@@ -176,22 +186,14 @@ int pseudoalign_main(int argc, char** argv){
             write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
         }
 
-        string inputfile = C.query_files[i];
-        SeqIO::FileFormat format = sbwt::SeqIO::figure_out_file_format(inputfile);
-        if(format.gzipped){
-            string new_name = get_temp_file_manager().create_filename("decompressed-", format.format == SeqIO::FASTA ? ".fna" : ".fastq");
-            check_true(gz_decompress(inputfile, new_name) == Z_OK, "Problem with zlib decompression");
-            inputfile = new_name;
-        }
-
         if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
-            pseudoalign(SBWT, std::get<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+            call_pseudoalign(SBWT, get<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
         if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
-            pseudoalign(SBWT, std::get<Coloring<Roaring_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+            call_pseudoalign(SBWT, get<Coloring<Roaring_Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
         if(std::holds_alternative<Coloring<Fixed_Width_Int_Color_Set>>(coloring))
-            pseudoalign(SBWT, std::get<Coloring<Fixed_Width_Int_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+            call_pseudoalign(SBWT, get<Coloring<Fixed_Width_Int_Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
         if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
-            pseudoalign(SBWT, std::get<Coloring<Bit_Magic_Color_Set>>(coloring), C.n_threads, inputfile, (C.outfiles.size() > 0 ? C.outfiles[i] : ""), C.reverse_complements, 1<<20, C.gzipped_output, C.sort_output); // Buffer size 1 MB
+            call_pseudoalign(SBWT, get<Coloring<Bit_Magic_Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
     }
 
     write_log("Finished", LogLevel::MAJOR);

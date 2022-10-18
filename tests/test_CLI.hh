@@ -128,7 +128,6 @@ TEST_F(CLI_TEST, build_colors_separately){
 }
 
 TEST_F(CLI_TEST, gzip_input_in_building){
-
     // Create a gzipped file
 
     string gzip_outfile = get_temp_file_manager().create_filename("", ".fna.gz");

@@ -7,6 +7,7 @@
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
 #include "pseudoalign.hh"
+#include "zstr.hpp"
 #include "test_tools.hh"
 #include "setup_tests.hh"
 #include <gtest/gtest.h>
@@ -140,6 +141,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
 
         string genomes_outfilename = sbwt::get_temp_file_manager().create_filename("genomes-",".fna");
         string queries_outfilename = sbwt::get_temp_file_manager().create_filename("queries-",".fna");
+        string queries_gzip_outfilename = sbwt::get_temp_file_manager().create_filename("queries-",".fna.gz");
         string colorfile_outfilename = sbwt::get_temp_file_manager().create_filename("colorfile-",".txt");
         string index_prefix = sbwt::get_temp_file_manager().get_dir() + "/test_index";
 
@@ -156,10 +158,14 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         colors_out.close();
 
         sbwt::throwing_ofstream queries_out(queries_outfilename);
+        
+        zstr::ofstream* queries_out_gzip = new zstr::ofstream(queries_gzip_outfilename);
         for(string query : tcase.queries){
             queries_out << ">\n" << query << "\n";
+            *queries_out_gzip << ">\n" << query << "\n";
         }
         queries_out.close();
+        delete queries_out_gzip; // Flushes the stream
 
         stringstream build_argstring;
         build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
@@ -186,6 +192,15 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
 
         vector<set<LL> > our_results_rc = parse_pseudoalignment_output_format_from_disk(final_file_rc);
 
+        // Run with gzipped input
+        string final_file_gzip = get_temp_file_manager().create_filename("finalfile_gzip-");
+        stringstream pseudoalign_gzip_argstring;
+        pseudoalign_gzip_argstring << "pseudoalign -q " << queries_gzip_outfilename << " -i " << index_prefix << " -o " << final_file_gzip << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        Argv pseudoalign_gzip_argv(split(pseudoalign_gzip_argstring.str()));
+        ASSERT_EQ(pseudoalign_main(pseudoalign_gzip_argv.size, pseudoalign_gzip_argv.array),0);
+
+        vector<set<LL> > our_results_gzip = parse_pseudoalignment_output_format_from_disk(final_file_gzip);
+
         for(LL i = 0; i < tcase.queries.size(); i++){
             string query = tcase.queries[i];
 
@@ -193,9 +208,9 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
             set<LL> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
 
             logger << brute << endl << brute_rc << "-" << endl;
-            //cout << testcase_id << " " << i << " " << query << endl;
 
             ASSERT_EQ(brute, our_results[i]);
+            ASSERT_EQ(brute, our_results_gzip[i]);
             ASSERT_EQ(brute_rc, our_results_rc[i]);
         }
     }
