@@ -9,6 +9,7 @@
 #include "globals.hh"
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
+#include "Coloring_Builder.hh"
 
 using namespace std;
 typedef long long LL;
@@ -90,6 +91,16 @@ struct Build_Config{
         return ss.str();
     }
 };
+
+// Builds and serializes to disk
+template<typename colorset_t> 
+void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
+    Coloring<colorset_t> coloring;
+    Coloring_Builder<colorset_t> cb;
+    cb.build_coloring(coloring, dbg, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+    sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
+    coloring.serialize(out.stream);
+}
 
 int build_index_main(int argc, char** argv){
 
@@ -208,27 +219,16 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
+
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
         if(C.coloring_structure_type == "sdsl-fixed"){
-            Coloring<Fixed_Width_Int_Color_Set> coloring;
-            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
-            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-            coloring.serialize(out.stream);
+            build_coloring<Fixed_Width_Int_Color_Set>(*dbg_ptr, color_assignment, C);
         } if(C.coloring_structure_type == "sdsl-hybrid"){
-            Coloring<Bitmap_Or_Deltas_ColorSet> coloring;
-            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
-            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-            coloring.serialize(out.stream);
+            build_coloring<Bitmap_Or_Deltas_ColorSet>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "roaring"){
-            Coloring<Roaring_Color_Set> coloring;
-            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
-            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-            coloring.serialize(out.stream);
+            build_coloring<Roaring_Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "bitmagic"){
-            Coloring<Bit_Magic_Color_Set> coloring;
-            coloring.add_colors(*dbg_ptr, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
-            sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
-            coloring.serialize(out.stream);
+            build_coloring<Bit_Magic_Color_Set>(*dbg_ptr, color_assignment, C);
         }
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it

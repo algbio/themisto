@@ -9,6 +9,7 @@
 #include "sbwt/SBWT.hh"
 #include "sbwt/globals.hh"
 #include "new_coloring.hh"
+#include "Coloring_Builder.hh"
 
 // Testcase: put in a couple of reference sequences, sweep different k. For each k-mer,
 // ask what is the color set of that k-mer. It should coincide with the reads that contain
@@ -96,8 +97,9 @@ TEST(COLORING_TESTS, random_testcases){
         plain_matrix_sbwt_t SBWT;
         build_nodeboss_in_memory<plain_matrix_sbwt_t>(tcase.references, SBWT, tcase.k, true);
 
-        Coloring coloring;
-        coloring.add_colors(SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
+        Coloring<> coloring;
+        Coloring_Builder<> cb;
+        cb.build_coloring(coloring, SBWT, fastafilename, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
 
         for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
@@ -126,7 +128,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 
     Coloring<color_set_t> c;
-    c.add_colors(matrix, filename, colors, 1<<30, 3, 3);
+    Coloring_Builder<color_set_t> cb;
+    cb.build_coloring(c, matrix, filename, colors, 1<<30, 3, 3);
 
     std::size_t seq_id = 0;
     write_log("Checking colors", LogLevel::MAJOR);
