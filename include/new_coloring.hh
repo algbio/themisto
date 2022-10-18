@@ -29,7 +29,7 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 #include <variant>
-#include "Bit_Magic_Color_Set.hh"
+#include "bit_magic_color_set.hh"
 
 template <typename T>
 concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is){
@@ -465,7 +465,10 @@ public:
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
             bytes_written += sbwt::serialize_string(type_id, os);
-        } else{
+        } else if(std::is_same<colorset_t, Bit_Magic_Color_Set>::value){
+            string type_id = "bitmagic-v0";
+            bytes_written += sbwt::serialize_string(type_id, os);
+        }  else{
             throw std::runtime_error("Unsupported color set template");
         }
 
@@ -504,6 +507,10 @@ public:
             }
         } else if(type_id == "roaring-v0"){
             if(!std::is_same<colorset_t, Roaring_Color_Set>::value){
+                throw WrongTemplateParameterException();
+            }
+        } else if(type_id == "bitmagic-v0"){
+            if(!std::is_same<colorset_t, Bit_Magic_Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
         } else{

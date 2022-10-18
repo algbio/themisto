@@ -13,7 +13,7 @@
 #include <cassert>
 #include "sdsl_color_set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
-#include "Bit_Magic_Color_Set.hh"
+#include "bit_magic_color_set.hh"
 
 using namespace sbwt;
 
