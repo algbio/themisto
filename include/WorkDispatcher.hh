@@ -147,6 +147,59 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
-void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sbwt::SeqIO::Reader<>& sr, int64_t buffer_size);
+template<typename sequence_reader_t>
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t& sr, int64_t batch_size){
+    // Push work in batches of approximately buffer_size base pairs
 
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sbwt::SeqIO::Reader<>& sr, LL buffer_size);
+    LL read_id = 0;
+    ReadBatch* batch = new ReadBatch(); // Deleted by consumer
+
+    while(true){
+        // Create a new read batch and push it to the work queue
+
+        LL len = sr.get_next_read_to_buffer();
+        if(len == 0){
+            // All reads read. Push the current batch if it's non-empty and quit
+            if(batch->data.size() > 0) {
+                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
+                Q.push(batch, batch->data.size());
+                batch = new ReadBatch(); // Clear
+            }
+            break; // quit
+        } else{
+            // Add read to batch
+            if(batch->data.size() == 0) batch->firstReadID = read_id;
+            batch->readStarts.push_back(batch->data.size());   
+            for(LL i = 0; i < len; i++) batch->data.push_back(sr.read_buf[i]);
+            if(batch->data.size() >= batch_size){
+                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
+                Q.push(batch, batch->data.size());
+                batch = new ReadBatch(); // Clear
+            }
+            read_id++;
+        }
+    }
+    
+    batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
+    Q.push(batch,0); // Empty batch in the end signifies end of the queue
+}
+
+template<typename sequence_reader_t>
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_reader_t& sr, LL buffer_size){
+    vector<std::thread> threads;
+    ParallelBoundedQueue<ReadBatch*> Q(buffer_size);
+
+    // Create consumers
+    for(int64_t i = 0; i < callbacks.size(); i++){
+        threads.push_back(std::thread(dispatcher_consumer,std::ref(Q),callbacks[i], i));
+    }
+
+    // Create producer
+    threads.push_back(std::thread(dispatcher_producer<sequence_reader_t>,std::ref(Q),std::ref(sr),buffer_size));
+
+    for(std::thread& t : threads) t.join();
+
+    for(int64_t i = 0; i < callbacks.size(); i++){
+        callbacks[i]->finish();
+    }
+}

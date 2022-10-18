@@ -422,7 +422,7 @@ private:
         coloring.index_ptr = &index;
 
         write_log("Marking core kmers", LogLevel::MAJOR);
-        core_kmer_marker ckm;
+        core_kmer_marker<sequence_reader_t> ckm;
         ckm.mark_core_kmers(sequence_reader, index);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
 
