@@ -97,7 +97,8 @@ template<typename colorset_t>
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
     Coloring<colorset_t> coloring;
     Coloring_Builder<colorset_t> cb;
-    cb.build_coloring(coloring, dbg, C.inputfile, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+    sbwt::SeqIO::Reader reader(C.inputfile);
+    cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
     coloring.serialize(out.stream);
 }

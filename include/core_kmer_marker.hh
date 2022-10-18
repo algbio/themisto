@@ -26,6 +26,7 @@ using namespace sbwt;
     its successor in the graph (the successor exists due to case 2 and is unique due to case 4).
 */
 
+template<typename sequence_reader_t = SeqIO::Reader<>>
 class core_kmer_marker {
     static constexpr char int_to_dna[] = { 'A', 'C', 'G', 'T' };
 public:
@@ -35,12 +36,12 @@ public:
 
     core_kmer_marker(const std::size_t sz) : core_kmer_marks(sz, 0) {}
 
-    std::size_t mark_core_kmers(const std::string& fasta_file, const plain_matrix_sbwt_t& index) {
+    std::size_t mark_core_kmers(sequence_reader_t& reader, const plain_matrix_sbwt_t& index) {
         std::size_t total_core_count = 0;
         sdsl::util::assign(core_kmer_marks, sdsl::bit_vector(index.number_of_subsets(), 0));
 
         write_log("Handling cases one and two", LogLevel::MAJOR);
-        total_core_count += handle_case_one_and_two(fasta_file, index);
+        total_core_count += handle_case_one_and_two(reader, index);
         write_log("Handling case three", LogLevel::MAJOR);
         total_core_count += handle_case_three(index);
         write_log("Handling case four", LogLevel::MAJOR);
@@ -49,12 +50,11 @@ public:
         return total_core_count;
     }
 
-    inline std::size_t handle_case_one_and_two(const std::string& fasta_file, const plain_matrix_sbwt_t& index) {
+    inline std::size_t handle_case_one_and_two(sequence_reader_t& reader, const plain_matrix_sbwt_t& index) {
         const std::size_t n = index.number_of_subsets();
         const auto k = index.get_k();
         const auto& rank_structure = index.get_subset_rank_structure();
         const auto& C_array = index.get_C_array();
-        SeqIO::Reader<> reader(fasta_file);
 
         std::size_t cores = 0;
 

@@ -111,7 +111,7 @@ public:
             for(bool b : bitmap) count += b;
         }
         else {
-            for(int64_t x : element_array.get_values()) count++;
+            count += element_array.get_values().size();
         }
         return count;
     }

@@ -27,7 +27,9 @@
 #include "Fixed_Width_Int_Color_Set.hh"
 #include "bit_magic_color_set.hh"
 
-template<typename colorset_t = Bitmap_Or_Deltas_ColorSet> requires Color_Set_Interface<colorset_t> 
+template<typename colorset_t = Bitmap_Or_Deltas_ColorSet,
+         typename sequence_reader_t = sbwt::SeqIO::Reader<>> 
+         requires Color_Set_Interface<colorset_t>
 class Coloring_Builder{
 
 private:
@@ -75,6 +77,7 @@ private:
         virtual void callback(const char* S,
                               LL S_size,
                               int64_t string_id) {
+
             const std::int64_t color = seq_id_to_color_id.at(string_id);
             const std::size_t k = index.get_k();
 
@@ -106,7 +109,7 @@ private:
 
     // Return the filename of the generated node-color pairs, and the largest color id
     pair<std::string, int64_t> get_node_color_pairs(const plain_matrix_sbwt_t& index,
-                                     const std::string& fasta_file,
+                                     sequence_reader_t& reader,
                                      const std::vector<std::int64_t>& seq_id_to_color_id,
                                      const sdsl::bit_vector& cores,
                                      const std::size_t n_threads) {
@@ -124,7 +127,6 @@ private:
             threads.push_back(T);
         }
 
-        sbwt::SeqIO::Reader<> reader(fasta_file);
         run_dispatcher(threads, reader, 1024*1024);
 
         std::vector<std::int64_t> largest_color_ids;
@@ -411,7 +413,7 @@ private:
     void build_coloring(
                     Coloring<colorset_t>& coloring,
                     const plain_matrix_sbwt_t& index,
-                    const std::string fastafile,
+                    sequence_reader_t& sequence_reader, 
                     const std::vector<std::int64_t>& colors_assignments,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,
@@ -421,12 +423,14 @@ private:
 
         write_log("Marking core kmers", LogLevel::MAJOR);
         core_kmer_marker ckm;
-        ckm.mark_core_kmers(fastafile, index);
+        ckm.mark_core_kmers(sequence_reader, index);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
+
+        sequence_reader.rewind_to_start(); // Need this reader again for node-colors pairs
 
         write_log("Getting node color pairs", LogLevel::MAJOR);
         std::string node_color_pairs; int64_t largest_color_id;
-        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, fastafile, colors_assignments, cores, n_threads);
+        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, sequence_reader, colors_assignments, cores, n_threads);
         coloring.largest_color_id = largest_color_id;
 
         write_log("Sorting node color pairs", LogLevel::MAJOR);
