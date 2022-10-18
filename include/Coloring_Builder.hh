@@ -43,28 +43,19 @@ private:
         const plain_matrix_sbwt_t& index;
         const sdsl::bit_vector& cores;
         std::int64_t largest_color_id = 0;
-        bool reverse_complements;
-
-        vector<char> rc_buffer;
-        int64_t rc_buffer_cap;
 
     public:
         ColorPairAlignerThread(const std::vector<std::int64_t>& seq_id_to_color_id,
                       ParallelBinaryOutputWriter& out,
                       const std::size_t output_buffer_max_size,
                       const plain_matrix_sbwt_t& index,
-                      const sdsl::bit_vector& cores,
-                      bool reverse_complements) :
+                      const sdsl::bit_vector& cores) :
             seq_id_to_color_id(seq_id_to_color_id),
             out(out),
             output_buffer_max_size(output_buffer_max_size),
             index(index),
-            cores(cores),
-            reverse_complements(reverse_complements),
-            rc_buffer_cap(256) {
-
+            cores(cores) {
             output_buffer = new char[output_buffer_max_size];
-            rc_buffer.resize(rc_buffer_cap);
         }
 
         ColorPairAlignerThread(const ColorPairAlignerThread&) = delete;
@@ -92,34 +83,11 @@ private:
 
             write_log("Adding colors for sequence " + std::to_string(string_id), LogLevel::MINOR);
             if (S_size >= k) {
-                vector<int64_t> res = index.streaming_search(S, S_size);
-                for (int64_t node : res) {
+                const auto res = index.streaming_search(S, S_size);
+                for (const auto node : res) {
                     if (node >= 0 && cores[node] == 1) {
                         write(node, color);
                         largest_color_id = std::max(largest_color_id, color);
-                    }
-                }
-
-                if(reverse_complements){
-
-                    // Buffer size maintatence
-                    while(S_size > rc_buffer_cap){
-                        rc_buffer_cap *= 2;
-                        rc_buffer.resize(rc_buffer_cap);
-                    }
-
-                    // Create the reverse complement into the buffer
-                    for(int64_t i = 0; i < S_size; i++){
-                        rc_buffer[i] = get_rc(S[S_size-1-i]);
-                    }
-
-                    // Search
-                    vector<int64_t> rc_res = index.streaming_search(rc_buffer.data(), S_size);
-                    for (int64_t node : rc_res) {
-                        if (node >= 0 && cores[node] == 1) {
-                            write(node, color);
-                            largest_color_id = std::max(largest_color_id, color);
-                        }
                     }
                 }
             }
@@ -144,8 +112,7 @@ private:
                                      sequence_reader_t& reader,
                                      const std::vector<std::int64_t>& seq_id_to_color_id,
                                      const sdsl::bit_vector& cores,
-                                     const std::size_t n_threads,
-                                     bool reverse_complements) {
+                                     const std::size_t n_threads) {
         const std::string outfile = get_temp_file_manager().create_filename();
 
         ParallelBinaryOutputWriter writer(outfile);
@@ -156,8 +123,7 @@ private:
                                                  writer,
                                                  1024*1024,
                                                  index,
-                                                 cores,
-                                                 reverse_complements);
+                                                 cores);
             threads.push_back(T);
         }
 
@@ -451,21 +417,20 @@ private:
                     const std::vector<std::int64_t>& colors_assignments,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,
-                    int64_t colorset_sampling_distance,
-                    bool reverse_complements) {
+                    int64_t colorset_sampling_distance) {
 
         coloring.index_ptr = &index;
 
         write_log("Marking core kmers", LogLevel::MAJOR);
         core_kmer_marker<sequence_reader_t> ckm;
-        ckm.mark_core_kmers(sequence_reader, index, reverse_complements);
+        ckm.mark_core_kmers(sequence_reader, index);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
 
         sequence_reader.rewind_to_start(); // Need this reader again for node-colors pairs
 
         write_log("Getting node color pairs", LogLevel::MAJOR);
         std::string node_color_pairs; int64_t largest_color_id;
-        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, sequence_reader, colors_assignments, cores, n_threads, reverse_complements);
+        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, sequence_reader, colors_assignments, cores, n_threads);
         coloring.largest_color_id = largest_color_id;
 
         write_log("Sorting node color pairs", LogLevel::MAJOR);

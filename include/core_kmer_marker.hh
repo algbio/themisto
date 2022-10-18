@@ -36,12 +36,12 @@ public:
 
     core_kmer_marker(const std::size_t sz) : core_kmer_marks(sz, 0) {}
 
-    std::size_t mark_core_kmers(sequence_reader_t& reader, const plain_matrix_sbwt_t& index, bool reverse_complements) {
+    std::size_t mark_core_kmers(sequence_reader_t& reader, const plain_matrix_sbwt_t& index) {
         std::size_t total_core_count = 0;
         sdsl::util::assign(core_kmer_marks, sdsl::bit_vector(index.number_of_subsets(), 0));
 
         write_log("Handling cases one and two", LogLevel::MAJOR);
-        total_core_count += handle_case_one_and_two(reader, index, reverse_complements);
+        total_core_count += handle_case_one_and_two(reader, index);
         write_log("Handling case three", LogLevel::MAJOR);
         total_core_count += handle_case_three(index);
         write_log("Handling case four", LogLevel::MAJOR);
@@ -50,7 +50,7 @@ public:
         return total_core_count;
     }
 
-    inline std::size_t handle_case_one_and_two(sequence_reader_t& reader, const plain_matrix_sbwt_t& index, bool reverse_complements){
+    inline std::size_t handle_case_one_and_two(sequence_reader_t& reader, const plain_matrix_sbwt_t& index) {
         const std::size_t n = index.number_of_subsets();
         const auto k = index.get_k();
         const auto& rank_structure = index.get_subset_rank_structure();
@@ -61,16 +61,7 @@ public:
         sdsl::bit_vector first_kmer_marks(n, 0);
         std::size_t read_len = 0;
         while ((read_len = reader.get_next_read_to_buffer()) > 0) {
-
-            vector<string> parts = split_at_non_ACGT(reader.read_buf, read_len);
-            if(reverse_complements){
-                int64_t n_parts = parts.size();
-                for(int64_t i = 0; i < n_parts; i++){
-                    parts.push_back(get_rc(parts[i]));
-                }
-            }
-
-            for(const string& part : parts){
+            for(const string& part : split_at_non_ACGT(reader.read_buf, read_len)){
                 if (part.size() >= k) {
                     // End of a sequence
                     const std::size_t last_kmer_idx = index.search(part.substr(part.size() - k));
