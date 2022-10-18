@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "sbwt/stdlib_printing.hh"
+#include "sbwt/SeqIO.hh"
 #include "globals.hh"
 #include "sbwt/globals.hh"
 #include "setup_tests.hh"
@@ -122,6 +123,33 @@ TEST_F(CLI_TEST, build_colors_separately){
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], colors[seq_id]);
+        }
+    }
+}
+
+TEST_F(CLI_TEST, gzip_input_in_building){
+
+    // Create a gzipped file
+
+    string gzip_outfile = get_temp_file_manager().create_filename("", ".fna.gz");
+    { // Artifical scope to make the gz writer go out of scope to flush the stream. The flush method in the class does not actually flush
+        sbwt::SeqIO::Writer<zstr::ofstream> gzip_out(gzip_outfile);
+        for(string seq : seqs){
+            gzip_out.write_sequence(seq.c_str(), seq.size());
+        }
+    }
+
+    vector<string> args = {"build", "-k", to_string(k), "-i", gzip_outfile, "-o", indexprefix, "--temp-dir", tempdir};
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+    load_sbwt_and_coloring(SBWT, coloring, indexprefix);
+    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+        for(string kmer : get_all_kmers(seqs[seq_id], k)){
+            LL node = SBWT.search(kmer);
+            vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], seq_id);
         }
     }
 }
