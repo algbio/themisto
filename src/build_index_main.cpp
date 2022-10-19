@@ -327,7 +327,6 @@ int build_index_main(int argc, char** argv){
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
-        sbwt_config.add_reverse_complements = C.reverse_complements;
         sbwt_config.build_streaming_support = true;
         sbwt_config.input_files = {C.inputfile};
         sbwt_config.k = C.k;
