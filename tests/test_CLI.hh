@@ -42,9 +42,9 @@ class CLI_TEST : public ::testing::Test {
     string fastafile, indexprefix, tempdir, colorfile;
 
     void SetUp() override {
-        seqs = {"AACCGGTT", "ACGTACGT", "ATATATAT"};
+        seqs = {"AACCGGTTA", "ACGTACGTG", "ATATGACATG"};
         colors = {3,1,2};
-        k = 3;
+        k = 6;
         CLI_test_files f(seqs,colors);
         fastafile = f.fastafile;
         indexprefix = f.indexprefix;
@@ -70,6 +70,33 @@ TEST_F(CLI_TEST, auto_colors){
     for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
             LL node = SBWT.search(kmer);
+            vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], seq_id);
+        }
+    }
+}
+
+TEST_F(CLI_TEST, reverse_complement_construction_with_auto_colors){
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements"};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+    load_sbwt_and_coloring(SBWT, coloring, indexprefix);
+    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+        for(string kmer : get_all_kmers(seqs[seq_id], k)){
+            LL node = SBWT.search(kmer);
+            ASSERT_GE(node, 0);
+            vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], seq_id);
+        }
+        
+        string rc = get_reverse_complement(seqs[seq_id]);
+        for(string kmer : get_all_kmers(rc, k)){
+            LL node = SBWT.search(kmer);
+            ASSERT_GE(node, 0);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], seq_id);

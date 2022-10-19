@@ -309,5 +309,10 @@ void sigabrt_handler(int sig) {
     exit(1);
 }
 
+string get_reverse_complement(const std::string& S){
+    return sbwt::get_rc(S);
+}
+
+
 auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the SIGINT handler
 auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler

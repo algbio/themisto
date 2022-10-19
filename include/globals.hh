@@ -26,6 +26,7 @@ vector<string> split(string text, char delimiter);
 vector<string> split(const char* text, char delimiter);
 
 void reverse_complement_c_string(char* S, int64_t len);
+string get_reverse_complement(const std::string& S);
 
 bool files_are_equal(const std::string& p1, const std::string& p2);
 
