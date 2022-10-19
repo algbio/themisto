@@ -119,13 +119,18 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     public:
 
-    const New_Hybrid_Color_Set& get_color_set_by_id(int64_t id) const{
+    New_Hybrid_Color_Set get_color_set_by_id(int64_t id) const{
         if(is_bitmap_marks[id]){
             int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
             int64_t start = bitmap_sizes.sum(bitmap_idx);
             int64_t end = bitmap_sizes.sum(bitmap_idx+1); // One past the end
-            const sdsl::bit_vector* ptr = &bitmap_concat;
-            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = ptr;
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &bitmap_concat;
+            return New_Hybrid_Color_Set(start, end-start, data_ptr);
+        } else{
+            int64_t bitmap_idx = id - is_bitmap_marks_rs.rank(id); // Rank-0. This many delta arrays come before this bitmap
+            int64_t start = deltas_sizes.sum(bitmap_idx);
+            int64_t end = deltas_sizes.sum(bitmap_idx+1); // One past the end
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &deltas_concat;
             return New_Hybrid_Color_Set(start, end-start, data_ptr);
         }
     }
