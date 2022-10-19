@@ -24,6 +24,7 @@
 #include "test_color_set.hh"
 #include "test_delta_vector.hh"
 #include "test_color_set.hh"
+#include "test_new_new_coloring.hh"
 
 
 int main(int argc, char **argv) {
