@@ -64,7 +64,7 @@ public:
         return sets[id];
     }
 
-    // Need to call all_sets_have_been_added() after all sets have been added
+    // Need to call prepare_for_queries() after all sets have been added
     void add_set(const vector<int64_t>& set){
         sets.push_back(set);
     }
