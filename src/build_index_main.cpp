@@ -104,6 +104,7 @@ class Gzip_Sequence_Reader_With_Reset{
         char* read_buf;
         int64_t read_buf_len;
         string filename;
+        bool reverse_complements = true;
 
         Gzip_Sequence_Reader_With_Reset(string filename) : filename(filename){
             reader = new SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>(filename);
@@ -124,12 +125,14 @@ class Gzip_Sequence_Reader_With_Reset{
         }
 
         void enable_reverse_complements(){
+            reverse_complements = true;
             reader->enable_reverse_complements();
         }
 
         void rewind_to_start(){
             delete(reader);
             reader = new SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>(filename);
+            if(reverse_complements) reader->enable_reverse_complements();
         }
 
         ~Gzip_Sequence_Reader_With_Reset(){
