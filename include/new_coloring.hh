@@ -30,6 +30,7 @@
 #include "Fixed_Width_Int_Color_Set.hh"
 #include <variant>
 #include "bit_magic_color_set.hh"
+#include "new_new_coloring.hh"
 
 template <typename T>
 concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is){
