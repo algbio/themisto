@@ -15,7 +15,7 @@ class Bit_Magic_Color_Set {
 public:
     Bit_Magic_Color_Set() {}
 
-    Bit_Magic_Color_Set(const std::vector<unsigned char>& vec) vec(vec) {}
+    Bit_Magic_Color_Set(const std::vector<unsigned char>& vec) : vec(vec) {}
 
     Bit_Magic_Color_Set(bm::bvector<> bv) {
         bv.optimize();
