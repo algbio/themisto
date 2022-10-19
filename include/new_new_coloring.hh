@@ -141,7 +141,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     }
 
     int64_t serialize(ostream& os) const{
-        int64_t byte_written = 0;
+        int64_t bytes_written = 0;
 
         bytes_written += bitmap_concat.serialize(os);;
         bytes_written += bitmap_unary_sizes.serialize(os);; // In units of bits
@@ -164,14 +164,15 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     void load(istream& is){
         bitmap_concat.load(is);
         bitmap_unary_sizes.load(is);
-        bitmap_unary_sizes_rs.load(is);
-        bitmap_unary_sizes_ss.load(is);
         deltas_concat.load(is);
         deltas_unary_sizes.load(is);
-        deltas_unary_sizes_rs.load(is);
-        deltas_unary_sizes_ss.load(is);
         is_bitmap_marks.load(is);
-        is_bitmap_marks_rs.load(is);
+
+        bitmap_unary_sizes_rs.load(is, &bitmap_unary_sizes);
+        bitmap_unary_sizes_ss.load(is, &bitmap_unary_sizes);
+        deltas_unary_sizes_rs.load(is, &deltas_unary_sizes);
+        deltas_unary_sizes_ss.load(is, &deltas_unary_sizes);
+        is_bitmap_marks_rs.load(is, &is_bitmap_marks);
 
         // Do not load temp structures
     }
@@ -182,7 +183,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     vector<New_Hybrid_Color_Set> get_all_sets() const{
         vector<New_Hybrid_Color_Set> all;
-        for(int64_t i = 0; i < number_of_sets_stored; i++){
+        for(int64_t i = 0; i < number_of_sets_stored(); i++){
             all.push_back(get_color_set_by_id(i));
         }
         return all;
