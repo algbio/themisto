@@ -104,6 +104,33 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_auto_colors){
     }
 }
 
+TEST_F(CLI_TEST, reverse_complement_construction_with_colorfile){
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--color-file", colorfile,};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+    load_sbwt_and_coloring(SBWT, coloring, indexprefix);
+    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+        for(string kmer : get_all_kmers(seqs[seq_id], k)){
+            LL node = SBWT.search(kmer);
+            ASSERT_GE(node, 0);
+            vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], colors[seq_id]);
+        }
+        
+        string rc = get_reverse_complement(seqs[seq_id]);
+        for(string kmer : get_all_kmers(rc, k)){
+            LL node = SBWT.search(kmer);
+            ASSERT_GE(node, 0);
+            vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
+            ASSERT_EQ(colorset.size(), 1);
+            ASSERT_EQ(colorset[0], colors[seq_id]);
+        }
+    }
+}
+
 // If --no-colors is given, should not build colors. Also check that giving both --auto-colors and --color-file throws.
 TEST_F(CLI_TEST, no_colors){
     vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
