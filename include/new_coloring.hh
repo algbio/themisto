@@ -82,7 +82,7 @@ public:
             string type_id = "sdsl-fixed-v0";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
-            string type_id = "sdsl-hybrid-v1";
+            string type_id = "sdsl-hybrid-v2";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
@@ -123,7 +123,7 @@ public:
             if(!std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
-        }  else if(type_id == "sdsl-hybrid-v1"){
+        }  else if(type_id == "sdsl-hybrid-v2"){
             if(!std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
                 throw WrongTemplateParameterException();
             }

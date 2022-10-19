@@ -53,7 +53,7 @@ public:
 
     sdsl::bit_vector bitmap;
 
-    Delta_Vector element_array; // Todo: possibility of encoding deltas between non-existent colors
+    Fixed_Width_Delta_Vector element_array; // Todo: possibility of encoding deltas between non-existent colors
 
     Bitmap_Or_Deltas_ColorSet() : is_bitmap(false){}
 
