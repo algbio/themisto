@@ -46,13 +46,76 @@ concept Color_Set_Interface = requires(T& t, std::ostream& os, std::istream& is)
     requires std::default_initializable<T>;
 };
 
+template<typename color_set_t>
+class Color_Set_Storage{
+
+private:
+
+    vector<color_set_t> sets;
+
+public:
+
+    Color_Set_Storage(){}
+    Color_Set_Storage(const vector<color_set_t>& sets) : sets(sets) {
+        prepare_for_queries();
+    }
+
+    const color_set_t& get_color_set_by_id(int64_t id) const{
+        return sets[id];
+    }
+
+    // Need to call all_sets_have_been_added() after all sets have been added
+    void add_set(const vector<int64_t>& set){
+        sets.push_back(set);
+    }
+
+    // Call this after done with add_set
+    void prepare_for_queries(){
+        sets.shrink_to_fit();
+    }
+
+    int64_t serialize(ostream& os) const{
+        int64_t bytes_written = 0;
+        std::size_t n_sets = sets.size();
+        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+        bytes_written += sizeof(std::size_t);
+
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            bytes_written += sets[i].serialize(os);
+        }
+        return bytes_written;
+    }
+
+    void load(istream& is){
+        std::size_t n_sets = 0;
+        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
+
+        sets.resize(n_sets);
+        for (std::size_t i = 0; i < n_sets; ++i) {
+            color_set_t cs;
+            cs.load(is);
+            sets[i] = cs;
+        }
+    }
+
+    int64_t number_of_sets_stored() const{
+        return sets.size();
+    }
+
+    vector<color_set_t> get_all_sets() const{
+        return sets;
+    }
+
+};
+
+
 // Takes as parameter a class that encodes a single color set
 template<typename colorset_t = Bitmap_Or_Deltas_ColorSet> requires Color_Set_Interface<colorset_t>
 class Coloring {
 
 private:    
 
-    std::vector<colorset_t> sets;
+    Color_Set_Storage<colorset_t> sets;
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
@@ -94,14 +157,7 @@ public:
             throw std::runtime_error("Unsupported color set template");
         }
 
-        std::size_t n_sets = sets.size();
-        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-        bytes_written += sizeof(std::size_t);
-
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            bytes_written += sets[i].serialize(os);
-        }
-
+        bytes_written += sets.serialize(os);
         bytes_written += node_id_to_color_set_id.serialize(os);
 
         os.write((char*)&largest_color_id, sizeof(largest_color_id));
@@ -139,16 +195,7 @@ public:
             throw std::runtime_error("Unknown color set type:" + type_id);
         }
 
-        std::size_t n_sets = 0;
-        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-
-        sets.resize(n_sets);
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            colorset_t cs;
-            cs.load(is);
-            sets[i] = cs;
-        }
-
+        sets.load(is);
         node_id_to_color_set_id.load(is);
 
         is.read((char*)&largest_color_id, sizeof(largest_color_id));
@@ -201,7 +248,7 @@ public:
     const colorset_t& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
         if (color_set_id == -1)
             throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
-        return sets[color_set_id];
+        return sets.get_color_set_by_id(color_set_id);
     }
 
     // Note! This function returns a new vector instead of a const-reference. Keep this
@@ -229,15 +276,15 @@ public:
     }
 
     int64_t number_of_distinct_color_sets() const{
-        return sets.size();
+        return sets.number_of_sets_stored();
     }
 
     int64_t sum_of_all_distinct_color_set_lengths() const{
         return total_color_set_length;
     }
 
-    const std::vector<colorset_t>& get_all_distinct_color_sets() const{
-        return sets;
+    const std::vector<colorset_t> get_all_distinct_color_sets() const{
+        return sets.get_all_sets();
     }
 
     // Returns map: component -> number of bytes
@@ -245,9 +292,9 @@ public:
         map<string, int64_t> breakdown;
         int64_t color_set_total_size = 0;
         sbwt::SeqIO::NullStream ns;
-        for(const colorset_t& cs : sets) color_set_total_size += cs.serialize(ns);
+        for(int64_t i = 0; i < sets.number_of_sets_stored(); i++)
+            color_set_total_size += sets.get_color_set_by_id(i).serialize(ns);
         breakdown["distinct-color-sets"] = color_set_total_size;
-
 
         for(auto [component, bytes] : node_id_to_color_set_id.space_breakdown()){
             breakdown["node-id-to-color-set-id-" + component] = bytes;

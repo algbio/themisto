@@ -364,7 +364,7 @@ private:
                 colors_set.push_back(color);
             }
 
-            coloring.sets.emplace_back(colors_set);
+            coloring.sets.add_set(colors_set);
             coloring.total_color_set_length += colors_set.size();
 
             for (const auto node : node_set) {
@@ -376,6 +376,7 @@ private:
         }
 
         coloring.node_id_to_color_set_id = builder.finish();
+        coloring.sets.prepare_for_queries();
 
     }
 
