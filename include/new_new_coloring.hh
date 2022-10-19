@@ -141,23 +141,51 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     }
 
     int64_t serialize(ostream& os) const{
-        return 0;
-        // TODO
+        int64_t byte_written = 0;
+
+        bytes_written += bitmap_concat.serialize(os);;
+        bytes_written += bitmap_unary_sizes.serialize(os);; // In units of bits
+        bytes_written += bitmap_unary_sizes_rs.serialize(os);;
+        bytes_written += bitmap_unary_sizes_ss.serialize(os);;
+
+        bytes_written += deltas_concat.serialize(os);;
+        bytes_written += deltas_unary_sizes.serialize(os);; // In units of elements
+        bytes_written += deltas_unary_sizes_rs.serialize(os);;
+        bytes_written += deltas_unary_sizes_ss.serialize(os);;
+
+        bytes_written += is_bitmap_marks.serialize(os);;
+        bytes_written += is_bitmap_marks_rs.serialize(os);;
+
+        return bytes_written;
+
+        // Do not serialize temp structures
     }
 
     void load(istream& is){
-        return;
-        // TODO
+        bitmap_concat.load(is);
+        bitmap_unary_sizes.load(is);
+        bitmap_unary_sizes_rs.load(is);
+        bitmap_unary_sizes_ss.load(is);
+        deltas_concat.load(is);
+        deltas_unary_sizes.load(is);
+        deltas_unary_sizes_rs.load(is);
+        deltas_unary_sizes_ss.load(is);
+        is_bitmap_marks.load(is);
+        is_bitmap_marks_rs.load(is);
+
+        // Do not load temp structures
     }
 
     int64_t number_of_sets_stored() const{
-        return 0;
-        // TODO
+        return is_bitmap_marks.size();
     }
 
     vector<New_Hybrid_Color_Set> get_all_sets() const{
-        return {};
-        // TODO
+        vector<New_Hybrid_Color_Set> all;
+        for(int64_t i = 0; i < number_of_sets_stored; i++){
+            all.push_back(get_color_set_by_id(i));
+        }
+        return all;
     }
 
 
