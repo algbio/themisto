@@ -3,7 +3,6 @@
 #include "sbwt/SeqIO.hh"
 #include "globals.hh"
 #include "zstr.hpp"
-#include "ReadBatch.hh"
 #include "WorkDispatcher.hh"
 #include "stdlib_printing.hh"
 
