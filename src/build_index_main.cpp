@@ -326,6 +326,22 @@ int build_index_main(int argc, char** argv){
         dbg_ptr->load(C.index_dbg_file);
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
+
+        vector<string> KMC_input_files = {C.inputfile};
+        if(C.reverse_complements){
+            write_log("Creating reverse complemented copy of " + C.inputfile + " to " + sbwt::get_temp_file_manager().get_dir(), LogLevel::MAJOR);
+            sbwt::SeqIO::FileFormat fileformat = sbwt::SeqIO::figure_out_file_format(C.inputfile);;    
+            if(fileformat.gzipped){
+                KMC_input_files.push_back(sbwt::SeqIO::create_reverse_complement_files<
+                    sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<sbwt::zstr::ifstream>>,
+                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<sbwt::zstr::ofstream>>>({C.inputfile})[0]);
+            } else{
+                KMC_input_files.push_back(sbwt::SeqIO::create_reverse_complement_files<
+                    sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
+                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>({C.inputfile})[0]);
+            }
+        }
+        
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
         sbwt_config.build_streaming_support = true;
         sbwt_config.input_files = {C.inputfile};
