@@ -64,12 +64,12 @@ public:
             for(const string& part : split_at_non_ACGT(reader.read_buf, read_len)){
                 if (part.size() >= k) {
                     // End of a sequence
-                    const std::size_t last_kmer_idx = index.search(part.substr(part.size() - k));
+                    int64_t last_kmer_idx = index.search(part.substr(part.size() - k));
                     core_kmer_marks[last_kmer_idx] = 1;
                     cores += core_kmer_marks[last_kmer_idx] == 1 ? 0 : 1;
 
                     // Beginning of a sequence
-                    const std::size_t first_kmer_idx = index.search(part.substr(0, k));
+                    int64_t first_kmer_idx = index.search(part.substr(0, k));
                     first_kmer_marks[first_kmer_idx] = 1;
                 }
             }

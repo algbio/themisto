@@ -344,7 +344,7 @@ int build_index_main(int argc, char** argv){
         
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
         sbwt_config.build_streaming_support = true;
-        sbwt_config.input_files = {C.inputfile};
+        sbwt_config.input_files = KMC_input_files;
         sbwt_config.k = C.k;
         sbwt_config.max_abundance = 1e9;
         sbwt_config.min_abundance = 1;
