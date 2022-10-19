@@ -11,7 +11,7 @@
 #include <map>
 #include <gtest/gtest.h>
 #include <cassert>
-#include "sdsl_color_set.hh"
+#include "hybrid_color_set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 #include "bit_magic_color_set.hh"
 

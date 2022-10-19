@@ -25,7 +25,7 @@
 #include <cstdint>
 
 #include "WorkDispatcher.hh"
-#include "sdsl_color_set.hh"
+#include "hybrid_color_set.hh"
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 #include <variant>
