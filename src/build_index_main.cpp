@@ -31,6 +31,7 @@ struct Build_Config{
     LL colorset_sampling_distance = 1;
     bool verbose = false;
     bool silent = false;
+    bool reverse_complements = false;
     
     void check_valid(){
         sbwt::check_true(inputfile != "", "Input file not set");
@@ -75,6 +76,7 @@ struct Build_Config{
         ss << "Index coloring output file = " << index_color_file << "\n";
         ss << "Temporary directory = " << temp_dir << "\n";
         ss << "k = " << k << "\n";
+        ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
         ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
@@ -121,6 +123,10 @@ class Gzip_Sequence_Reader_With_Reset{
             return len;
         }
 
+        void enable_reverse_complements(){
+            reader->enable_reverse_complements();
+        }
+
         void rewind_to_start(){
             delete(reader);
             reader = new SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>(filename);
@@ -136,7 +142,7 @@ class Gzip_Sequence_Reader_With_Reset{
 
 // Returns filename of a new color file that has one color for each sequence
 template<typename sequence_reader_t>
-string generate_default_colorfile(sequence_reader_t& reader){
+string generate_default_colorfile(sequence_reader_t& reader, bool reverse_complements){
     string colorfile = sbwt::get_temp_file_manager().create_filename();
     sbwt::Buffered_ofstream<> out(colorfile);
     stringstream ss;
@@ -145,6 +151,7 @@ string generate_default_colorfile(sequence_reader_t& reader){
         int64_t len = reader.get_next_read_to_buffer();
         if(len == 0) break;
         ss.str(""); ss << seq_id << "\n";
+        if(reverse_complements) ss << seq_id << "\n"; // Same color for the reverse complement pair
         out.write(ss.str().data(), ss.str().size());
         seq_id++;
     }
@@ -159,14 +166,46 @@ void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assig
     if(C.input_format.gzipped){
         Coloring_Builder<colorset_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
         Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
+        if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
         Coloring_Builder<colorset_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
         sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
+        if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
     }
     sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
     coloring.serialize(out.stream);
+}
+
+// Creates a new file and returns the new filename.
+// Transforms:
+// 1
+// 2
+// 3
+// Into:
+// 1
+// 1
+// 2
+// 2
+// 3
+// 3
+string duplicate_each_color(const string& colorfile){
+    Buffered_ifstream<> in(colorfile);
+
+    string newfile = get_temp_file_manager().create_filename("",".txt");
+    Buffered_ofstream<> out(newfile);
+
+    char newline = '\n';
+    string line;
+    while(in.getline(line)){
+        out.write(line.data(), line.size());
+        out.write(&newline, 1);
+        out.write(line.data(), line.size());
+        out.write(&newline, 1);
+    }
+
+    return newfile;
 }
 
 int build_index_main(int argc, char** argv){
@@ -188,6 +227,7 @@ int build_index_main(int argc, char** argv){
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
+        ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<LL>()->default_value("2048"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
@@ -233,6 +273,7 @@ int build_index_main(int argc, char** argv){
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
+    C.reverse_complements = opts["reverse-complements"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -254,17 +295,24 @@ int build_index_main(int argc, char** argv){
         C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
     }
 
-    if(!C.no_colors && C.colorfile == ""){
-        // Automatic colors
-        sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
-        if(C.input_format.gzipped){
-            sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(C.inputfile);
-            C.colorfile = generate_default_colorfile(reader);
+    if(!C.no_colors){
+        if(C.colorfile == ""){
+            // Automatic colors
+            sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
+            if(C.input_format.gzipped){
+                sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(C.inputfile);
+                C.colorfile = generate_default_colorfile(reader, C.reverse_complements);
+            } else{
+                sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
+                C.colorfile = generate_default_colorfile(reader, C.reverse_complements);
+            }
         } else{
-            sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
-            C.colorfile = generate_default_colorfile(reader);
+            // User-defined colors
+            if(C.reverse_complements){
+                sbwt::write_log("Duplicating colors for reverse complements", sbwt::LogLevel::MAJOR);
+                C.colorfile = duplicate_each_color(C.colorfile);
+            }
         }
-        
     }
 
     std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
@@ -276,7 +324,7 @@ int build_index_main(int argc, char** argv){
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
-        sbwt_config.add_reverse_complements = false;
+        sbwt_config.add_reverse_complements = C.reverse_complements;
         sbwt_config.build_streaming_support = true;
         sbwt_config.input_files = {C.inputfile};
         sbwt_config.k = C.k;
