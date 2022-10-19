@@ -15,6 +15,8 @@ class Bit_Magic_Color_Set {
 public:
     Bit_Magic_Color_Set() {}
 
+    Bit_Magic_Color_Set(const std::vector<unsigned char>& vec) vec(vec) {}
+
     Bit_Magic_Color_Set(bm::bvector<> bv) {
         bv.optimize();
 
@@ -53,6 +55,9 @@ public:
     }
 
     std::int64_t size() const {
+        if (empty())
+            return 0;
+
         bm::bvector<> bv;
         bm::deserialize(bv, vec.data());
 
@@ -64,6 +69,9 @@ public:
     }
 
     bool contains(const std::int64_t color) const {
+        if (empty())
+            return false;
+
         bm::bvector<> bv;
         bm::deserialize(bv, vec.data());
 
@@ -71,6 +79,9 @@ public:
     }
 
     Bit_Magic_Color_Set intersection(const Bit_Magic_Color_Set& other) const {
+        if (empty() || other.empty())
+            return Bit_Magic_Color_Set();
+
         bm::operation_deserializer<bm::bvector<>> od;
         bm::bvector<> bv;
 
@@ -81,6 +92,11 @@ public:
     }
 
     Bit_Magic_Color_Set do_union(const Bit_Magic_Color_Set& other) const {
+        if (empty())
+            return Bit_Magic_Color_Set(other.vec);
+        else if (other.empty())
+            return Bit_Magic_Color_Set(vec);
+
         bm::operation_deserializer<bm::bvector<>> od;
         bm::bvector<> bv;
 
@@ -91,6 +107,9 @@ public:
     }
 
     std::vector<std::int64_t> get_colors_as_vector() const {
+        if (empty())
+            return std::vector<std::int64_t>();
+
         bm::bvector<> bv;
         bm::deserialize(bv, vec.data());
 
