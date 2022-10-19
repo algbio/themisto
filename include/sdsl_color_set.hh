@@ -42,7 +42,7 @@ private:
         bitmap = bits;
     }
 
-    Bitmap_Or_Deltas_ColorSet(const Delta_Vector& elements) : is_bitmap(false) {
+    Bitmap_Or_Deltas_ColorSet(const Fixed_Width_Delta_Vector& elements) : is_bitmap(false) {
         element_array = elements;
     }
 
@@ -70,7 +70,7 @@ public:
     Bitmap_Or_Deltas_ColorSet(const vector<std::int64_t>& colors) {
         int64_t max_color = *std::max_element(colors.begin(), colors.end());
         
-        Delta_Vector size_test(colors);
+        Fixed_Width_Delta_Vector size_test(colors);
         if(colors.size() > 0 && size_test.size_in_bytes()*8 > max_color+1){
             // Bitmap is smaller
             // Empty sets are never encoded as bit maps because we want a constant-time
@@ -168,16 +168,16 @@ public:
         return result;
     }
 
-    Delta_Vector bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const Delta_Vector& ea) const{
+    Fixed_Width_Delta_Vector bitmap_vs_element_array_intersection(const sdsl::bit_vector& bm, const Fixed_Width_Delta_Vector& ea) const{
         vector<int64_t> new_elements;
         for(int64_t x : ea.get_values()){
             if(x >= bm.size()) break;
             if(bm[x] == 1) new_elements.push_back(x);
         }
-        return Delta_Vector(new_elements);
+        return Fixed_Width_Delta_Vector(new_elements);
     }
 
-    sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const Delta_Vector& ea) const{
+    sdsl::bit_vector bitmap_vs_element_array_union(const sdsl::bit_vector& bm, const Fixed_Width_Delta_Vector& ea) const{
         if(ea.empty()) return bm;
 
         // Decode the integers in the element array
@@ -197,21 +197,21 @@ public:
         return result;
     }    
 
-    Delta_Vector element_array_vs_element_array_intersection(const Delta_Vector& A, const Delta_Vector& B) const{
+    Fixed_Width_Delta_Vector element_array_vs_element_array_intersection(const Fixed_Width_Delta_Vector& A, const Fixed_Width_Delta_Vector& B) const{
         vector<int64_t> A_vec = A.get_values();
         vector<int64_t> B_vec = B.get_values();
         int64_t size = intersect_buffers(A_vec, A_vec.size(), B_vec, B_vec.size());
         A_vec.resize(size);
-        return Delta_Vector(A_vec);
+        return Fixed_Width_Delta_Vector(A_vec);
     }
 
-    Delta_Vector element_array_vs_element_array_union(const Delta_Vector& A, const Delta_Vector& B) const{
+    Fixed_Width_Delta_Vector element_array_vs_element_array_union(const Fixed_Width_Delta_Vector& A, const Fixed_Width_Delta_Vector& B) const{
         vector<int64_t> A_vec = A.get_values();
         vector<int64_t> B_vec = B.get_values();
         vector<int64_t> AB_vec(A_vec.size() + B_vec.size()); // Output buffer
         int64_t size = union_buffers(A_vec, A_vec.size(), B_vec, B_vec.size(), AB_vec);
         AB_vec.resize(size);
-        return Delta_Vector(AB_vec);
+        return Fixed_Width_Delta_Vector(AB_vec);
     }
 
     Bitmap_Or_Deltas_ColorSet intersection(const Bitmap_Or_Deltas_ColorSet& c) const {

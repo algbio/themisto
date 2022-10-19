@@ -17,10 +17,10 @@ public:
 
     sdsl::int_vector<> diffs; // Diffs data[i] = v[i] - v[i-1], such that data[0] := v[0]
 
-    Delta_Vector() {}
+    Fixed_Width_Delta_Vector() {}
 
     // The input values must be sorted and distinct
-    Delta_Vector(const vector<int64_t>& sorted_values){
+    Fixed_Width_Delta_Vector(const vector<int64_t>& sorted_values){
         if(sorted_values.size() > 0){
             int64_t largest_diff = sorted_values[0];
             for(int64_t i = 1; i < sorted_values.size(); i++)
@@ -71,10 +71,10 @@ public:
 
     sdsl::int_vector<> data; // Elias-delta-encoded diffs data[i] = v[i] - v[i-1], such that data[0] := v[0] + 1
 
-    Delta_Vector() {}
+    Elias_Delta_Vector() {}
 
     // The input values must be sorted and distinct
-    Delta_Vector(const vector<int64_t>& sorted_values){
+    Elias_Delta_Vector(const vector<int64_t>& sorted_values){
         if(sorted_values.size() > 0){
             sdsl::int_vector<> diffs(sorted_values.size());
             diffs[0] = sorted_values[0] + 1; // Elias-delta does not have a code for zero, so we add one
