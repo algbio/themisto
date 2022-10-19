@@ -3,6 +3,7 @@
 #include <vector>
 #include "sdsl/bit_vectors.hpp"
 #include "sdsl/int_vector.hpp"
+#include <variant>
 
 using namespace std;
 
@@ -45,6 +46,8 @@ class Succinct_Prefix_Sums{
         bytes_written += rs.serialize(os);
         bytes_written += ss.serialize(os);
 
+        return bytes_written;
+
         // Do not serialize temp_v
     }
 
@@ -64,18 +67,21 @@ class Succinct_Prefix_Sums{
 };
 
 class New_Hybrid_Color_Set{
-    bool is_bitmap;
     
-    int64_t bitmap_start;
-    int64_t bitmap_length;
+public:
 
-    int64_t deltas_start;
-    int64_t deltas_end;
+    int64_t start;
+    int64_t length;
 
     bool owns_memory;
+    std::variant<const sdsl::bit_vector*, const  sdsl::int_vector<>*> data_ptr;
 
-    sdsl::bit_vector* bv_ptr;
-    sdsl::int_vector<>* iv_ptr;
+    bool is_bitmap(){
+        return std::holds_alternative<const sdsl::bit_vector*>(data_ptr);
+    }
+
+    New_Hybrid_Color_Set(int64_t start, int64_t length, std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr)
+        : start(start), length(length), owns_memory(false), data_ptr(data_ptr) {}
 
 };
 
@@ -93,7 +99,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     Succinct_Prefix_Sums deltas_sizes;
 
     sdsl::bit_vector is_bitmap_marks;
-    sdsl::rank_support_v5<> is_bitmap_marks_rs1;
+    sdsl::rank_support_v5<> is_bitmap_marks_rs;
 
     // Dynamic-length vectors used during construction only
     vector<bool> temp_bitmap_concat;
@@ -115,9 +121,12 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     const New_Hybrid_Color_Set& get_color_set_by_id(int64_t id) const{
         if(is_bitmap_marks[id]){
-            //int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
-            // ..
-
+            int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
+            int64_t start = bitmap_sizes.sum(bitmap_idx);
+            int64_t end = bitmap_sizes.sum(bitmap_idx+1); // One past the end
+            const sdsl::bit_vector* ptr = &bitmap_concat;
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = ptr;
+            return New_Hybrid_Color_Set(start, end-start, data_ptr);
         }
     }
 
@@ -174,7 +183,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
         bitmap_sizes.finish_building();
         deltas_sizes.finish_building();
 
-        sdsl::util::init_support(is_bitmap_marks_rs1, &is_bitmap_marks);
+        sdsl::util::init_support(is_bitmap_marks_rs, &is_bitmap_marks);
 
         // Free memory
         temp_deltas_concat.clear(); temp_deltas_concat.shrink_to_fit();    
@@ -193,7 +202,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
         bytes_written += deltas_sizes.serialize(os);
 
         bytes_written += is_bitmap_marks.serialize(os);;
-        bytes_written += is_bitmap_marks_rs1.serialize(os);;
+        bytes_written += is_bitmap_marks_rs.serialize(os);;
 
         return bytes_written;
 
@@ -207,7 +216,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
         deltas_sizes.load(is);
         is_bitmap_marks.load(is);
 
-        is_bitmap_marks_rs1.load(is, &is_bitmap_marks);
+        is_bitmap_marks_rs.load(is, &is_bitmap_marks);
 
         // Do not load temp structures
     }
