@@ -6,6 +6,63 @@
 
 using namespace std;
 
+// This class stores a sequence of n non-negative integers with total sum N in (n + N) + o(n + N)
+// bits of space, and can answer in constant time queries for sums of the first i stored integers.
+class Succinct_Prefix_Sums{
+
+    private:
+    sdsl::bit_vector v;
+    sdsl::rank_support_v5<0> rs;
+    sdsl::select_support_mcl<1> ss;
+
+    vector<bool> temp_v; // Used only during construction
+
+    void append_unary_number(int64_t x, vector<bool>& v){
+        v.push_back(1);
+        for(int64_t i = 0; i < x; i++) v.push_back(0);
+    }
+
+    public:
+
+    void add(int64_t x){
+        append_unary_number(x, temp_v);
+    }
+
+    void finish_building(){
+        temp_v.push_back(1); // End sentinel
+
+        // Copy temp_v into v
+        v = sdsl::bit_vector(temp_v.size(), 0);
+        for(int64_t i = 0; i < v.size(); i++) v[i] = temp_v[i];
+
+        sdsl::util::init_support(rs, &v);
+        sdsl::util::init_support(ss, &v);
+    }
+
+    int64_t serialize(ostream& os) const{
+        int64_t bytes_written = 0;
+        bytes_written += v.serialize(os);
+        bytes_written += rs.serialize(os);
+        bytes_written += ss.serialize(os);
+
+        // Do not serialize temp_v
+    }
+
+    void load(istream& is){
+        v.load(is);
+        rs.load(is, &v);
+        ss.load(is, &v);
+
+        // Do not load temp_v
+    }
+
+    // Returns the sum of v[0..i), where v is the array of stored integers.
+    // The parameter i can be from 0 to n inclusive, where n is the number of stored integers.
+    int64_t sum(int64_t i) const{
+        return rs.rank(ss.select(i+1));
+    }
+};
+
 class New_Hybrid_Color_Set{
     bool is_bitmap;
     
@@ -30,31 +87,18 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     private:
 
     sdsl::bit_vector bitmap_concat;
-    sdsl::bit_vector bitmap_unary_sizes; // In units of bits
-    sdsl::rank_support_v5<> bitmap_unary_sizes_rs;
-    sdsl::select_support_mcl<> bitmap_unary_sizes_ss;
+    Succinct_Prefix_Sums bitmap_sizes;
 
     sdsl::int_vector<> deltas_concat;
-    sdsl::bit_vector deltas_unary_sizes; // In units of elements
-    sdsl::rank_support_v5<> deltas_unary_sizes_rs;
-    sdsl::select_support_mcl<> deltas_unary_sizes_ss;
+    Succinct_Prefix_Sums deltas_sizes;
 
     sdsl::bit_vector is_bitmap_marks;
-    sdsl::rank_support_v5<> is_bitmap_marks_rs;
+    sdsl::rank_support_v5<> is_bitmap_marks_rs1;
 
     // Dynamic-length vectors used during construction only
     vector<bool> temp_bitmap_concat;
-    vector<bool> temp_bitmap_unary_sizes;
-
     vector<int64_t> temp_deltas_concat;
-    vector<bool> temp_deltas_unary_sizes;
-
     vector<bool> temp_is_bitmap_marks;
-
-    void append_unary_number(int64_t x, vector<bool>& v){
-        for(int64_t i = 0; i < x; i++) v.push_back(0);
-        v.push_back(1);
-    }
 
     // Number of bits required to represent x
     int64_t bits_needed(uint64_t x){
@@ -70,8 +114,11 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
     public:
 
     const New_Hybrid_Color_Set& get_color_set_by_id(int64_t id) const{
-        return {};
-        // TODO
+        if(is_bitmap_marks[id]){
+            //int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
+            // ..
+
+        }
     }
 
     // Need to call prepare_for_queries() after all sets have been added
@@ -91,7 +138,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
             for(bool b : bitmap) temp_bitmap_concat.push_back(b);
 
             // Store bitmap length
-            append_unary_number(set.size(), temp_bitmap_unary_sizes);
+            bitmap_sizes.add(max_element+1);
         } else{
             // Sparse -> delta array
 
@@ -107,7 +154,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
             }
 
             // Store array length
-            append_unary_number(set.size(), temp_deltas_unary_sizes);
+            deltas_sizes.add(set.size());
         }
 
     }
@@ -115,27 +162,23 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     // Call this after done with add_set
     void prepare_for_queries(){
+
         int64_t max_delta = *std::max_element(temp_deltas_concat.begin(), temp_deltas_concat.end());
         deltas_concat = sdsl::int_vector<>(temp_deltas_concat.size(), 0, bits_needed(max_delta));
         for(int64_t i = 0; i < temp_deltas_concat.size(); i++)
             deltas_concat[i] = temp_deltas_concat[i];
 
         bitmap_concat = to_sdsl_bit_vector(temp_bitmap_concat);
-        bitmap_unary_sizes = to_sdsl_bit_vector(temp_bitmap_unary_sizes);
-        deltas_unary_sizes = to_sdsl_bit_vector(temp_deltas_unary_sizes);
         is_bitmap_marks = to_sdsl_bit_vector(temp_is_bitmap_marks);
+        
+        bitmap_sizes.finish_building();
+        deltas_sizes.finish_building();
 
-        sdsl::util::init_support(bitmap_unary_sizes_rs, &bitmap_unary_sizes);
-        sdsl::util::init_support(bitmap_unary_sizes_ss, &bitmap_unary_sizes);
-        sdsl::util::init_support(deltas_unary_sizes_rs, &deltas_unary_sizes);
-        sdsl::util::init_support(deltas_unary_sizes_ss, &deltas_unary_sizes);
-        sdsl::util::init_support(is_bitmap_marks_rs, &is_bitmap_marks);
+        sdsl::util::init_support(is_bitmap_marks_rs1, &is_bitmap_marks);
 
         // Free memory
         temp_deltas_concat.clear(); temp_deltas_concat.shrink_to_fit();    
         temp_bitmap_concat.clear(); temp_bitmap_concat.shrink_to_fit();
-        temp_bitmap_unary_sizes.clear(); temp_bitmap_unary_sizes.shrink_to_fit();
-        temp_deltas_unary_sizes.clear(); temp_deltas_unary_sizes.shrink_to_fit();
         temp_is_bitmap_marks.clear(); temp_is_bitmap_marks.shrink_to_fit();
         
     }
@@ -144,17 +187,13 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
         int64_t bytes_written = 0;
 
         bytes_written += bitmap_concat.serialize(os);;
-        bytes_written += bitmap_unary_sizes.serialize(os);; // In units of bits
-        bytes_written += bitmap_unary_sizes_rs.serialize(os);;
-        bytes_written += bitmap_unary_sizes_ss.serialize(os);;
+        bytes_written += bitmap_sizes.serialize(os);
 
         bytes_written += deltas_concat.serialize(os);;
-        bytes_written += deltas_unary_sizes.serialize(os);; // In units of elements
-        bytes_written += deltas_unary_sizes_rs.serialize(os);;
-        bytes_written += deltas_unary_sizes_ss.serialize(os);;
+        bytes_written += deltas_sizes.serialize(os);
 
         bytes_written += is_bitmap_marks.serialize(os);;
-        bytes_written += is_bitmap_marks_rs.serialize(os);;
+        bytes_written += is_bitmap_marks_rs1.serialize(os);;
 
         return bytes_written;
 
@@ -163,16 +202,12 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     void load(istream& is){
         bitmap_concat.load(is);
-        bitmap_unary_sizes.load(is);
+        bitmap_sizes.load(is);
         deltas_concat.load(is);
-        deltas_unary_sizes.load(is);
+        deltas_sizes.load(is);
         is_bitmap_marks.load(is);
 
-        bitmap_unary_sizes_rs.load(is, &bitmap_unary_sizes);
-        bitmap_unary_sizes_ss.load(is, &bitmap_unary_sizes);
-        deltas_unary_sizes_rs.load(is, &deltas_unary_sizes);
-        deltas_unary_sizes_ss.load(is, &deltas_unary_sizes);
-        is_bitmap_marks_rs.load(is, &is_bitmap_marks);
+        is_bitmap_marks_rs1.load(is, &is_bitmap_marks);
 
         // Do not load temp structures
     }
