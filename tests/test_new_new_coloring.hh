@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <cassert>
 #include "test_tools.hh"
+#include "Succinct_Prefix_Sum.hh"
 
 using namespace sbwt;
 
