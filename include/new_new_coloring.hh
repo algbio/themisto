@@ -228,7 +228,13 @@ class Color_Set{
     }
 
     void do_union(const Color_Set_View& other){
-        // TODO
+        // TODO: DO PROPERLY
+        vector<int64_t> A = this->get_colors_as_vector();
+        vector<int64_t> B = other.get_colors_as_vector();
+        vector<int64_t> AB(A.size() + B.size());
+        int64_t len = union_buffers(A, A.size(), B, B.size(), AB);
+        AB.resize(len);
+        *this = Color_Set(AB);
     }
 
 };
