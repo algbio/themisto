@@ -7,17 +7,98 @@
 
 using namespace std;
 
+template<typename colorset_t> 
+bool colorset_is_empty(const colorset_t& cs){
+    return cs.length == 0;
+}
+
+template<typename colorset_t> 
+bool colorset_is_bitmap(const colorset_t& cs){
+    // Check variant type by index because it could be const or non-const and we don't want to care
+    return cs.data_ptr.index() == 0;
+}
+
+template<typename colorset_t> 
+bool colorset_access_bitmap(const colorset_t& cs, int64_t idx){
+    // Using std::holds_alternative by index because it could have a const or a non-const type
+    return (*std::get<0>(cs.data_ptr))[cs.start + idx];
+}
+
+template<typename colorset_t> 
+int64_t colorset_access_delta_array(const colorset_t& cs, int64_t idx){
+    // Using std::holds_alternative by index because it could have a const or a non-const type
+    return (*std::get<1>(cs.data_ptr))[cs.start + idx];
+}
+
+template<typename colorset_t> 
+int64_t colorset_size(const colorset_t& cs){
+    if(colorset_is_bitmap(cs)){
+        // Count number of bits set
+        int64_t count = 0; 
+        for(int64_t i = 0; i < cs.length; i++){
+            count += colorset_access_bitmap(cs, i);
+        }
+        return count;
+    } else return cs.length; // Array
+}
+
+template<typename colorset_t> 
+int64_t colorset_size_in_bits(const colorset_t& cs){
+    if(colorset_is_bitmap(cs)) return cs.length;
+    else return cs.length * std::get<1>(cs.data_ptr)->width();
+    // Using std::holds_alternative by index because it could have a const or a non-const type
+}
+
+template<typename colorset_t> 
+vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs){
+    std::vector<int64_t> vec;
+    if(colorset_is_bitmap(cs)){    
+        for(int64_t i = 0; i < cs.length; i++){
+            if(colorset_access_bitmap(cs,i)) vec.push_back(i);
+        }
+    } else{
+        for(int64_t i = 0; i < cs.length; i++){
+            if(i == 0) vec.push_back(colorset_access_delta_array(cs,0));
+            else vec.push_back(vec.back() + colorset_access_delta_array(cs,i));
+        }
+    }
+    return vec;
+}
+
+template<typename colorset_t> 
+bool colorset_contains(const colorset_t& cs, int64_t color){
+    if(colorset_is_bitmap(cs)){
+        if(color >= cs.length) return false;
+        return colorset_access_bitmap(cs, color);
+    } else{
+        // Linear scan. VERY SLOW
+        for(int64_t x : colorset_get_colors_as_vector(cs)) if(x == color) return true;
+        return false;
+    }
+}
+
+
 class Color_Set_View{
 
 public:
 
-    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Non-owning pointer to external data
+    std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr; // Non-owning pointer to external data
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
+
+    bool empty() const {return colorset_is_empty(*this);};
+    bool is_bitmap() const {return colorset_is_bitmap(*this);};
+    int64_t size() const {return colorset_size(*this);}
+    int64_t size_in_bits() const {return colorset_size_in_bits(*this);}
+    bool contains(int64_t color) const {return colorset_contains(*this, color);}
+    vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
 
 };
 
 class Color_Set{
+
+    public:
+
     std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Owning pointer
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
@@ -26,11 +107,11 @@ class Color_Set{
 
     // Construct at copy of a color set from a view
     Color_Set(const Color_Set_View& view) : start(view.start), length(view.length){
-        if(std::holds_alternative<sdsl::bit_vector*>(view.data_ptr)){
+        if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
             data_ptr = new sdsl::bit_vector(view.length, 0);
 
             // Copy the bits
-            sdsl::bit_vector* from = std::get<sdsl::bit_vector*>(view.data_ptr);
+            const sdsl::bit_vector* from = std::get<const sdsl::bit_vector*>(view.data_ptr);
             sdsl::bit_vector* to = std::get<sdsl::bit_vector*>(data_ptr);
             for(int64_t i = 0; i < view.length; i++){
                 (*to)[i] = (*from)[start + i];
@@ -41,7 +122,7 @@ class Color_Set{
             data_ptr = new sdsl::int_vector<>(view.length, 0, bit_width);
 
             // Copy the values
-            sdsl::int_vector<>* from = std::get<sdsl::int_vector<>*>(view.data_ptr);
+            const sdsl::int_vector<>* from = std::get<const sdsl::int_vector<>*>(view.data_ptr);
             sdsl::int_vector<>* to = std::get<sdsl::int_vector<>*>(data_ptr);
             for(int64_t i = 0; i < view.length; i++){
                 (*to)[i] = (*from)[start + i];
@@ -53,6 +134,14 @@ class Color_Set{
         auto call_delete = [](auto ptr){delete ptr;};
         std::visit(call_delete, data_ptr);
     }
+
+    bool empty() const {return colorset_is_empty(*this);};
+    bool is_bitmap() const {return colorset_is_bitmap(*this);};
+    int64_t size() const {return colorset_size(*this);}
+    int64_t size_in_bits() const {return colorset_size_in_bits(*this);}
+    bool contains(int64_t color) {return colorset_contains(*this, color);}
+    vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
+
 };
 
 
