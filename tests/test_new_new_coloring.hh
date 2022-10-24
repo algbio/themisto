@@ -33,20 +33,24 @@ TEST(NEW_NEW_COLORING_TEST, storage){
 
     New_Color_Set_Storage css;
     vector<vector<int64_t> > sets = {get_sparse_colorset(), 
-                                     get_dense_colorset(1,10000), 
+                                     get_dense_colorset(1,1000), 
                                      get_sparse_colorset(), 
                                      get_sparse_colorset(), 
-                                     get_dense_colorset(2,10000),
+                                     get_dense_colorset(2,1000),
                                      {1,5,7,8},
                                      {0,1,2,3,4,5,6},
-                                     get_dense_colorset(3,10000)};
+                                     get_dense_colorset(3,1000)};
 
     for(const vector<int64_t>& set : sets)
         css.add_set(set);
     css.prepare_for_queries();
 
-    for(Color_Set_View csv : css.get_all_sets()){
-        for(int64_t x : csv.get_colors_as_vector()) cout << x << " "; cout << endl;
+    vector<Color_Set_View> retrieved_views = css.get_all_sets();
+    for(int64_t i = 0; i < retrieved_views.size(); i++){
+        for(int64_t x : retrieved_views[i].get_colors_as_vector()) cout << x << " "; 
+        cout << endl;
+
+        ASSERT_EQ(retrieved_views[i].get_colors_as_vector(), sets[i]);
     }
     
 }

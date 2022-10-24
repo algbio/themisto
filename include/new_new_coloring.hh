@@ -225,7 +225,7 @@ class New_Color_Set_Storage{
             temp_bitmap_starts.push_back(temp_bitmap_concat.size());
 
             // Create bitmap
-            vector<bool> bitmap(max_element, 0);
+            vector<bool> bitmap(max_element+1, 0);
             for(int64_t x : set) bitmap[x] = 1;
             for(bool b : bitmap) temp_bitmap_concat.push_back(b);
 
