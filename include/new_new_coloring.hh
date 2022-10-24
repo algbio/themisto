@@ -147,6 +147,7 @@ class Color_Set{
             this->data_ptr = new sdsl::int_vector<>(*(std::get<sdsl::int_vector<>*>(other.data_ptr)));
         this->start = other.start;
         this->length = other.length;
+        return *this;
     }
 
     Color_Set(const Color_Set& other){
