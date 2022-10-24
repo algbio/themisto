@@ -80,7 +80,7 @@ static inline bool colorset_contains(const colorset_t& cs, int64_t color){
 // Stores the intersection into buf1 and returns the number of elements in the
 // intersection (does not resize buf1). Buffer elements must be sorted.
 // Assumes all elements in a buffer are distinct
-int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len);
+int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len);
 
 // Stores the union into result_buf and returns the number of elements in the
 // union (does not resize result_buf). Buffers elements must be sorted.
@@ -94,15 +94,15 @@ int64_t bitmap_vs_bitmap_intersection(sdsl::bit_vector& A, int64_t A_size, const
 
 // Stores the result into iv and returns the size of the intersection. iv is not resized
 // but the old elements past the end  are left in place to avoid memory reallocations.
-int64_t array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size);
+int64_t delta_array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size);
 
 // Stores the result into bv and returns the length of bv. bv is not resized
 // but the old elements past the end are left in place to avoid memory reallocations.
-int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size);
+int64_t bitmap_vs_delta_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size);
 
 // Stores the result into A and returns the length of the new vector. A is not resized
 // but the old elements past the end are left in place to avoid memory reallocations.
-int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
+int64_t delta_array_vs_delta_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
 
 class Color_Set;
 
@@ -219,11 +219,11 @@ class Color_Set{
         if(is_bitmap() && other.is_bitmap()){
             this->length = bitmap_vs_bitmap_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(!is_bitmap() && other.is_bitmap()){
-            this->length = array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
+            this->length = delta_array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(is_bitmap() && !other.is_bitmap()){
-            this->length = bitmap_vs_array_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length); // TODO: This should re-encode ourselves as sparse?
+            this->length = bitmap_vs_delta_array_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length); // TODO: This should re-encode ourselves as sparse?
         } else{ // Delta array vs Delta array
-            this->length = array_vs_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
+            this->length = delta_array_vs_delta_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
         }
     }
 

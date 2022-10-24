@@ -81,6 +81,11 @@ void test_sparse_vs_sparse(){
     color_set_t c1(v1);
     color_set_t c2(v2);
     color_set_t c12(c1);
+    cout << "==" << endl;
+    print(c1.get_colors_as_vector());
+    print(c2.get_colors_as_vector());
+    print(c12.get_colors_as_vector());
+    cout << "==" << endl;
     c12.intersection(c2);
 
     vector<int64_t> v12_inter = c12.get_colors_as_vector();
