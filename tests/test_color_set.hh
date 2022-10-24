@@ -48,8 +48,6 @@ void test_sparse_color_set(){
 }
 
 TEST(TEST_COLOR_SET, sparse){
-    test_sparse_color_set<Bitmap_Or_Deltas_ColorSet>();
-    test_sparse_color_set<Fixed_Width_Int_Color_Set>();
     test_sparse_color_set<Roaring_Color_Set>();
     test_sparse_color_set<Bit_Magic_Color_Set>();
     test_sparse_color_set<Color_Set>();
@@ -70,10 +68,9 @@ void test_dense_color_set(){
 }
 
 TEST(TEST_COLOR_SET, dense){
-    test_dense_color_set<Bitmap_Or_Deltas_ColorSet>();
-    test_dense_color_set<Fixed_Width_Int_Color_Set>();
     test_dense_color_set<Roaring_Color_Set>();
     test_dense_color_set<Bit_Magic_Color_Set>();
+    //test_dense_color_set<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -83,20 +80,23 @@ void test_sparse_vs_sparse(){
 
     color_set_t c1(v1);
     color_set_t c2(v2);
+    color_set_t c12(c1);
+    c12.intersection(c2);
 
-    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c12.get_colors_as_vector();
     vector<int64_t> correct_inter = {4,4003};
     ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    color_set_t c12_union(c1);
+    c12_union.do_union(c2);
+    vector<int64_t> v12_union = c12_union.get_colors_as_vector();
     vector<int64_t> correct_union = {4, 1534, 2000, 4003, 5000, 8903};
     ASSERT_EQ(v12_union, correct_union);
 }
 TEST(TEST_COLOR_SET, sparse_vs_sparse){
-    test_sparse_vs_sparse<Bitmap_Or_Deltas_ColorSet>();
-    test_sparse_vs_sparse<Fixed_Width_Int_Color_Set>();
     test_sparse_vs_sparse<Roaring_Color_Set>();
     test_sparse_vs_sparse<Bit_Magic_Color_Set>();
+    //test_sparse_vs_sparse<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -106,12 +106,16 @@ void test_dense_vs_dense(){
 
     color_set_t c1(v1);
     color_set_t c2(v2);
+    color_set_t c12(c1);
+    c12.intersection(c2);
 
-    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c12.get_colors_as_vector();
     vector<int64_t> correct_inter = get_dense_example(6, 1000); // 6 = lcm(2,3)
     ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    color_set_t c12_union(c1);
+    c12_union.do_union(c2);
+    vector<int64_t> v12_union = c12_union.get_colors_as_vector();
     vector<int64_t> correct_union;
     for(int64_t i = 0; i < 1000; i++){
         if(i % 2 == 0 || i % 3 == 0) correct_union.push_back(i);
@@ -120,10 +124,9 @@ void test_dense_vs_dense(){
 }
 
 TEST(TEST_COLOR_SET, dense_vs_dense){
-    test_dense_vs_dense<Bitmap_Or_Deltas_ColorSet>();
-    test_dense_vs_dense<Fixed_Width_Int_Color_Set>();
     test_dense_vs_dense<Roaring_Color_Set>();
     test_dense_vs_dense<Bit_Magic_Color_Set>();
+    //test_dense_vs_dense<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -133,12 +136,16 @@ void test_sparse_vs_dense(){
 
     color_set_t c1(v1);
     color_set_t c2(v2);
+    color_set_t c12(c1);
+    c12.intersection(c2);
 
-    vector<int64_t> v12_inter = c1.intersection(c2).get_colors_as_vector();
+    vector<int64_t> v12_inter = c12.get_colors_as_vector();
     vector<int64_t> correct_inter = {3, 3000, 9999};
     ASSERT_EQ(v12_inter, correct_inter);
 
-    vector<int64_t> v12_union = c1.do_union(c2).get_colors_as_vector();
+    color_set_t c12_union(c1);
+    c12_union.do_union(c2);
+    vector<int64_t> v12_union = c12_union.get_colors_as_vector();
     vector<int64_t> correct_union;
     for(int64_t i = 0; i < 10000; i++){
         if(i % 3 == 0 || std::find(v2.begin(), v2.end(), i) != v2.end()) correct_union.push_back(i);
@@ -147,11 +154,12 @@ void test_sparse_vs_dense(){
     ASSERT_EQ(v12_union, correct_union);
 }
 
+// TODO test dense vs sparse
+
 TEST(TEST_COLOR_SET, sparse_vs_dense){
-    test_sparse_vs_dense<Bitmap_Or_Deltas_ColorSet>();
-    test_sparse_vs_dense<Fixed_Width_Int_Color_Set>();
     test_sparse_vs_dense<Roaring_Color_Set>();
     test_sparse_vs_dense<Bit_Magic_Color_Set>();
+    //test_sparse_vs_dense<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -166,10 +174,9 @@ void test_empty_color_set(){
 }
 
 TEST(TEST_COLOR_SET, empty){
-    test_empty_color_set<Bitmap_Or_Deltas_ColorSet>();
-    test_empty_color_set<Fixed_Width_Int_Color_Set>();
     test_empty_color_set<Roaring_Color_Set>();
     test_empty_color_set<Bit_Magic_Color_Set>();
+    //test_empty_color_set<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -181,10 +188,9 @@ void test_dense_color_set_serialization(){
 }
 
 TEST(TEST_COLOR_SET, dense_serialization){
-    test_dense_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
-    test_dense_color_set_serialization<Fixed_Width_Int_Color_Set>();
     test_dense_color_set_serialization<Roaring_Color_Set>();
     test_dense_color_set_serialization<Bit_Magic_Color_Set>();
+    // The Newnew color set does not have serialization for individual color sets
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -196,8 +202,7 @@ void test_sparse_color_set_serialization(){
 }
 
 TEST(TEST_COLOR_SET, sparse_serialization){
-    test_sparse_color_set_serialization<Bitmap_Or_Deltas_ColorSet>();
-    test_sparse_color_set_serialization<Fixed_Width_Int_Color_Set>();
     test_sparse_color_set_serialization<Roaring_Color_Set>();
     test_sparse_color_set_serialization<Bit_Magic_Color_Set>();
+    // The Newnew color set does not have serialization for individual color sets
 }

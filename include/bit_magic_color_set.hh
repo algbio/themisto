@@ -78,9 +78,12 @@ public:
         return bv.get_bit(color);
     }
 
-    Bit_Magic_Color_Set intersection(const Bit_Magic_Color_Set& other) const {
-        if (empty() || other.empty())
-            return Bit_Magic_Color_Set();
+    void intersection(const Bit_Magic_Color_Set& other){
+        if (empty()) return;
+        if (other.empty()){
+            *this = other;
+            return;
+        }
 
         bm::operation_deserializer<bm::bvector<>> od;
         bm::bvector<> bv;
@@ -88,14 +91,18 @@ public:
         bm::deserialize(bv, vec.data());
         od.deserialize(bv, other.vec.data(), bm::set_AND);
 
-        return Bit_Magic_Color_Set(bv);
+        *this = Bit_Magic_Color_Set(bv);
     }
 
-    Bit_Magic_Color_Set do_union(const Bit_Magic_Color_Set& other) const {
-        if (empty())
-            return Bit_Magic_Color_Set(other.vec);
-        else if (other.empty())
-            return Bit_Magic_Color_Set(vec);
+    void do_union(const Bit_Magic_Color_Set& other){
+        if (empty()){
+            *this = Bit_Magic_Color_Set(other.vec);
+            return;
+        }
+        else if (other.empty()){
+            *this = Bit_Magic_Color_Set(vec);
+            return;
+        } 
 
         bm::operation_deserializer<bm::bvector<>> od;
         bm::bvector<> bv;
@@ -103,7 +110,7 @@ public:
         bm::deserialize(bv, vec.data());
         od.deserialize(bv, other.vec.data(), bm::set_OR);
 
-        return Bit_Magic_Color_Set(bv);
+        *this = Bit_Magic_Color_Set(bv);
     }
 
     std::vector<std::int64_t> get_colors_as_vector() const {

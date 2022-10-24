@@ -120,13 +120,13 @@ private:
                 int64_t fw_id = color_set_id_buffer[i];
                 int64_t rc_id = rc_color_set_id_buffer[n_kmers-1-i];
 
-                typename coloring_t::colorset_type cs;
+                typename coloring_t::colorset_type cs = coloring->get_color_set_by_color_set_id(fw_id);
                 if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
                 else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(rc_id);
                 else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
                 else if(fw_id >= 0 && rc_id >= 0){
                     // Take union of forward and reverse complement
-                    cs = coloring->get_color_set_by_color_set_id(fw_id).do_union(coloring->get_color_set_by_color_set_id(rc_id));
+                    cs.do_union(coloring->get_color_set_by_color_set_id(rc_id));
                 }
 
                 if(cs.size() > 0){
@@ -135,7 +135,7 @@ private:
                         first_nonempty_union_found = true;
                     }
                     else
-                        result = result.intersection(cs); // Intersection
+                        result.intersection(cs); // Intersection
                 }
             }
             return result.get_colors_as_vector();
@@ -160,7 +160,7 @@ private:
                         first_nonempty_color_set_found = true;
                     }
                     else
-                        result = result.intersection(cs); // Intersection
+                        result.intersection(cs); // Intersection
                 }
             }
             return result.get_colors_as_vector();

@@ -92,13 +92,13 @@ public:
         return roaring.contains((uint64_t)n);
     }
 
-    Roaring_Color_Set intersection(const Roaring_Color_Set& c) const {
-        return Roaring_Color_Set(roaring & c.roaring);
+    void intersection(const Roaring_Color_Set& c) {
+        *this = Roaring_Color_Set(roaring & c.roaring);
     }
 
     // union is a reserved word in C++ so this function is called do_union
-    Roaring_Color_Set do_union(const Roaring_Color_Set& c) const {
-        return Roaring_Color_Set(roaring | c.roaring);
+    void do_union(const Roaring_Color_Set& c) {
+        *this = Roaring_Color_Set(roaring | c.roaring);
     }
 
     int64_t serialize(std::ostream& os) const {
