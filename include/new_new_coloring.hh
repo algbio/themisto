@@ -255,8 +255,8 @@ class New_Color_Set_Storage{
 
         // Add extra starts points one past the end
         // These eliminate a special case when querying for the size of the last color set
-        temp_bitmap_starts.push_back(temp_bitmap_starts.size());
-        temp_deltas_starts.push_back(temp_deltas_starts.size());
+        temp_bitmap_starts.push_back(temp_bitmap_concat.size());
+        temp_deltas_starts.push_back(temp_deltas_concat.size());
 
         deltas_concat = to_sdsl_int_vector(temp_deltas_concat);
         bitmap_starts = to_sdsl_int_vector(temp_bitmap_starts);
