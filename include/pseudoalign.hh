@@ -126,10 +126,11 @@ private:
                 else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
                 else if(fw_id >= 0 && rc_id >= 0){
                     // Take union of forward and reverse complement
+                    cs = coloring->get_color_set_by_color_set_id(fw_id);
                     cs.do_union(coloring->get_color_set_by_color_set_id(rc_id));
                 }
 
-                if(cs.size() > 0){
+                if(!cs.empty()){
                     if(!first_nonempty_union_found){
                         result = cs; // This is the first nonempty union
                         first_nonempty_union_found = true;

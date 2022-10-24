@@ -139,7 +139,9 @@ class Color_Set{
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
 
-    Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
+    Color_Set() : start(0), length(0){
+        data_ptr = new sdsl::bit_vector();
+    }
 
     const Color_Set& operator=(const Color_Set& other){
         if(this == &other) return *this; // Assignment to itself
