@@ -16,6 +16,10 @@
 
 using namespace sbwt;
 
+TEST(NEW_NEW_COLORING_TEST, storage){
+    New_Color_Set_Storage css;
+}
+
 TEST(NEW_NEW_COLORING_TEST, prefix_sums){
     vector<int64_t> v = {0,2,5,10,0,0,0,2,0,4};
     Succinct_Prefix_Sums sps;

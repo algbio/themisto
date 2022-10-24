@@ -86,6 +86,9 @@ public:
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
 
+    Color_Set_View(std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr, int64_t start, int64_t length)
+        : data_ptr(data_ptr), start(start), length(length){}
+
     bool empty() const {return colorset_is_empty(*this);};
     bool is_bitmap() const {return colorset_is_bitmap(*this);};
     int64_t size() const {return colorset_size(*this);}
@@ -105,7 +108,7 @@ class Color_Set{
 
     Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
 
-    // Construct at copy of a color set from a view
+    // Construct a copy of a color set from a view
     Color_Set(const Color_Set_View& view) : start(view.start), length(view.length){
         if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
             data_ptr = new sdsl::bit_vector(view.length, 0);
@@ -144,125 +147,7 @@ class Color_Set{
 
 };
 
-
-// This class either owns its memory, or points to other memory
-class New_Hybrid_Color_Set{
-    
-private:
-
-    bool access_bitmap(int64_t idx) const{
-        return (*std::get<sdsl::bit_vector*>(data_ptr))[start + idx];
-    }
-
-    int64_t access_delta_array(int64_t idx) const{
-        return (*std::get<sdsl::int_vector<>*>(data_ptr))[start + idx];
-    }
-
-public:
-
-    int64_t start;
-    int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
-
-    bool owns_memory;
-    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Pointer to external data
-
-    bool is_bitmap() const{
-        return std::holds_alternative<sdsl::bit_vector*>(data_ptr);
-    }
-
-    // Construct with pointer to outside memory
-    New_Hybrid_Color_Set(int64_t start, int64_t length, std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr)
-        : start(start), length(length), owns_memory(false), data_ptr(data_ptr) {}
-
-    // Construct with own memory. Always a bitmap for now TODO
-    // v must be sorted
-    New_Hybrid_Color_Set(const vector<int64_t>& v) : start(0), length(v.back() + 1), owns_memory(true){
-        data_ptr = new sdsl::bit_vector(length, 0);
-        for(int64_t x : v) (*std::get<sdsl::bit_vector*>(data_ptr))[x] = 1;
-    }
-
-    // TODO: need copy construction and assignment operator because of memory management. Otherwise might
-    // end up with double delete.
-
-    New_Hybrid_Color_Set() : start(0), length(0), owns_memory(false){}
-
-    ~New_Hybrid_Color_Set(){
-        if(owns_memory){
-            if(std::holds_alternative<sdsl::bit_vector*>(data_ptr))
-                delete std::get<sdsl::bit_vector*>(data_ptr);
-            else
-                delete std::get<sdsl::int_vector<>*>(data_ptr);
-        }
-    }
-
-    bool empty() const{
-        return length == 0;
-    }
-
-    int64_t size() const{
-        if(is_bitmap()){
-            // Count number of bits set
-            int64_t count = 0; 
-            for(int64_t i = 0; i < length; i++){
-                count += access_bitmap(i);
-            }
-            return count;
-        } else return length; // Array
-    }
-
-    int64_t size_in_bits() const{
-        if(is_bitmap()) return length;
-        else return length * std::get<sdsl::int_vector<>*>(data_ptr)->width();
-    }
-
-    bool contains(int64_t color) const{
-        if(is_bitmap()){
-            if(color >= length) return false;
-            return access_bitmap(color);
-        } else{
-            // Linear scan. VERY SLOW
-            for(int64_t x : get_colors_as_vector()) if(x == color) return true;
-            return false;
-        }
-    }
-
-    New_Hybrid_Color_Set intersection(){
-        return New_Hybrid_Color_Set(); // TODO
-    }
-
-    New_Hybrid_Color_Set do_union(){
-        return New_Hybrid_Color_Set(); // TODO
-    }
-
-    int64_t serialize() const{
-        return 0; // TODO
-    }
-
-    void load() const{
-        return; //TODO
-    }
-
-    vector<int64_t> get_colors_as_vector() const{
-        std::vector<int64_t> vec;
-        if(is_bitmap()){    
-            for(int64_t i = 0; i < length; i++){
-                if(access_bitmap(i)) vec.push_back(i);
-            }
-        } else{
-            for(int64_t i = 0; i < length; i++){
-                if(i == 0) vec.push_back(access_delta_array(0));
-                else vec.push_back(vec.back() + access_delta_array(i));
-            }
-        }
-        return vec;
-    }
-
-};
-
-template<typename color_set_t> class Color_Set_Storage;
-
-template<>
-class Color_Set_Storage<New_Hybrid_Color_Set>{
+class New_Color_Set_Storage{
 
     private:
 
@@ -303,7 +188,7 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
 
     public:
 
-    New_Hybrid_Color_Set get_color_set_by_id(int64_t id) const{
+    Color_Set_View get_color_set_by_id(int64_t id) const{
         if(is_bitmap_marks[id]){
             int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
             int64_t start = bitmap_starts[bitmap_idx];
@@ -312,16 +197,16 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
             // The following const cast is dangerous but it is ok because the color set class will not modify
             // the pointer. The cast is needed because the color set class also manages its possible own memory
             // at the same pointer, which it needs to free.
-            std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = const_cast<sdsl::bit_vector*>(&bitmap_concat);
-            return New_Hybrid_Color_Set(start, end-start, data_ptr);
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &bitmap_concat;
+            return Color_Set_View(data_ptr, start, end-start);
         } else{
             int64_t deltas_idx = id - is_bitmap_marks_rs.rank(id); // Rank-0. This many delta arrays come before this bitmap
             int64_t start = deltas_starts[deltas_idx];
             int64_t end = deltas_starts[deltas_idx+1]; // One past the end
 
             // See comment about const-cast above
-            std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = const_cast<sdsl::int_vector<>*>(&deltas_concat);
-            return New_Hybrid_Color_Set(start, end-start, data_ptr);
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &deltas_concat;
+            return Color_Set_View(data_ptr, start, end-start);
         }
     }
 
@@ -422,8 +307,8 @@ class Color_Set_Storage<New_Hybrid_Color_Set>{
         return is_bitmap_marks.size();
     }
 
-    vector<New_Hybrid_Color_Set> get_all_sets() const{
-        vector<New_Hybrid_Color_Set> all;
+    vector<Color_Set_View> get_all_sets() const{
+        vector<Color_Set_View> all;
         for(int64_t i = 0; i < number_of_sets_stored(); i++){
             all.push_back(get_color_set_by_id(i));
         }
