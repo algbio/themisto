@@ -117,7 +117,7 @@ class Color_Set{
             const sdsl::bit_vector* from = std::get<const sdsl::bit_vector*>(view.data_ptr);
             sdsl::bit_vector* to = std::get<sdsl::bit_vector*>(data_ptr);
             for(int64_t i = 0; i < view.length; i++){
-                (*to)[i] = (*from)[start + i];
+                (*to)[i] = (*from)[view.start + i];
             }
         } else{
             // Delta array
@@ -128,7 +128,7 @@ class Color_Set{
             const sdsl::int_vector<>* from = std::get<const sdsl::int_vector<>*>(view.data_ptr);
             sdsl::int_vector<>* to = std::get<sdsl::int_vector<>*>(data_ptr);
             for(int64_t i = 0; i < view.length; i++){
-                (*to)[i] = (*from)[start + i];
+                (*to)[i] = (*from)[view.start + i];
             }
         }
     }

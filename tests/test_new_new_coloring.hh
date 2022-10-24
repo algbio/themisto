@@ -67,7 +67,6 @@ TEST(NEW_NEW_COLORING_TEST, storage){
         ASSERT_EQ(cs.get_colors_as_vector(), retrieved_views[i].get_colors_as_vector());
         ASSERT_EQ(cs.empty(), retrieved_views[i].empty());
         ASSERT_EQ(cs.size(), retrieved_views[i].size());
-        ASSERT_EQ(cs.get_colors_as_vector(), retrieved_views[i].get_colors_as_vector());
         for(int64_t j = 0; j < 1010; j++){
             ASSERT_EQ(cs.contains(j), retrieved_views[i].contains(j));            
         }
