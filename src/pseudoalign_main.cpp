@@ -73,7 +73,7 @@ vector<string> read_lines(string filename){
 
 // If outputfile is an empty string, prints to stdout
 template<typename coloring_t> 
-void call_pseudoalign(plain_matrix_sbwt_t& SBWT, coloring_t coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
+void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(SeqIO::figure_out_file_format(inputfile).gzipped){
         SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
         pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, 1<<23, C.gzipped_output, C.sort_output); // Buffer size 8 MB
