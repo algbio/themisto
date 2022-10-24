@@ -30,6 +30,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(THEMISTO_SOURCES 
   src/pseudoalign_main.cpp 
   src/new_coloring.cpp 
+  src/new_new_coloring.cpp 
   src/color_set_diagnostics.cpp 
   src/pseudoalign.cpp 
   src/globals.cpp 
