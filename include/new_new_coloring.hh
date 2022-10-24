@@ -276,12 +276,14 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
     }
 
     sdsl::bit_vector to_sdsl_bit_vector(const vector<bool>& v){
+        if(v.size() == 0) return sdsl::bit_vector();
         sdsl::bit_vector bv(v.size());
         for(int64_t i = 0; i < v.size(); i++) bv[i] = v[i];
         return bv;
     }
 
     sdsl::int_vector<> to_sdsl_int_vector(const vector<int64_t>& v){
+        if(v.size() == 0) return sdsl::int_vector<>();
         int64_t max_element = *std::max_element(v.begin(), v.end());
         sdsl::int_vector iv(v.size(), 0, bits_needed(max_element));
         for(int64_t i = 0; i < v.size(); i++) iv[i] = v[i];
