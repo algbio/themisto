@@ -138,6 +138,21 @@ class Color_Set{
 
     Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
 
+    const Color_Set& operator=(const Color_Set& other){
+        if(this == &other) *this; // Assignment to itself
+
+        if(std::holds_alternative<sdsl::bit_vector*>(other.data_ptr))
+            this->data_ptr = new sdsl::bit_vector(*(std::get<sdsl::bit_vector*>(other.data_ptr)));
+        else
+            this->data_ptr = new sdsl::int_vector<>(*(std::get<sdsl::int_vector<>*>(other.data_ptr)));
+        this->start = other.start;
+        this->length = other.length;
+    }
+
+    Color_Set(const Color_Set& other){
+        *this = other;
+    }
+
     // Construct a copy of a color set from a view
     Color_Set(const Color_Set_View& view) : start(0), length(view.length){
         if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
