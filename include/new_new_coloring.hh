@@ -104,6 +104,8 @@ int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, cons
 // but the old elements past the end are left in place to avoid memory reallocations.
 int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_len);
 
+class Color_Set;
+
 class Color_Set_View{
 
 public:
@@ -114,6 +116,8 @@ public:
 
     Color_Set_View(std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr, int64_t start, int64_t length)
         : data_ptr(data_ptr), start(start), length(length){}
+
+    Color_Set_View(const Color_Set& cs); // Defined in the .cpp file because Color_Set is not yet defined at this point of this header
 
     bool empty() const {return colorset_is_empty(*this);};
     bool is_bitmap() const {return colorset_is_bitmap(*this);};
@@ -159,6 +163,29 @@ class Color_Set{
         }
     }
 
+    Color_Set(const vector<int64_t>& set) : start(0){
+        int64_t max_element = *std::max_element(set.begin(), set.end());
+        if(log2(max_element) * set.size() > max_element){ // TODO: this if-statement is duplicated in this file
+            // Dense -> bitmap
+            sdsl::bit_vector* ptr = new sdsl::bit_vector(max_element+1, 0);
+            for(int64_t x : set) (*ptr)[x] = 1;
+            length = ptr->size();
+            data_ptr = ptr; // Assign to variant
+        } else{
+            // Sparse -> delta array
+            sdsl::int_vector<>* ptr = new sdsl::int_vector<>(set.size());
+            if(set.size() > 0){
+                for(int64_t i = 0; i < set.size(); i++){
+                    if(i == 0) (*ptr)[i] = set[0];
+                    else (*ptr)[i] = set[i] - set[i-1];
+                }
+            }
+            length = ptr->size();
+            // Assign to variant
+            data_ptr = ptr;
+        }
+    }
+
     ~Color_Set(){
         auto call_delete = [](auto ptr){delete ptr;};
         std::visit(call_delete, data_ptr);
@@ -172,7 +199,7 @@ class Color_Set{
     vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
 
     // Stores the intersection back to to this object
-    void intersect(const Color_Set_View& other){
+    void intersection(const Color_Set_View& other){
         if(is_bitmap() && other.is_bitmap()){
             this->length = bitmap_vs_bitmap_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.length);
         } else if(!is_bitmap() && other.is_bitmap()){
@@ -182,6 +209,10 @@ class Color_Set{
         } else{ // Delta array vs Delta array
             this->length = array_vs_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.length);
         }
+    }
+
+    void do_union(const Color_Set_View& other){
+        // TODO
     }
 
 };

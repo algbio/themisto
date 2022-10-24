@@ -74,3 +74,8 @@ int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, cons
 int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_len){
     return intersect_buffers(A, A_len, B, B_len);
 }
+
+Color_Set_View::Color_Set_View(const Color_Set& cs) : start(cs.start), length(cs.length) {
+        auto set_data_ptr = [&](auto& ptr){this->data_ptr = ptr;};
+        std::visit(set_data_ptr, cs.data_ptr);
+}

@@ -14,6 +14,7 @@
 #include "hybrid_color_set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 #include "bit_magic_color_set.hh"
+#include "new_new_coloring.hh"
 
 using namespace sbwt;
 
@@ -51,6 +52,7 @@ TEST(TEST_COLOR_SET, sparse){
     test_sparse_color_set<Fixed_Width_Int_Color_Set>();
     test_sparse_color_set<Roaring_Color_Set>();
     test_sparse_color_set<Bit_Magic_Color_Set>();
+    test_sparse_color_set<Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
