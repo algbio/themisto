@@ -35,16 +35,24 @@ struct Build_Config{
     bool reverse_complements = false;
     
     void check_valid(){
-        sbwt::check_true(inputfile != "", "Input file not set");
 
-        sbwt::check_readable(inputfile);
-
-        if(!load_dbg){
-            sbwt::check_true(k != 0, "Parameter k not set");
-            sbwt::check_true(k <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
+        if(from_index != ""){
+            // From existing index
+            sbwt::check_true(colorfile == "", "Must not give both --from-index and --colorfile");
+            sbwt::check_true(inputfile == "", "Must not give both --from-index and input sequences");
+            sbwt::check_true(no_colors == false, "Must not give both --from-index and --load-dbg");
+            sbwt::check_true(k == 0, "Must not give both --from-index and -k because k is defined in the index");
         } else{
-            if(k != 0){
-                sbwt::write_log("Warning: value of parameter k is ignored because the DBG is not built, but loaded from disk instead", sbwt::LogLevel::MAJOR);
+            // From fasta and colorfile
+            sbwt::check_true(inputfile != "", "Input file not set");
+            sbwt::check_readable(inputfile);
+            if(!load_dbg){
+                sbwt::check_true(k != 0, "Parameter k not set");
+                sbwt::check_true(k <= KMER_MAX_LENGTH, "Maximum allowed k is " + std::to_string(KMER_MAX_LENGTH) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
+            } else{
+                if(k != 0){
+                    sbwt::write_log("Warning: value of parameter k is ignored because the DBG is not built, but loaded from disk instead", sbwt::LogLevel::MAJOR);
+                }
             }
         }
 
@@ -54,13 +62,6 @@ struct Build_Config{
         if(colorfile != ""){
             sbwt::check_true(!no_colors, "Must not give both --no-colors and --colorfile");
             sbwt::check_readable(colorfile);
-        }
-
-        if(from_index != ""){
-            sbwt::check_true(colorfile == "", "Must not give both --from-index and --colorfile");
-            sbwt::check_true(inputfile == "", "Must not give both --from-index and input sequences");
-            sbwt::check_true(no_colors == false, "Must not give both --from-index and --load-dbg");
-            sbwt::check_true(k == 0, "Must not give both --from-index and -k because k is defined in the index");
         }
 
         if(coloring_structure_type != "sdsl-fixed" && coloring_structure_type != "sdsl-hybrid" && coloring_structure_type != "roaring" && coloring_structure_type != "bitmagic"){
@@ -77,8 +78,12 @@ struct Build_Config{
 
     string to_string(){
         stringstream ss;
-        ss << "Input file = " << inputfile << "\n";
-        ss << "Input format = " << input_format.extension << "\n";
+        if(inputfile != ""){
+            ss << "Input file = " << inputfile << "\n";
+            ss << "Input format = " << input_format.extension << "\n";
+        } else{
+            ss << "Building from index prefix = " << from_index << "\n";
+        }
         if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
         ss << "Index de Bruijn graph output file = " << index_dbg_file << "\n";
         ss << "Index coloring output file = " << index_color_file << "\n";
@@ -280,7 +285,7 @@ int build_index_main(int argc, char** argv){
 
     options.add_options()
         ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>()->default_value("0"))
-        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>())
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq . If the file ends with .gz, it is uncompressed into a temporary directory and the temporary file is deleted after use.", cxxopts::value<string>()->default_value(""))
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
@@ -316,7 +321,8 @@ int build_index_main(int argc, char** argv){
     Build_Config C;
     C.k = opts["k"].as<LL>();
     C.inputfile = opts["input-file"].as<string>();
-    C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile);
+    if(C.inputfile != "")
+        C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<LL>();
     C.colorfile = opts["color-file"].as<string>();
     C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
@@ -350,11 +356,11 @@ int build_index_main(int argc, char** argv){
 
         sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
         std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
-        dbg_ptr->load(C.index_dbg_file);
+        dbg_ptr->load(C.from_index + ".tdbg");
 
         sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
         std::variant<Coloring<Color_Set, Color_Set_View>, Coloring<Roaring_Color_Set, Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>> old_coloring;
-        load_coloring(C.index_color_file, *dbg_ptr, old_coloring);
+        load_coloring(C.from_index + ".tcolors", *dbg_ptr, old_coloring);
 
         if(std::holds_alternative<Coloring<Color_Set, Color_Set_View>>(old_coloring))
             write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
