@@ -49,14 +49,29 @@ TEST(NEW_NEW_COLORING_TEST, storage){
     vector<Color_Set_View> retrieved_views = css.get_all_sets();
     for(int64_t i = 0; i < retrieved_views.size(); i++){
         ASSERT_EQ(retrieved_views[i].get_colors_as_vector(), sets[i]);
+        ASSERT_FALSE(retrieved_views[i].empty());
+        ASSERT_EQ(retrieved_views[i].size(), sets[i].size());
+
+        // Check contains()
+
+        vector<bool> contains_ref(1010);
+        for(int64_t x : sets[i]) contains_ref[x] = true;    
+
+        vector<bool> contains_check(1010);
+        for(int64_t j = 0; j < contains_check.size(); j++) contains_check[j] = retrieved_views[i].contains(j);
+
+        ASSERT_EQ(contains_check, contains_ref);
+
+        // Test constructing a color set object out of a view
+        Color_Set cs(retrieved_views[i]);
+        ASSERT_EQ(cs.get_colors_as_vector(), retrieved_views[i].get_colors_as_vector());
+        ASSERT_EQ(cs.empty(), retrieved_views[i].empty());
+        ASSERT_EQ(cs.size(), retrieved_views[i].size());
+        ASSERT_EQ(cs.get_colors_as_vector(), retrieved_views[i].get_colors_as_vector());
+        for(int64_t j = 0; j < 1010; j++){
+            ASSERT_EQ(cs.contains(j), retrieved_views[i].contains(j));            
+        }
     }
-
-    // Test constructing a color set object out of a view
-
-    Color_Set cs(retrieved_views[3]);
-    ASSERT_EQ(cs.get_colors_as_vector(), sets[3]);
-
-    
     
 }
 
