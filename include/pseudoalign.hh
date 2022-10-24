@@ -120,7 +120,7 @@ private:
                 int64_t fw_id = color_set_id_buffer[i];
                 int64_t rc_id = rc_color_set_id_buffer[n_kmers-1-i];
 
-                typename coloring_t::colorset_type cs;
+                typename coloring_t::colorset_type cs; // For union. TODO: Reuse a union buffer
                 if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
                 else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(rc_id);
                 else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
