@@ -8,30 +8,30 @@
 using namespace std;
 
 template<typename colorset_t> 
-inline bool colorset_is_empty(const colorset_t& cs){
+static inline bool colorset_is_empty(const colorset_t& cs){
     return cs.length == 0;
 }
 
 template<typename colorset_t> 
-inline bool colorset_is_bitmap(const colorset_t& cs){
+static inline bool colorset_is_bitmap(const colorset_t& cs){
     // Check variant type by index because it could be const or non-const and we don't want to care
     return cs.data_ptr.index() == 0;
 }
 
 template<typename colorset_t> 
-inline bool colorset_access_bitmap(const colorset_t& cs, int64_t idx){
+static inline bool colorset_access_bitmap(const colorset_t& cs, int64_t idx){
     // Using std::holds_alternative by index because it could have a const or a non-const type
     return (*std::get<0>(cs.data_ptr))[cs.start + idx];
 }
 
 template<typename colorset_t> 
-inline int64_t colorset_access_delta_array(const colorset_t& cs, int64_t idx){
+static inline int64_t colorset_access_delta_array(const colorset_t& cs, int64_t idx){
     // Using std::holds_alternative by index because it could have a const or a non-const type
     return (*std::get<1>(cs.data_ptr))[cs.start + idx];
 }
 
 template<typename colorset_t> 
-inline int64_t colorset_size(const colorset_t& cs){
+static inline int64_t colorset_size(const colorset_t& cs){
     if(colorset_is_bitmap(cs)){
         // Count number of bits set
         int64_t count = 0; 
@@ -43,14 +43,14 @@ inline int64_t colorset_size(const colorset_t& cs){
 }
 
 template<typename colorset_t> 
-inline int64_t colorset_size_in_bits(const colorset_t& cs){
+static inline int64_t colorset_size_in_bits(const colorset_t& cs){
     if(colorset_is_bitmap(cs)) return cs.length;
     else return cs.length * std::get<1>(cs.data_ptr)->width();
     // Using std::holds_alternative by index because it could have a const or a non-const type
 }
 
 template<typename colorset_t> 
-inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs){
+static inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs){
     std::vector<int64_t> vec;
     if(colorset_is_bitmap(cs)){    
         for(int64_t i = 0; i < cs.length; i++){
@@ -66,7 +66,7 @@ inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs){
 }
 
 template<typename colorset_t> 
-inline bool colorset_contains(const colorset_t& cs, int64_t color){
+static inline bool colorset_contains(const colorset_t& cs, int64_t color){
     if(colorset_is_bitmap(cs)){
         if(color >= cs.length) return false;
         return colorset_access_bitmap(cs, color);
