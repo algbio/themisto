@@ -40,7 +40,7 @@ int color_set_diagnostics_main(int argc, char** argv){
     vector<int64_t> sum_of_bit_sizes(coloring.largest_color()+1); // 0..largest_color
     vector<int64_t> count_of_occurrences(coloring.largest_color()+1); // 0..largest_color
 
-    for(const Coloring<>::colorset_type & cs : coloring.get_all_distinct_color_sets()){
+    for(const typename Coloring<>::colorset_type::view_t cs : coloring.get_all_distinct_color_sets()){
         sum_of_bit_sizes[cs.size()] += cs.size_in_bits();
         count_of_occurrences[cs.size()]++;
     }
