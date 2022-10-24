@@ -139,7 +139,7 @@ class Color_Set{
     bool is_bitmap() const {return colorset_is_bitmap(*this);};
     int64_t size() const {return colorset_size(*this);}
     int64_t size_in_bits() const {return colorset_size_in_bits(*this);}
-    bool contains(int64_t color) {return colorset_contains(*this, color);}
+    bool contains(int64_t color) const {return colorset_contains(*this, color);}
     vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
 
 };
