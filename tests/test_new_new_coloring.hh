@@ -45,13 +45,18 @@ TEST(NEW_NEW_COLORING_TEST, storage){
         css.add_set(set);
     css.prepare_for_queries();
 
+    // Check that we can get back the same color sets as what we put in
     vector<Color_Set_View> retrieved_views = css.get_all_sets();
     for(int64_t i = 0; i < retrieved_views.size(); i++){
-        for(int64_t x : retrieved_views[i].get_colors_as_vector()) cout << x << " "; 
-        cout << endl;
-
         ASSERT_EQ(retrieved_views[i].get_colors_as_vector(), sets[i]);
     }
+
+    // Test constructing a color set object out of a view
+
+    Color_Set cs(retrieved_views[3]);
+    ASSERT_EQ(cs.get_colors_as_vector(), sets[3]);
+
+    
     
 }
 
