@@ -2,7 +2,6 @@
 
 // See header for description
 int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_start, int64_t buf2_len){
-
     if(buf1_len == 0 | buf2_len == 0) return 0;
 
     int64_t x1 = buf1[0];
