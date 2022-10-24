@@ -16,8 +16,39 @@
 
 using namespace sbwt;
 
+vector<int64_t> get_sparse_colorset(){
+    vector<int64_t> v = {4, 1534, 4003, 8903};
+    return v;
+}
+
+vector<int64_t> get_dense_colorset(int64_t gap, int64_t total_length){
+    vector<int64_t> v;
+    for(int64_t i = 0; i < total_length; i += gap){
+        v.push_back(i);
+    }
+    return v;
+}
+
 TEST(NEW_NEW_COLORING_TEST, storage){
+
     New_Color_Set_Storage css;
+    vector<vector<int64_t> > sets = {get_sparse_colorset(), 
+                                     get_dense_colorset(1,10000), 
+                                     get_sparse_colorset(), 
+                                     get_sparse_colorset(), 
+                                     get_dense_colorset(2,10000),
+                                     {1,5,7,8},
+                                     {0,1,2,3,4,5,6},
+                                     get_dense_colorset(3,10000)};
+
+    for(const vector<int64_t>& set : sets)
+        css.add_set(set);
+    css.prepare_for_queries();
+
+    for(Color_Set_View csv : css.get_all_sets()){
+        for(int64_t x : csv.get_colors_as_vector()) cout << x << " "; cout << endl;
+    }
+    
 }
 
 TEST(NEW_NEW_COLORING_TEST, prefix_sums){
