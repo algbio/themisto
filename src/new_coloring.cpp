@@ -6,8 +6,6 @@ Coloring<Color_Set, Color_Set_View>,
 Coloring<Roaring_Color_Set, Roaring_Color_Set>,
 Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>& coloring){
 
-    // TODO: avoid having to copy the whole coloring structure
-
     Coloring<Color_Set, Color_Set_View> coloring1;
     Coloring<Roaring_Color_Set, Roaring_Color_Set> coloring2;
     Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set> coloring3;
