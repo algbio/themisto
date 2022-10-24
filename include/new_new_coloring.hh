@@ -7,6 +7,55 @@
 
 using namespace std;
 
+class Color_Set_View{
+
+public:
+
+    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Non-owning pointer to external data
+    int64_t start;
+    int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
+
+};
+
+class Color_Set{
+    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Owning pointer
+    int64_t start;
+    int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
+
+    Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
+
+    // Construct at copy of a color set from a view
+    Color_Set(const Color_Set_View& view) : start(view.start), length(view.length){
+        if(std::holds_alternative<sdsl::bit_vector*>(view.data_ptr)){
+            data_ptr = new sdsl::bit_vector(view.length, 0);
+
+            // Copy the bits
+            sdsl::bit_vector* from = std::get<sdsl::bit_vector*>(view.data_ptr);
+            sdsl::bit_vector* to = std::get<sdsl::bit_vector*>(data_ptr);
+            for(int64_t i = 0; i < view.length; i++){
+                (*to)[i] = (*from)[start + i];
+            }
+        } else{
+            // Delta array
+            int64_t bit_width = std::get<sdsl::int_vector<>*>(data_ptr)->width();
+            data_ptr = new sdsl::int_vector<>(view.length, 0, bit_width);
+
+            // Copy the values
+            sdsl::int_vector<>* from = std::get<sdsl::int_vector<>*>(view.data_ptr);
+            sdsl::int_vector<>* to = std::get<sdsl::int_vector<>*>(data_ptr);
+            for(int64_t i = 0; i < view.length; i++){
+                (*to)[i] = (*from)[start + i];
+            }
+        }
+    }
+
+    ~Color_Set(){
+        auto call_delete = [](auto ptr){delete ptr;};
+        std::visit(call_delete, data_ptr);
+    }
+};
+
+
 // This class either owns its memory, or points to other memory
 class New_Hybrid_Color_Set{
     
@@ -82,7 +131,7 @@ public:
             if(color >= length) return false;
             return access_bitmap(color);
         } else{
-            // Linear scan. VERY SLOWS
+            // Linear scan. VERY SLOW
             for(int64_t x : get_colors_as_vector()) if(x == color) return true;
             return false;
         }
