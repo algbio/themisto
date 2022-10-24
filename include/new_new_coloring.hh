@@ -27,7 +27,7 @@ static inline bool colorset_access_bitmap(const colorset_t& cs, int64_t idx){
 }
 
 template<typename colorset_t> 
-static inline int64_t colorset_access_delta_array(const colorset_t& cs, int64_t idx){
+static inline int64_t colorset_access_array(const colorset_t& cs, int64_t idx){
     // Using std::holds_alternative by index because it could have a const or a non-const type
     return (*std::get<1>(cs.data_ptr))[cs.start + idx];
 }
@@ -60,8 +60,7 @@ static inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs
         }
     } else{
         for(int64_t i = 0; i < cs.length; i++){
-            if(i == 0) vec.push_back(colorset_access_delta_array(cs,0));
-            else vec.push_back(vec.back() + colorset_access_delta_array(cs,i));
+            vec.push_back(colorset_access_array(cs,i));
         }
     }
     return vec;
@@ -74,7 +73,9 @@ static inline bool colorset_contains(const colorset_t& cs, int64_t color){
         return colorset_access_bitmap(cs, color);
     } else{
         // Linear scan. VERY SLOW
-        for(int64_t x : colorset_get_colors_as_vector(cs)) if(x == color) return true;
+        for(int64_t i = 0; i < cs.length; i++){
+            if(colorset_access_array(cs,i) == color) return true;
+        }
         return false;
     }
 }
@@ -82,7 +83,7 @@ static inline bool colorset_contains(const colorset_t& cs, int64_t color){
 // Stores the intersection into buf1 and returns the number of elements in the
 // intersection (does not resize buf1). Buffer elements must be sorted.
 // Assumes all elements in a buffer are distinct
-int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len);
+int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len);
 
 // Stores the union into result_buf and returns the number of elements in the
 // union (does not resize result_buf). Buffers elements must be sorted.
@@ -96,15 +97,15 @@ int64_t bitmap_vs_bitmap_intersection(sdsl::bit_vector& A, int64_t A_size, const
 
 // Stores the result into iv and returns the size of the intersection. iv is not resized
 // but the old elements past the end  are left in place to avoid memory reallocations.
-int64_t delta_array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size);
+int64_t array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size);
 
 // Stores the result into bv and returns the length of bv. bv is not resized
 // but the old elements past the end are left in place to avoid memory reallocations.
-int64_t bitmap_vs_delta_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size);
+int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size);
 
 // Stores the result into A and returns the length of the new vector. A is not resized
 // but the old elements past the end are left in place to avoid memory reallocations.
-int64_t delta_array_vs_delta_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
+int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
 
 class Color_Set;
 
@@ -114,7 +115,7 @@ public:
 
     std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr; // Non-owning pointer to external data
     int64_t start;
-    int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
+    int64_t length; // Number of bits in case of bit vector, number of elements in case of array
 
     Color_Set_View(std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr, int64_t start, int64_t length)
         : data_ptr(data_ptr), start(start), length(length){}
@@ -138,7 +139,7 @@ class Color_Set{
 
     std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = (sdsl::bit_vector*) nullptr; // Owning pointer
     int64_t start = 0;
-    int64_t length = 0; // Number of bits in case of bit vector, number of elements in case of delta array
+    int64_t length = 0; // Number of bits in case of bit vector, number of elements in case of array
 
     Color_Set(){
         data_ptr = new sdsl::bit_vector();
@@ -177,7 +178,7 @@ class Color_Set{
                 (*to)[i] = (*from)[view.start + i];
             }
         } else{
-            // Delta array
+            // Array
             int64_t bit_width = std::get<const sdsl::int_vector<>*>(view.data_ptr)->width();
             data_ptr = new sdsl::int_vector<>(view.length, 0, bit_width);
 
@@ -199,17 +200,15 @@ class Color_Set{
             length = ptr->size();
             data_ptr = ptr; // Assign to variant
         } else{
-            // Sparse -> delta array
+            // Sparse -> array
             sdsl::int_vector<>* ptr = new sdsl::int_vector<>(set.size());
             if(set.size() > 0){
                 for(int64_t i = 0; i < set.size(); i++){
-                    if(i == 0) (*ptr)[i] = set[0];
-                    else (*ptr)[i] = set[i] - set[i-1];
+                    (*ptr)[i] = set[i];
                 }
             }
             length = ptr->size();
-            // Assign to variant
-            data_ptr = ptr;
+            data_ptr = ptr; // Assign to variant
         }
     }
 
@@ -230,21 +229,21 @@ class Color_Set{
         if(is_bitmap() && other.is_bitmap()){
             this->length = bitmap_vs_bitmap_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(!is_bitmap() && other.is_bitmap()){
-            this->length = delta_array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
+            this->length = array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(is_bitmap() && !other.is_bitmap()){
             // The result will be sparse, so this will turn our representation into an array
             sdsl::int_vector<> iv_copy(*std::get<const sdsl::int_vector<>*>(other.data_ptr)); // Make a mutable copy
 
             // Intersect into the mutable copy
-            int64_t iv_copy_length = delta_array_vs_bitmap_intersection(iv_copy, other.length, *std::get<sdsl::bit_vector*>(this->data_ptr), this->start, this->length);
+            int64_t iv_copy_length = array_vs_bitmap_intersection(iv_copy, other.length, *std::get<sdsl::bit_vector*>(this->data_ptr), this->start, this->length);
 
             // Replace our data with the mutable copy
             auto call_delete = [](auto ptr){delete ptr;}; // Free current data
             std::visit(call_delete, this->data_ptr);
             this->data_ptr = new sdsl::int_vector<>(iv_copy);
             this->length = iv_copy_length;
-        } else{ // Delta array vs Delta array
-            this->length = delta_array_vs_delta_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
+        } else{ // Array vs Array
+            this->length = array_vs_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
         }
     }
 
@@ -274,8 +273,8 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
     sdsl::bit_vector bitmap_concat;
     sdsl::int_vector<> bitmap_starts; // bitmap_starts[i] = starting position of the i-th bitmap
 
-    sdsl::int_vector<> deltas_concat;
-    sdsl::int_vector<> deltas_starts; // deltas_starts[i] = starting position of the i-th delta list
+    sdsl::int_vector<> arrays_concat;
+    sdsl::int_vector<> arrays_starts; // arrays_starts[i] = starting position of the i-th subarray
 
     sdsl::bit_vector is_bitmap_marks;
     sdsl::rank_support_v5<> is_bitmap_marks_rs;
@@ -283,9 +282,9 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
     // Dynamic-length vectors used during construction only
     // TODO: refactor these out of the class to a separate construction class
     vector<bool> temp_bitmap_concat;
-    vector<int64_t> temp_deltas_concat;
+    vector<int64_t> temp_arrays_concat;
     vector<int64_t> temp_bitmap_starts;
-    vector<int64_t> temp_deltas_starts;
+    vector<int64_t> temp_arrays_starts;
     vector<bool> temp_is_bitmap_marks;
 
     // Number of bits required to represent x
@@ -316,18 +315,14 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
             int64_t start = bitmap_starts[bitmap_idx];
             int64_t end = bitmap_starts[bitmap_idx+1]; // One past the end
 
-            // The following const cast is dangerous but it is ok because the color set class will not modify
-            // the pointer. The cast is needed because the color set class also manages its possible own memory
-            // at the same pointer, which it needs to free.
             std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &bitmap_concat;
             return Color_Set_View(data_ptr, start, end-start);
         } else{
-            int64_t deltas_idx = id - is_bitmap_marks_rs.rank(id); // Rank-0. This many delta arrays come before this bitmap
-            int64_t start = deltas_starts[deltas_idx];
-            int64_t end = deltas_starts[deltas_idx+1]; // One past the end
+            int64_t arrays_idx = id - is_bitmap_marks_rs.rank(id); // Rank-0. This many arrays come before this bitmap
+            int64_t start = arrays_starts[arrays_idx];
+            int64_t end = arrays_starts[arrays_idx+1]; // One past the end
 
-            // See comment about const-cast above
-            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &deltas_concat;
+            std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &arrays_concat;
             return Color_Set_View(data_ptr, start, end-start);
         }
     }
@@ -352,20 +347,18 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
             for(bool b : bitmap) temp_bitmap_concat.push_back(b);
 
         } else{
-            // Sparse -> delta array
+            // Sparse -> Array
 
             // Add is_bitmap_mark
             temp_is_bitmap_marks.push_back(0);
 
             // Store array start
-            temp_deltas_starts.push_back(temp_deltas_concat.size());
+            temp_arrays_starts.push_back(temp_arrays_concat.size());
 
             if(set.size() > 0){
                 for(int64_t i = 0; i < set.size(); i++){
-                    if(i == 0) temp_deltas_concat.push_back(set[0]);
-                    else temp_deltas_concat.push_back(set[i] - set[i-1]);
+                    temp_arrays_concat.push_back(set[i]);
                 }
-                
             }
         }
 
@@ -378,21 +371,21 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
         // Add extra starts points one past the end
         // These eliminate a special case when querying for the size of the last color set
         temp_bitmap_starts.push_back(temp_bitmap_concat.size());
-        temp_deltas_starts.push_back(temp_deltas_concat.size());
+        temp_arrays_starts.push_back(temp_arrays_concat.size());
 
-        deltas_concat = to_sdsl_int_vector(temp_deltas_concat);
+        arrays_concat = to_sdsl_int_vector(temp_arrays_concat);
         bitmap_starts = to_sdsl_int_vector(temp_bitmap_starts);
-        deltas_starts = to_sdsl_int_vector(temp_deltas_starts);
+        arrays_starts = to_sdsl_int_vector(temp_arrays_starts);
         bitmap_concat = to_sdsl_bit_vector(temp_bitmap_concat);
         is_bitmap_marks = to_sdsl_bit_vector(temp_is_bitmap_marks);
 
         sdsl::util::init_support(is_bitmap_marks_rs, &is_bitmap_marks);
 
         // Free memory
-        temp_deltas_concat.clear(); temp_deltas_concat.shrink_to_fit();    
+        temp_arrays_concat.clear(); temp_arrays_concat.shrink_to_fit();    
         temp_bitmap_concat.clear(); temp_bitmap_concat.shrink_to_fit();
         temp_is_bitmap_marks.clear(); temp_is_bitmap_marks.shrink_to_fit();
-        temp_deltas_starts.clear(); temp_deltas_starts.shrink_to_fit();
+        temp_arrays_starts.clear(); temp_arrays_starts.shrink_to_fit();
         temp_bitmap_starts.clear(); temp_bitmap_starts.shrink_to_fit();
     }
 
@@ -402,8 +395,8 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
         bytes_written += bitmap_concat.serialize(os);
         bytes_written += bitmap_starts.serialize(os);
 
-        bytes_written += deltas_concat.serialize(os);
-        bytes_written += deltas_starts.serialize(os);
+        bytes_written += arrays_concat.serialize(os);
+        bytes_written += arrays_starts.serialize(os);
 
         bytes_written += is_bitmap_marks.serialize(os);
         bytes_written += is_bitmap_marks_rs.serialize(os);
@@ -416,8 +409,8 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
     void load(istream& is){
         bitmap_concat.load(is);
         bitmap_starts.load(is);
-        deltas_concat.load(is);
-        deltas_starts.load(is);
+        arrays_concat.load(is);
+        arrays_starts.load(is);
         is_bitmap_marks.load(is);
 
         is_bitmap_marks_rs.load(is, &is_bitmap_marks);
@@ -445,8 +438,8 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
 
         breakdown["bitmaps-concat"] = bitmap_concat.serialize(ns);
         breakdown["bitmaps-starts"] = bitmap_starts.serialize(ns);
-        breakdown["arrays-concat"] = deltas_concat.serialize(ns);
-        breakdown["arrays-starts"] = deltas_starts.serialize(ns);
+        breakdown["arrays-concat"] = arrays_concat.serialize(ns);
+        breakdown["arrays-starts"] = arrays_starts.serialize(ns);
         breakdown["is-bitmap-marks"] = is_bitmap_marks.serialize(ns);
         breakdown["is-bitmap-marks-rank-suppport"] = is_bitmap_marks_rs.serialize(ns);
 

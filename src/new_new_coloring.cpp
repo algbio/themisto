@@ -1,34 +1,20 @@
 #include "new_new_coloring.hh"
 
 // See header for description
-int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_start, int64_t buf2_len){
-    if(buf1_len == 0 || buf2_len == 0) return 0;
-
-    int64_t x1 = buf1[0];
-    int64_t x2 = buf2[buf2_start];
-
-    int64_t prev_x1 = 0;
+int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_start, int64_t buf2_len){
 
     int64_t i = 0, j = 0, k = 0;
     while(i < buf1_len && j < buf2_len){
-        if(x1 < x2){
-            i++;
-            if(i < buf1_len) x1 += buf1[i]; // Add delta
-        }
-        else if(x1 > x2){
-            j++;
-            if(j < buf2_len) x2 += buf2[buf2_start + j]; // Add delta
-        }
+        if(buf1[i] < buf2[buf2_start + j]) i++;
+        else if(buf1[i] > buf2[buf2_start + j]) j++;
         else{
-            buf1[k] = x1 - prev_x1;
-            prev_x1 = x1;
+            buf1[k] = buf1[i];
             i++; j++; k++;
-            if(i < buf1_len) x1 += buf1[i]; // Add delta
-            if(j < buf2_len) x2 += buf2[buf2_start + j]; // Add delta
         }
     }
     return k;
 }
+
 
 
 // See header for description
@@ -61,52 +47,33 @@ int64_t bitmap_vs_bitmap_intersection(sdsl::bit_vector& A, int64_t A_size, const
 }
 
 // See header for description
-int64_t delta_array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size){
-    if(iv_size == 0) return 0;
-
-    int64_t x = 0; // Cumulative sum of deltas
-    int64_t x_prev = 0; // Previous cumulative sum of deltas
-    int64_t j = 0; // Output index
+int64_t array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size){
+    int64_t j = 0;
     for(int64_t i = 0; i < iv_size; i++){
-        x += iv[i];
-        if(x >= bv_size) break;
-        if(bv[bv_start + x]){ // x is in intersection
-            iv[j++] = x - x_prev; // Add to intersection modifying iv in-place
-            x_prev = x;    
-        }
+        if(iv[i] >= bv_size) break;
+        if(bv[bv_start + iv[i]]) iv[j++] = iv[i]; // Add to intersection modifying iv in-place
     }
     return j;
 }
 
 // See header for description
-int64_t bitmap_vs_delta_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size){
-
-    if(iv_size == 0){
-        bv.resize(0);
-        return 0;
-    }
-
+int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size){
     int64_t iv_idx = 0;
-    int64_t cumul_sum = iv[0];
     for(int64_t bv_idx = 0; bv_idx < bv_size; bv_idx++){
-        if(bv[bv_idx] == 1 && cumul_sum == bv_idx){
+        int64_t iv_value = iv_idx < iv_size ? iv[iv_start + iv_idx] : -1;
+        if(bv[bv_idx] == 1 && iv_value == bv_idx){
             bv[bv_idx] = 1; // Is in intersection
         } else{
             bv[bv_idx] = 0; // Is not in intersection
         }
-
-        if(cumul_sum == bv_idx){
-            // This cumulative sum is "processed". Add the next delta.
-            iv_idx++;
-            if(iv_idx < iv_size) cumul_sum += iv[iv_start + iv_idx];
-            else cumul_sum = -1; // Past the end
-        }
+        if(iv_value == bv_idx) iv_idx++;
     }
     return bv_size;
 }
+
 // See header for description
-int64_t delta_array_vs_delta_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len){
-    return intersect_delta_buffers(A, A_len, B, B_start, B_len);
+int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len){
+    return intersect_buffers(A, A_len, B, B_start, B_len);
 }
 
 Color_Set_View::Color_Set_View(const Color_Set& cs) : start(cs.start), length(cs.length) {
