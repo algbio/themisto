@@ -231,7 +231,17 @@ class Color_Set{
         } else if(!is_bitmap() && other.is_bitmap()){
             this->length = delta_array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(is_bitmap() && !other.is_bitmap()){
-            this->length = bitmap_vs_delta_array_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length); // TODO: This should re-encode ourselves as sparse?
+            // The result will be sparse, so this will turn our representation into an array
+            sdsl::int_vector<> iv_copy(*std::get<const sdsl::int_vector<>*>(other.data_ptr)); // Make a mutable copy
+
+            // Intersect into the mutable copy
+            int64_t iv_copy_length = delta_array_vs_bitmap_intersection(iv_copy, other.length, *std::get<sdsl::bit_vector*>(this->data_ptr), this->start, this->length);
+
+            // Replace our data with the mutable copy
+            auto call_delete = [](auto ptr){delete ptr;}; // Free current data
+            std::visit(call_delete, this->data_ptr);
+            this->data_ptr = new sdsl::int_vector<>(iv_copy);
+            this->length = iv_copy_length;
         } else{ // Delta array vs Delta array
             this->length = delta_array_vs_delta_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
         }
