@@ -8,6 +8,8 @@ int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, cons
     int64_t x1 = buf1[0];
     int64_t x2 = buf2[buf2_start];
 
+    int64_t prev_x1 = 0;
+
     int64_t i = 0, j = 0, k = 0;
     while(i < buf1_len && j < buf2_len){
         if(x1 < x2){
@@ -19,7 +21,8 @@ int64_t intersect_delta_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, cons
             if(j < buf2_len) x2 += buf2[buf2_start + j]; // Add delta
         }
         else{
-            buf1[k] = x1;
+            buf1[k] = x1 - prev_x1;
+            prev_x1 = x1;
             i++; j++; k++;
             if(i < buf1_len) x1 += buf1[i]; // Add delta
             if(j < buf2_len) x2 += buf2[buf2_start + j]; // Add delta
