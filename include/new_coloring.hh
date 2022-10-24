@@ -94,6 +94,20 @@ public:
         return sets;
     }
 
+    // Returns map: component -> number of bytes
+    map<string, int64_t> space_breakdown() const{
+        map<string, int64_t> breakdown;
+        sbwt::SeqIO::NullStream ns;
+        int64_t total_set_byte_size = 0;
+        for(int64_t i = 0; i < sets.size(); i++){
+            total_set_byte_size += sets[i].serialize(ns);
+        }
+        breakdown["sets"] = total_set_byte_size;
+
+        return breakdown;
+    }
+
+
 };
 
 
@@ -272,9 +286,10 @@ public:
     // Returns map: component -> number of bytes
     map<string, int64_t> space_breakdown() const{
         map<string, int64_t> breakdown;
-        sbwt::SeqIO::NullStream ns;
-        int64_t color_set_storage_size = sets.serialize(ns);
-        breakdown["distinct-color-set-storage"] = color_set_storage_size;
+
+        for(auto [component, bytes] : sets.space_breakdown()){
+            breakdown["color-set-storage-" + component] = bytes;
+        }
 
         for(auto [component, bytes] : node_id_to_color_set_id.space_breakdown()){
             breakdown["node-id-to-color-set-id-" + component] = bytes;

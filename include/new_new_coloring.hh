@@ -4,6 +4,7 @@
 #include "sdsl/bit_vectors.hpp"
 #include "sdsl/int_vector.hpp"
 #include "Color_Set_Interface.hh"
+#include "SeqIO.hh"
 #include <variant>
 
 using namespace std;
@@ -436,5 +437,23 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
         return all;
     }
 
+    // Returns map: component -> number of bytes
+    map<string, int64_t> space_breakdown() const{
+        map<string, int64_t> breakdown;
+
+        sbwt::SeqIO::NullStream ns;
+
+        breakdown["bitmaps-concat"] = bitmap_concat.serialize(ns);
+        breakdown["bitmaps-starts"] = bitmap_starts.serialize(ns);
+        breakdown["arrays-concat"] = deltas_concat.serialize(ns);
+        breakdown["arrays-starts"] = deltas_starts.serialize(ns);
+        breakdown["is-bitmap-marks"] = is_bitmap_marks.serialize(ns);
+        breakdown["is-bitmap-marks-rank-suppport"] = is_bitmap_marks_rs.serialize(ns);
+
+        // In the future maybe the space breakdown struct should support float statistics but for now we just disgustingly print to cout.
+        cout << "Fraction of bitmaps in coloring: " << (double) is_bitmap_marks_rs.rank(is_bitmap_marks.size()) / is_bitmap_marks.size() << endl;
+
+        return breakdown;
+    }
 
 };
