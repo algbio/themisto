@@ -116,29 +116,37 @@ template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_V
 requires Color_Set_Interface<colorset_t>
 class Coloring {
 
+public:
+
+typedef colorset_t colorset_type;
+typedef colorset_view_t colorset_view_type;
+typedef Color_Set_Storage<colorset_t,  colorset_view_t> colorset_storage_type;
+
+class WrongTemplateParameterException : public std::exception{
+    const char * what() const noexcept override{
+        return "Template type id in a serialized Coloring structure does not match the class template parameter.";
+    }
+};
+
+
 private:    
 
-    Color_Set_Storage<colorset_t, colorset_view_t> sets;
+    colorset_storage_type sets;
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
     int64_t total_color_set_length = 0;
 
 public:
-    class WrongTemplateParameterException : public std::exception{
-        const char * what() const noexcept override{
-            return "Template type id in a serialized Coloring structure does not match the class template parameter.";
-        }
-    };
 
-    typedef colorset_t colorset_type;
-
-public:
     Coloring() {}
 
-    Coloring(const std::vector<colorset_t>& sets,
+    Coloring(const colorset_storage_type& sets,
              const Sparse_Uint_Array& node_id_to_color_set_id,
-             const plain_matrix_sbwt_t& index) : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index){
+             const plain_matrix_sbwt_t& index,
+             const int64_t largest_id,
+             const int64_t total_color_set_length) 
+             : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index), largest_color_id(largest_id), total_color_set_length(total_color_set_length){
     }
 
     std::size_t serialize(std::ostream& os) const {
@@ -277,6 +285,10 @@ public:
 
     int64_t sum_of_all_distinct_color_set_lengths() const{
         return total_color_set_length;
+    }
+
+    const Sparse_Uint_Array& get_node_id_to_colorset_id_structure() const{
+        return node_id_to_color_set_id;
     }
 
     const std::vector<colorset_view_t> get_all_distinct_color_sets() const{

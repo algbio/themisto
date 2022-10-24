@@ -23,6 +23,7 @@ struct Build_Config{
     string index_color_file;
     string temp_dir;
     string coloring_structure_type;
+    string from_index;
     sbwt::SeqIO::FileFormat input_format;
     bool load_dbg = false;
     LL memory_megas = 1000;
@@ -53,6 +54,13 @@ struct Build_Config{
         if(colorfile != ""){
             sbwt::check_true(!no_colors, "Must not give both --no-colors and --colorfile");
             sbwt::check_readable(colorfile);
+        }
+
+        if(from_index != ""){
+            sbwt::check_true(colorfile == "", "Must not give both --from-index and --colorfile");
+            sbwt::check_true(inputfile == "", "Must not give both --from-index and input sequences");
+            sbwt::check_true(no_colors == false, "Must not give both --from-index and --load-dbg");
+            sbwt::check_true(k == 0, "Must not give both --from-index and -k because k is defined in the index");
         }
 
         if(coloring_structure_type != "sdsl-fixed" && coloring_structure_type != "sdsl-hybrid" && coloring_structure_type != "roaring" && coloring_structure_type != "bitmagic"){
@@ -181,6 +189,51 @@ void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assig
     coloring.serialize(out.stream);
 }
 
+// Builds from existing index and serializes to disk
+template<typename old_coloring_t, typename new_coloring_t> 
+void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_coloring, const Build_Config& C){
+
+    // TODO: This makes a ton of unnecessary copies of things and has high peak RAM
+
+    vector<typename new_coloring_t::colorset_type> new_colorsets;
+
+    int64_t largest_color = 0;
+    int64_t total_length = 0;
+
+    for(int64_t i = 0; i < old_coloring.number_of_distinct_color_sets(); i++){
+        vector<int64_t> set = old_coloring.get_color_set_as_vector_by_color_set_id(i);
+
+        for(int64_t x : set) largest_color = max(largest_color, x);
+        total_length += set.size();
+
+        new_colorsets.push_back(set); // Re-encodes as new_coloring_t::color_set_t
+    }
+
+    typename new_coloring_t::colorset_storage_type new_storage(new_colorsets);
+    new_coloring_t new_coloring(new_storage, 
+                                old_coloring.get_node_id_to_colorset_id_structure(),
+                                dbg, largest_color, total_length);
+
+    throwing_ofstream colors_out(C.index_color_file);
+    new_coloring.serialize(colors_out.stream);
+    
+    throwing_ofstream dbg_out(C.index_dbg_file);
+    dbg.serialize(dbg_out.stream);
+
+}
+
+/*
+    Coloring(const colorset_storage_type& sets,
+             const Sparse_Uint_Array& node_id_to_color_set_id,
+             const plain_matrix_sbwt_t& index,
+             const int64_t largest_id,
+             const int64_t total_color_set_length) 
+             : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index), largest_color_id(largest_color_id), total_color_set_length(total_color_set_length){
+    }
+
+*/
+
+
 // Creates a new file and returns the new filename.
 // Transforms:
 // 1
@@ -239,6 +292,7 @@ int build_index_main(int argc, char** argv){
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-fixed\", \"sdsl-hybrid\", \"roaring\" or \"bitmagic\" ).", cxxopts::value<string>()->default_value("sdsl-hybrid"))
+        ("from-index", "Take as input a pre-built Themisto index. Builds a new index in the format specified by --coloring-structure-type. This is currenlty implemented by decompressing the distinct color sets in memory before re-encoding them, so this might take a lot of RAM.", cxxopts::value<string>()->default_value(""))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -277,6 +331,7 @@ int build_index_main(int argc, char** argv){
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
     C.reverse_complements = opts["reverse-complements"].as<bool>();
+    C.from_index = opts["from-index"].as<string>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -289,6 +344,42 @@ int build_index_main(int argc, char** argv){
 
     write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
     write_log("Starting", sbwt::LogLevel::MAJOR);
+
+    if(C.from_index != ""){
+        // Transform existing index to new format
+
+        sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
+        std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
+        dbg_ptr->load(C.index_dbg_file);
+
+        sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
+        std::variant<Coloring<Color_Set, Color_Set_View>, Coloring<Roaring_Color_Set, Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>> old_coloring;
+        load_coloring(C.index_color_file, *dbg_ptr, old_coloring);
+
+        if(std::holds_alternative<Coloring<Color_Set, Color_Set_View>>(old_coloring))
+            write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
+        if(std::holds_alternative<Coloring<Roaring_Color_Set, Roaring_Color_Set>>(old_coloring))
+            write_log("roaring coloring structure loaded", LogLevel::MAJOR);
+        if(std::holds_alternative<Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(old_coloring))
+            write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
+
+        auto visitor = [&](auto& old){
+            if(C.coloring_structure_type == "sdsl-hybrid"){
+                build_from_index<decltype(old), Coloring<Color_Set, Color_Set_View>>(*dbg_ptr, old, C);
+            } else if(C.coloring_structure_type == "roaring"){
+                build_from_index<decltype(old), Coloring<Roaring_Color_Set, Roaring_Color_Set>>(*dbg_ptr, old, C);
+            } else if(C.coloring_structure_type == "bitmagic"){
+                build_from_index<decltype(old), Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(*dbg_ptr, old, C);
+            } else{
+                throw std::runtime_error("Unkown coloring structure type: " + C.coloring_structure_type);
+            }
+        };
+
+        std::visit(visitor, old_coloring);
+
+        return 0;
+
+    }
 
     // Deal with non-ACGT characters
     if(C.del_non_ACGT){

@@ -309,6 +309,18 @@ class Color_Set_Storage<Color_Set, Color_Set_View>{
 
     public:
 
+    Color_Set_Storage() {}
+
+    // Build from list of sets directly. Instead of using this constructor, you should probably just
+    // call add_set for each set you want to add separately and then call prepare_for_queries when done.
+    // This constructor is just to have the same interface as the other color set storage class.
+    Color_Set_Storage(const vector<Color_Set>& sets){
+        for(const Color_Set& cs : sets){
+            add_set(cs.get_colors_as_vector());
+        }
+        prepare_for_queries();
+    }
+
     Color_Set_View get_color_set_by_id(int64_t id) const{
         if(is_bitmap_marks[id]){
             int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
