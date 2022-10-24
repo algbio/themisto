@@ -200,6 +200,8 @@ void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_colori
 
     // TODO: This makes a ton of unnecessary copies of things and has high peak RAM
 
+    write_log("Building new structure of type " + C.coloring_structure_type, LogLevel::MAJOR);
+
     vector<typename new_coloring_t::colorset_type> new_colorsets;
 
     int64_t largest_color = 0;
@@ -219,11 +221,15 @@ void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_colori
                                 old_coloring.get_node_id_to_colorset_id_structure(),
                                 dbg, largest_color, total_length);
 
+    write_log("Serializing to " + C.index_dbg_file + " and " + C.index_color_file, LogLevel::MAJOR);
+
     throwing_ofstream colors_out(C.index_color_file);
     new_coloring.serialize(colors_out.stream);
     
     throwing_ofstream dbg_out(C.index_dbg_file);
     dbg.serialize(dbg_out.stream);
+
+    
 
 }
 
