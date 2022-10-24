@@ -135,17 +135,22 @@ class Color_Set{
 
     typedef Color_Set_View view_t;
 
-    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Owning pointer
-    int64_t start;
-    int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
+    std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = (sdsl::bit_vector*) nullptr; // Owning pointer
+    int64_t start = 0;
+    int64_t length = 0; // Number of bits in case of bit vector, number of elements in case of delta array
 
-    Color_Set() : start(0), length(0){
+    Color_Set(){
         data_ptr = new sdsl::bit_vector();
     }
 
     const Color_Set& operator=(const Color_Set& other){
         if(this == &other) return *this; // Assignment to itself
 
+        // Free existing memory
+        auto call_delete = [](auto ptr){delete ptr;};
+        std::visit(call_delete, this->data_ptr);
+
+        // Alocate new memory
         if(std::holds_alternative<sdsl::bit_vector*>(other.data_ptr))
             this->data_ptr = new sdsl::bit_vector(*(std::get<sdsl::bit_vector*>(other.data_ptr)));
         else
@@ -160,7 +165,7 @@ class Color_Set{
     }
 
     // Construct a copy of a color set from a view
-    Color_Set(const Color_Set_View& view) : start(0), length(view.length){
+    Color_Set(const Color_Set_View& view) : length(view.length){
         if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
             data_ptr = new sdsl::bit_vector(view.length, 0);
 
@@ -184,7 +189,7 @@ class Color_Set{
         }
     }
 
-    Color_Set(const vector<int64_t>& set) : start(0){
+    Color_Set(const vector<int64_t>& set){
         int64_t max_element = *std::max_element(set.begin(), set.end());
         if(log2(max_element) * set.size() > max_element){ // TODO: this if-statement is duplicated in this file
             // Dense -> bitmap
