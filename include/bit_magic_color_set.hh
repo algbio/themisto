@@ -13,7 +13,14 @@ class Bit_Magic_Color_Set {
     std::vector<unsigned char> vec;
 
 public:
+
+    typedef Bit_Magic_Color_Set view_t; // No separate view class yet
+
     Bit_Magic_Color_Set() {}
+
+    Bit_Magic_Color_Set(const Bit_Magic_Color_Set& other){
+        *this = other;
+    }
 
     Bit_Magic_Color_Set(const std::vector<unsigned char>& vec) : vec(vec) {}
 

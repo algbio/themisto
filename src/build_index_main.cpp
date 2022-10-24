@@ -165,14 +165,14 @@ string generate_default_colorfile(sequence_reader_t& reader, bool reverse_comple
 // Builds and serializes to disk
 template<typename colorset_t> 
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
-    Coloring<colorset_t> coloring;
+    Coloring<colorset_t, typename colorset_t::view_t> coloring;
     if(C.input_format.gzipped){
-        Coloring_Builder<colorset_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
+        Coloring_Builder<colorset_t, typename colorset_t::view_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
         Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
-        Coloring_Builder<colorset_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
+        Coloring_Builder<colorset_t, typename colorset_t::view_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
         sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
@@ -361,10 +361,8 @@ int build_index_main(int argc, char** argv){
 
 
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
-        if(C.coloring_structure_type == "sdsl-fixed"){
-            build_coloring<Fixed_Width_Int_Color_Set>(*dbg_ptr, color_assignment, C);
-        } if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_coloring<Bitmap_Or_Deltas_ColorSet>(*dbg_ptr, color_assignment, C);
+        if(C.coloring_structure_type == "sdsl-hybrid"){
+            build_coloring<Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "roaring"){
             build_coloring<Roaring_Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "bitmagic"){

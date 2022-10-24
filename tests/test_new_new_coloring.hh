@@ -31,7 +31,7 @@ vector<int64_t> get_dense_colorset(int64_t gap, int64_t total_length){
 
 TEST(NEW_NEW_COLORING_TEST, storage){
 
-    New_Color_Set_Storage css;
+    Color_Set_Storage<Color_Set, Color_Set_View> css;
     vector<vector<int64_t> > sets = {get_sparse_colorset(), 
                                      get_dense_colorset(1,1000), 
                                      get_sparse_colorset(), 

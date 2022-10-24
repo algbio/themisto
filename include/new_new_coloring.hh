@@ -3,6 +3,7 @@
 #include <vector>
 #include "sdsl/bit_vectors.hpp"
 #include "sdsl/int_vector.hpp"
+#include "Color_Set_Interface.hh"
 #include <variant>
 
 using namespace std;
@@ -132,6 +133,8 @@ class Color_Set{
 
     public:
 
+    typedef Color_Set_View view_t;
+
     std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr; // Owning pointer
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of delta array
@@ -239,7 +242,14 @@ class Color_Set{
 
 };
 
-class New_Color_Set_Storage{
+// Forward declaration of template
+template<typename colorset_t, typename colorset_view_t>
+requires Color_Set_Interface<colorset_t>
+class Color_Set_Storage;
+
+// Template specialization for Color_Set
+template<>
+class Color_Set_Storage<Color_Set, Color_Set_View>{
 
     private:
 

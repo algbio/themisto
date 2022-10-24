@@ -20,7 +20,14 @@ class Roaring_Color_Set {
     Roaring64Map roaring;
 
 public:
+
+    typedef Roaring_Color_Set view_t; // No separate view class yet
+
     Roaring_Color_Set() {}
+
+    Roaring_Color_Set(const Roaring_Color_Set& r){
+        *this = r;
+    }
 
     Roaring_Color_Set(Roaring64Map r) : roaring(r) {}
 

@@ -120,7 +120,7 @@ bool is_valid_kmer(const string& S){
     return true;
 }
 
-template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+template<typename color_set_t, typename color_set_view_t> requires Color_Set_Interface<color_set_t>
 void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, int64_t k){
 
     std::vector<std::int64_t> colors;
@@ -128,8 +128,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
         colors.push_back(i);
     }
 
-    Coloring<color_set_t> c;
-    Coloring_Builder<color_set_t> cb;
+    Coloring<color_set_t, color_set_view_t> c;
+    Coloring_Builder<color_set_t, color_set_view_t> cb;
     sbwt::SeqIO::Reader reader(filename);
     cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
 
@@ -180,13 +180,11 @@ TEST(COLORING_TESTS, coli3) {
     config.min_abundance = 1;
     plain_matrix_sbwt_t matrix(config);
 
-    write_log("Testing Bitmap_Or_Deltas_ColorSet", LogLevel::MAJOR);
-    test_coloring_on_coli3<Bitmap_Or_Deltas_ColorSet>(matrix, filename, seqs, k);
-    write_log("Testing Fixed_Width_Int_Color_Set", LogLevel::MAJOR);
-    test_coloring_on_coli3<Fixed_Width_Int_Color_Set>(matrix, filename, seqs, k);
+    write_log("Testing Standard color set", LogLevel::MAJOR);
+    test_coloring_on_coli3<Color_Set, Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
-    test_coloring_on_coli3<Roaring_Color_Set>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
     write_log("Testing Bit_Magic_Color_Set", LogLevel::MAJOR);
-    test_coloring_on_coli3<Bit_Magic_Color_Set>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<Bit_Magic_Color_Set, Bit_Magic_Color_Set>(matrix, filename, seqs, k);
 
 }

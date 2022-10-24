@@ -27,42 +27,29 @@
 #include "WorkDispatcher.hh"
 #include "hybrid_color_set.hh"
 #include "Roaring_Color_Set.hh"
-#include "Fixed_Width_Int_Color_Set.hh"
+#include "new_new_coloring.hh"
+#include "Color_Set_Interface.hh"
 #include <variant>
 #include "bit_magic_color_set.hh"
-#include "new_new_coloring.hh"
 
-template <typename T>
-concept Color_Set_Interface = requires(T& t){
-    { t.empty() } -> std::same_as<bool>; // This should take constant time
-    { t.size() } -> std::same_as<int64_t>; // This may take linear time
-    { t.size_in_bits() } -> std::same_as<int64_t>;
-    { t.contains(int64_t()) } -> std::same_as<bool>; // This may take linear time
-    { t.intersection(t) };
-    { t.do_union(t) };
-    //{ t.serialize(os) } -> std::same_as<int64_t>; // Serialization not required for individual color sets any more
-    //{ t.load(is) } -> std::same_as<void>;  // Loading not required for individual color sets any more
-    { t.get_colors_as_vector() } -> std::same_as<std::vector<int64_t>>;
-    requires std::constructible_from<T, vector<int64_t>>;
-    requires std::default_initializable<T>;
-};
-
-template<typename color_set_t>
+// Takes as parameter a class that encodes a single color set, and a viewer class for that
+template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_View> 
+requires Color_Set_Interface<colorset_t>
 class Color_Set_Storage{
 
 private:
 
-    vector<color_set_t> sets;
+    vector<colorset_t> sets;
 
 public:
 
     Color_Set_Storage(){}
-    Color_Set_Storage(const vector<color_set_t>& sets) : sets(sets) {
+    Color_Set_Storage(const vector<colorset_t>& sets) : sets(sets) {
         prepare_for_queries();
     }
 
-    const color_set_t& get_color_set_by_id(int64_t id) const{
-        return sets[id];
+    colorset_view_t get_color_set_by_id(int64_t id) const{
+        return colorset_view_t(sets[id]);
     }
 
     // Need to call prepare_for_queries() after all sets have been added
@@ -93,7 +80,7 @@ public:
 
         sets.resize(n_sets);
         for (std::size_t i = 0; i < n_sets; ++i) {
-            color_set_t cs;
+            colorset_t cs;
             cs.load(is);
             sets[i] = cs;
         }
@@ -103,20 +90,21 @@ public:
         return sets.size();
     }
 
-    vector<color_set_t> get_all_sets() const{
+    vector<colorset_view_t> get_all_sets() const{
         return sets;
     }
 
 };
 
 
-// Takes as parameter a class that encodes a single color set
-template<typename colorset_t = Bitmap_Or_Deltas_ColorSet> requires Color_Set_Interface<colorset_t>
+// Takes as parameter a class that encodes a single color set, and a viewer class for that
+template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_View> 
+requires Color_Set_Interface<colorset_t>
 class Coloring {
 
 private:    
 
-    Color_Set_Storage<colorset_t> sets;
+    Color_Set_Storage<colorset_t, colorset_view_t> sets;
     Sparse_Uint_Array node_id_to_color_set_id;
     const plain_matrix_sbwt_t* index_ptr;
     int64_t largest_color_id = 0;
@@ -142,11 +130,8 @@ public:
     std::size_t serialize(std::ostream& os) const {
         std::size_t bytes_written = 0;
 
-        if(std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
-            string type_id = "sdsl-fixed-v0";
-            bytes_written += sbwt::serialize_string(type_id, os);
-        } else if(std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
-            string type_id = "sdsl-hybrid-v2";
+        if(std::is_same<colorset_t, Color_Set>::value){
+            string type_id = "sdsl-hybrid-v3";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
@@ -176,12 +161,8 @@ public:
         string type_id = sbwt::load_string(is);
 
         // Check that the type id is correct for this class
-        if(type_id == "sdsl-fixed-v0"){
-            if(!std::is_same<colorset_t, Fixed_Width_Int_Color_Set>::value){
-                throw WrongTemplateParameterException();
-            }
-        }  else if(type_id == "sdsl-hybrid-v2"){
-            if(!std::is_same<colorset_t, Bitmap_Or_Deltas_ColorSet>::value){
+        if(type_id == "sdsl-hybrid-v3"){
+            if(!std::is_same<colorset_t, Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
         } else if(type_id == "roaring-v0"){
@@ -239,14 +220,14 @@ public:
         return node_id_to_color_set_id.get(node);
     }
 
-    const colorset_t& get_color_set_of_node(std::int64_t node) const {
+    colorset_view_t get_color_set_of_node(std::int64_t node) const {
         std::int64_t color_set_id = get_color_set_id(node);
         return get_color_set_by_color_set_id(color_set_id);
     }
 
     // Yeah these function names are getting a bit verbose but I want to make it super clear
     // that the parameter is a color-set id and not a node id.
-    const colorset_t& get_color_set_by_color_set_id(std::int64_t color_set_id) const {
+    colorset_view_t get_color_set_by_color_set_id(std::int64_t color_set_id) const {
         if (color_set_id == -1)
             throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
         return sets.get_color_set_by_id(color_set_id);
@@ -284,18 +265,16 @@ public:
         return total_color_set_length;
     }
 
-    const std::vector<colorset_t> get_all_distinct_color_sets() const{
+    const std::vector<colorset_view_t> get_all_distinct_color_sets() const{
         return sets.get_all_sets();
     }
 
     // Returns map: component -> number of bytes
     map<string, int64_t> space_breakdown() const{
         map<string, int64_t> breakdown;
-        int64_t color_set_total_size = 0;
         sbwt::SeqIO::NullStream ns;
-        for(int64_t i = 0; i < sets.number_of_sets_stored(); i++)
-            color_set_total_size += sets.get_color_set_by_id(i).serialize(ns);
-        breakdown["distinct-color-sets"] = color_set_total_size;
+        int64_t color_set_storage_size = sets.serialize(ns);
+        breakdown["distinct-color-set-storage"] = color_set_storage_size;
 
         for(auto [component, bytes] : node_id_to_color_set_id.space_breakdown()){
             breakdown["node-id-to-color-set-id-" + component] = bytes;
@@ -304,7 +283,7 @@ public:
         return breakdown;
     }
 
-    template<typename T1, typename T2> requires Color_Set_Interface<T1>
+    template<typename T1, typename T2, typename T3> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 };
 
@@ -312,8 +291,7 @@ public:
 // The returned pointer must be eventually freed by the caller with delete
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
-Coloring<Bitmap_Or_Deltas_ColorSet>,
-Coloring<Roaring_Color_Set>,
-Coloring<Fixed_Width_Int_Color_Set>,
-Coloring<Bit_Magic_Color_Set>>& coloring);
+Coloring<Color_Set, Color_Set_View>,
+Coloring<Roaring_Color_Set, Roaring_Color_Set>,
+Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>& coloring);
 

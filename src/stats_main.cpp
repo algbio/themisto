@@ -73,16 +73,14 @@ int stats_main(int argc, char** argv){
     plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<Bitmap_Or_Deltas_ColorSet>, Coloring<Roaring_Color_Set>, Coloring<Fixed_Width_Int_Color_Set>, Coloring<Bit_Magic_Color_Set>> coloring;
+    std::variant<Coloring<Color_Set, Color_Set_View>, Coloring<Roaring_Color_Set, Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>> coloring;
     load_coloring(index_color_file, SBWT, coloring);
 
-    if(std::holds_alternative<Coloring<Bitmap_Or_Deltas_ColorSet>>(coloring))
+    if(std::holds_alternative<Coloring<Color_Set, Color_Set_View>>(coloring))
         write_log("sdsl-delta coloring structure loaded", LogLevel::MAJOR);
-    if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
+    if(std::holds_alternative<Coloring<Roaring_Color_Set, Roaring_Color_Set>>(coloring))
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
-    if(std::holds_alternative<Coloring<Fixed_Width_Int_Color_Set>>(coloring))
-        write_log("sdsl-fixed coloring structure loaded", LogLevel::MAJOR);
-    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
+    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(coloring))
         write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
 
     // Helper functions to be able to call member functions of coloring with std::visit.
