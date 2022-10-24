@@ -135,7 +135,7 @@ TEST(TEST_COLOR_SET, dense_vs_dense){
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
-void test_sparse_vs_dense(){
+void test_dense_vs_sparse(){
     vector<int64_t> v1 = get_dense_example(3, 10000); // Multiples of 3
     vector<int64_t> v2 = {3, 4, 5, 3000, 6001, 9999};
 
@@ -159,7 +159,37 @@ void test_sparse_vs_dense(){
     ASSERT_EQ(v12_union, correct_union);
 }
 
-// TODO test dense vs sparse
+TEST(TEST_COLOR_SET, dense_vs_sparse){
+    test_dense_vs_sparse<Roaring_Color_Set>();
+    test_dense_vs_sparse<Bit_Magic_Color_Set>();
+    test_dense_vs_sparse<Color_Set>();
+}
+
+
+template<typename color_set_t> requires Color_Set_Interface<color_set_t>
+void test_sparse_vs_dense(){
+    vector<int64_t> v1 = {3, 4, 5, 3000, 6001, 9999};
+    vector<int64_t> v2 = get_dense_example(3, 10000); // Multiples of 3
+
+    color_set_t c1(v1);
+    color_set_t c2(v2);
+    color_set_t c12(c1);
+    c12.intersection(c2);
+
+    vector<int64_t> v12_inter = c12.get_colors_as_vector();
+    vector<int64_t> correct_inter = {3, 3000, 9999};
+    ASSERT_EQ(v12_inter, correct_inter);
+
+    color_set_t c12_union(c1);
+    c12_union.do_union(c2);
+    vector<int64_t> v12_union = c12_union.get_colors_as_vector();
+    vector<int64_t> correct_union;
+    for(int64_t i = 0; i < 10000; i++){
+        if(i % 3 == 0 || std::find(v2.begin(), v2.end(), i) != v2.end()) correct_union.push_back(i);
+    }
+
+    ASSERT_EQ(v12_union, correct_union);
+}
 
 TEST(TEST_COLOR_SET, sparse_vs_dense){
     test_sparse_vs_dense<Roaring_Color_Set>();
