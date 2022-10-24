@@ -109,7 +109,7 @@ class Color_Set{
     Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
 
     // Construct a copy of a color set from a view
-    Color_Set(const Color_Set_View& view) : start(view.start), length(view.length){
+    Color_Set(const Color_Set_View& view) : start(0), length(view.length){
         if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
             data_ptr = new sdsl::bit_vector(view.length, 0);
 
@@ -121,7 +121,7 @@ class Color_Set{
             }
         } else{
             // Delta array
-            int64_t bit_width = std::get<sdsl::int_vector<>*>(data_ptr)->width();
+            int64_t bit_width = std::get<const sdsl::int_vector<>*>(view.data_ptr)->width();
             data_ptr = new sdsl::int_vector<>(view.length, 0, bit_width);
 
             // Copy the values
