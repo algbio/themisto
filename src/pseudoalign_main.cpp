@@ -170,7 +170,7 @@ int pseudoalign_main(int argc, char** argv){
     load_coloring(C.index_color_file, SBWT, coloring);
 
     if(std::holds_alternative<Coloring<Color_Set, Color_Set_View>>(coloring))
-        write_log("sdsl-delta coloring structure loaded", LogLevel::MAJOR);
+        write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Roaring_Color_Set, Roaring_Color_Set>>(coloring))
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(coloring))

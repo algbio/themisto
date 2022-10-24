@@ -145,7 +145,7 @@ public:
         std::size_t bytes_written = 0;
 
         if(std::is_same<colorset_t, Color_Set>::value){
-            string type_id = "sdsl-hybrid-v3";
+            string type_id = "sdsl-hybrid-v4";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
@@ -175,7 +175,7 @@ public:
         string type_id = sbwt::load_string(is);
 
         // Check that the type id is correct for this class
-        if(type_id == "sdsl-hybrid-v3"){
+        if(type_id == "sdsl-hybrid-v4"){
             if(!std::is_same<colorset_t, Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
