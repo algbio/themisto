@@ -80,23 +80,27 @@ int64_t delta_array_vs_bitmap_intersection(sdsl::int_vector<>& iv, int64_t iv_si
 
 // See header for description
 int64_t bitmap_vs_delta_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size){
-    // TODO: IS INEFFICIENT NOW. Should to compute deltas on the fly.
-    vector<int64_t> v;
-    if(iv_size > 0){
-        v.resize(iv_size);
-        v[0] = iv[iv_start];
-        for(int64_t i = 1; i < iv_size; i++)
-            v[i] = v[i-1] + iv[iv_start + i];
+
+    if(iv_size == 0){
+        bv.resize(0);
+        return 0;
     }
-    int64_t v_idx = 0;
+
+    int64_t iv_idx = 0;
+    int64_t cumul_sum = iv[0];
     for(int64_t bv_idx = 0; bv_idx < bv_size; bv_idx++){
-        int64_t iv_value = v_idx < iv_size ? v[v_idx] : -1;
-        if(bv[bv_idx] == 1 && iv_value == bv_idx){
+        if(bv[bv_idx] == 1 && cumul_sum == bv_idx){
             bv[bv_idx] = 1; // Is in intersection
         } else{
             bv[bv_idx] = 0; // Is not in intersection
         }
-        if(iv_value == bv_idx) v_idx++;
+
+        if(cumul_sum == bv_idx){
+            // This cumulative sum is "processed". Add the next delta.
+            iv_idx++;
+            if(iv_idx < iv_size) cumul_sum += iv[iv_start + iv_idx];
+            else cumul_sum = -1; // Past the end
+        }
     }
     return bv_size;
 }
