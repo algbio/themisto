@@ -54,10 +54,10 @@ TEST(NEW_NEW_COLORING_TEST, storage){
 
         // Check contains()
 
-        vector<bool> contains_ref(1010);
+        vector<bool> contains_ref(10000);
         for(int64_t x : sets[i]) contains_ref[x] = true;    
 
-        vector<bool> contains_check(1010);
+        vector<bool> contains_check(10000);
         for(int64_t j = 0; j < contains_check.size(); j++) contains_check[j] = retrieved_views[i].contains(j);
 
         ASSERT_EQ(contains_check, contains_ref);
@@ -67,7 +67,7 @@ TEST(NEW_NEW_COLORING_TEST, storage){
         ASSERT_EQ(cs.get_colors_as_vector(), retrieved_views[i].get_colors_as_vector());
         ASSERT_EQ(cs.empty(), retrieved_views[i].empty());
         ASSERT_EQ(cs.size(), retrieved_views[i].size());
-        for(int64_t j = 0; j < 1010; j++){
+        for(int64_t j = 0; j < 10000; j++){
             ASSERT_EQ(cs.contains(j), retrieved_views[i].contains(j));            
         }
 
@@ -76,7 +76,7 @@ TEST(NEW_NEW_COLORING_TEST, storage){
         ASSERT_EQ(cs.get_colors_as_vector(), cs2.get_colors_as_vector());
         ASSERT_EQ(cs.empty(), cs2.empty());
         ASSERT_EQ(cs.size(), cs2.size());
-        for(int64_t j = 0; j < 1010; j++){
+        for(int64_t j = 0; j < 10000; j++){
             ASSERT_EQ(cs.contains(j), cs2.contains(j));            
         }
     }
