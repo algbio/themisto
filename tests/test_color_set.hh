@@ -185,7 +185,7 @@ void test_sparse_vs_dense(){
     vector<int64_t> v12_union = c12_union.get_colors_as_vector();
     vector<int64_t> correct_union;
     for(int64_t i = 0; i < 10000; i++){
-        if(i % 3 == 0 || std::find(v2.begin(), v2.end(), i) != v2.end()) correct_union.push_back(i);
+        if(i % 3 == 0 || std::find(v1.begin(), v1.end(), i) != v1.end()) correct_union.push_back(i);
     }
 
     ASSERT_EQ(v12_union, correct_union);
