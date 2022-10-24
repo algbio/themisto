@@ -70,6 +70,15 @@ TEST(NEW_NEW_COLORING_TEST, storage){
         for(int64_t j = 0; j < 1010; j++){
             ASSERT_EQ(cs.contains(j), retrieved_views[i].contains(j));            
         }
+
+        // Test copy
+        Color_Set cs2(cs);
+        ASSERT_EQ(cs.get_colors_as_vector(), cs2.get_colors_as_vector());
+        ASSERT_EQ(cs.empty(), cs2.empty());
+        ASSERT_EQ(cs.size(), cs2.size());
+        for(int64_t j = 0; j < 1010; j++){
+            ASSERT_EQ(cs.contains(j), cs2.contains(j));            
+        }
     }
     
 }

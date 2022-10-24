@@ -139,7 +139,7 @@ class Color_Set{
     Color_Set() : data_ptr((sdsl::bit_vector*)nullptr), start(0), length(0){}
 
     const Color_Set& operator=(const Color_Set& other){
-        if(this == &other) *this; // Assignment to itself
+        if(this == &other) return *this; // Assignment to itself
 
         if(std::holds_alternative<sdsl::bit_vector*>(other.data_ptr))
             this->data_ptr = new sdsl::bit_vector(*(std::get<sdsl::bit_vector*>(other.data_ptr)));
