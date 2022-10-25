@@ -327,7 +327,7 @@ private:
         return outfile;
     }
 
-    void build_representation(Coloring<colorset_t, colorset_view_t>& coloring, const std::string& infile, const sdsl::bit_vector& cores, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
+    void build_representation(Coloring<colorset_t>& coloring, const std::string& infile, const sdsl::bit_vector& cores, int64_t colorset_sampling_distance, int64_t ram_bytes, int64_t n_threads) {
 
         SBWT_backward_traversal_support backward_support(coloring.index_ptr);
 
@@ -413,7 +413,7 @@ private:
 
 
     void build_coloring(
-                    Coloring<colorset_t, colorset_view_t>& coloring,
+                    Coloring<colorset_t>& coloring,
                     const plain_matrix_sbwt_t& index,
                     sequence_reader_t& sequence_reader, 
                     const std::vector<std::int64_t>& colors_assignments,

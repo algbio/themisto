@@ -178,7 +178,7 @@ string generate_default_colorfile(sequence_reader_t& reader, bool reverse_comple
 // Builds and serializes to disk
 template<typename colorset_t> 
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
-    Coloring<colorset_t, typename colorset_t::view_t> coloring;
+    Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
         Coloring_Builder<colorset_t, typename colorset_t::view_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
         Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
@@ -365,23 +365,23 @@ int build_index_main(int argc, char** argv){
         dbg_ptr->load(C.from_index + ".tdbg");
 
         sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
-        std::variant<Coloring<Color_Set, Color_Set_View>, Coloring<Roaring_Color_Set, Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>> old_coloring;
+        std::variant<Coloring<Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> old_coloring;
         load_coloring(C.from_index + ".tcolors", *dbg_ptr, old_coloring);
 
-        if(std::holds_alternative<Coloring<Color_Set, Color_Set_View>>(old_coloring))
+        if(std::holds_alternative<Coloring<Color_Set>>(old_coloring))
             write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
-        if(std::holds_alternative<Coloring<Roaring_Color_Set, Roaring_Color_Set>>(old_coloring))
+        if(std::holds_alternative<Coloring<Roaring_Color_Set>>(old_coloring))
             write_log("roaring coloring structure loaded", LogLevel::MAJOR);
-        if(std::holds_alternative<Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(old_coloring))
+        if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(old_coloring))
             write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
 
         auto visitor = [&](auto& old){
             if(C.coloring_structure_type == "sdsl-hybrid"){
-                build_from_index<decltype(old), Coloring<Color_Set, Color_Set_View>>(*dbg_ptr, old, C);
+                build_from_index<decltype(old), Coloring<Color_Set>>(*dbg_ptr, old, C);
             } else if(C.coloring_structure_type == "roaring"){
-                build_from_index<decltype(old), Coloring<Roaring_Color_Set, Roaring_Color_Set>>(*dbg_ptr, old, C);
+                build_from_index<decltype(old), Coloring<Roaring_Color_Set>>(*dbg_ptr, old, C);
             } else if(C.coloring_structure_type == "bitmagic"){
-                build_from_index<decltype(old), Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>(*dbg_ptr, old, C);
+                build_from_index<decltype(old), Coloring<Bit_Magic_Color_Set>>(*dbg_ptr, old, C);
             } else{
                 throw std::runtime_error("Unkown coloring structure type: " + C.coloring_structure_type);
             }

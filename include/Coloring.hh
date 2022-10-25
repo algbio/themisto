@@ -34,15 +34,15 @@
 #include "bit_magic_color_set.hh"
 
 // Takes as parameter a class that encodes a single color set, and a viewer class for that
-template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_View> 
+template<typename colorset_t = Color_Set> 
 requires Color_Set_Interface<colorset_t>
 class Coloring {
 
 public:
 
 typedef colorset_t colorset_type;
-typedef colorset_view_t colorset_view_type;
-typedef Color_Set_Storage<colorset_t,  colorset_view_t> colorset_storage_type;
+typedef colorset_t::view_t colorset_view_type;
+typedef Color_Set_Storage<colorset_t,  colorset_view_type> colorset_storage_type;
 
 class WrongTemplateParameterException : public std::exception{
     const char * what() const noexcept override{
@@ -164,14 +164,14 @@ public:
         return node_id_to_color_set_id.get(node);
     }
 
-    colorset_view_t get_color_set_of_node(std::int64_t node) const {
+    colorset_view_type get_color_set_of_node(std::int64_t node) const {
         std::int64_t color_set_id = get_color_set_id(node);
         return get_color_set_by_color_set_id(color_set_id);
     }
 
     // Yeah these function names are getting a bit verbose but I want to make it super clear
     // that the parameter is a color-set id and not a node id.
-    colorset_view_t get_color_set_by_color_set_id(std::int64_t color_set_id) const {
+    colorset_view_type get_color_set_by_color_set_id(std::int64_t color_set_id) const {
         if (color_set_id == -1)
             throw std::runtime_error("BUG: Tried to access a color set with id " + to_string(color_set_id));
         return sets.get_color_set_by_id(color_set_id);
@@ -213,7 +213,7 @@ public:
         return node_id_to_color_set_id;
     }
 
-    const std::vector<colorset_view_t> get_all_distinct_color_sets() const{
+    const std::vector<colorset_view_type> get_all_distinct_color_sets() const{
         return sets.get_all_sets();
     }
 
@@ -240,7 +240,7 @@ public:
 // The returned pointer must be eventually freed by the caller with delete
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
-Coloring<Color_Set, Color_Set_View>,
-Coloring<Roaring_Color_Set, Roaring_Color_Set>,
-Coloring<Bit_Magic_Color_Set, Bit_Magic_Color_Set>>& coloring);
+Coloring<Color_Set>,
+Coloring<Roaring_Color_Set>,
+Coloring<Bit_Magic_Color_Set>>& coloring);
 

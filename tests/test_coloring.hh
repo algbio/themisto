@@ -128,8 +128,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
         colors.push_back(i);
     }
 
-    Coloring<color_set_t, color_set_view_t> c;
-    Coloring_Builder<color_set_t, color_set_view_t> cb;
+    Coloring<color_set_t> c;
+    Coloring_Builder<color_set_t> cb;
     sbwt::SeqIO::Reader reader(filename);
     cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
 
