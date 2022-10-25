@@ -31,7 +31,7 @@ vector<int64_t> get_dense_colorset(int64_t gap, int64_t total_length){
 
 TEST(NEW_NEW_COLORING_TEST, storage){
 
-    Color_Set_Storage<Color_Set, Color_Set_View> css;
+    Color_Set_Storage<Color_Set> css;
     vector<vector<int64_t> > sets = {get_sparse_colorset(), 
                                      get_dense_colorset(1,1000), 
                                      get_sparse_colorset(), 
@@ -46,7 +46,7 @@ TEST(NEW_NEW_COLORING_TEST, storage){
     css.prepare_for_queries();
 
     // Check that we can get back the same color sets as what we put in
-    vector<Color_Set_View> retrieved_views = css.get_all_sets();
+    vector<Color_Set::view_t> retrieved_views = css.get_all_sets();
     for(int64_t i = 0; i < retrieved_views.size(); i++){
         ASSERT_EQ(retrieved_views[i].get_colors_as_vector(), sets[i]);
         ASSERT_FALSE(retrieved_views[i].empty());

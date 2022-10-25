@@ -42,7 +42,7 @@ public:
 
 typedef colorset_t colorset_type;
 typedef colorset_t::view_t colorset_view_type;
-typedef Color_Set_Storage<colorset_t,  colorset_view_type> colorset_storage_type;
+typedef Color_Set_Storage<colorset_t> colorset_storage_type;
 
 class WrongTemplateParameterException : public std::exception{
     const char * what() const noexcept override{
