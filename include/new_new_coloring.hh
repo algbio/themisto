@@ -7,6 +7,41 @@
 #include "SeqIO.hh"
 #include <variant>
 
+/*
+
+The purpose of this file is to have a coloring structure that avoids space
+overheads associated with allocating each color set from the heap separately.
+Instead, here we concatenate all the color sets and store pointers to the starts
+of the color sets. 
+
+Actually, there are two concatenations: a concatenation of bit maps and a concatenation 
+of integer arrays. A color is stored either as a bit map or an integer array, depending
+which one is smaller.
+
+To avoid copying stuff around in memory, we have a color set view class that stores
+just the pointer to one of the concatenations. The pointer is stored as a std::variant,
+which stores either pointer and contains the bit specifying which type of pointer it is.
+
+But here is the problem. The user might want a mutable color set, for example when doing
+intersections of the sets. The static concatenation of sets does not support creating
+new sets dynamically. This is why also we have a color set class that allocates and frees
+its own memory. This has exactly the same interface as the view class, except it has
+functions for set intersection and union, which modify the color set.
+
+Now, to avoid duplicating code between the member functions of the color set view and the
+concrete color set, we write the member functions as template functions that take the color
+set (view or concrete) as the first parameter. The actual member functions in the color set
+and view classes are just proxies that call these template functions. This saves 50+ lines
+of duplicated code for member functions that are identical, such as get_colors_as_vector. 
+
+You may be thinking, why not just use inheritance? That is not an option because the view
+class needs a const-pointer whereas the other class needs a regular pointer. The view needs
+a const-pointer so that the get-colorset method of the coloring storage can be const. The mutable
+class needs a regular pointer because, well, it is supposed to be mutable. A std::variant of
+a const-pointer and a regular pointer would be possible, but very ugly.
+
+*/
+
 using namespace std;
 
 template<typename colorset_t> 
