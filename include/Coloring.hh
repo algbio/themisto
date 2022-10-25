@@ -27,89 +27,11 @@
 #include "WorkDispatcher.hh"
 #include "hybrid_color_set.hh"
 #include "Roaring_Color_Set.hh"
+#include "Color_Set_Storage.hh"
 #include "Color_Set.hh"
 #include "Color_Set_Interface.hh"
 #include <variant>
 #include "bit_magic_color_set.hh"
-
-// Takes as parameter a class that encodes a single color set, and a viewer class for that
-template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_View> 
-requires Color_Set_Interface<colorset_t>
-class Color_Set_Storage{
-
-private:
-
-    vector<colorset_t> sets;
-
-public:
-
-    Color_Set_Storage(){}
-    Color_Set_Storage(const vector<colorset_t>& sets) : sets(sets) {
-        prepare_for_queries();
-    }
-
-    colorset_view_t get_color_set_by_id(int64_t id) const{
-        return colorset_view_t(sets[id]);
-    }
-
-    // Need to call prepare_for_queries() after all sets have been added
-    void add_set(const vector<int64_t>& set){
-        sets.push_back(set);
-    }
-
-    // Call this after done with add_set
-    void prepare_for_queries(){
-        sets.shrink_to_fit();
-    }
-
-    int64_t serialize(ostream& os) const{
-        int64_t bytes_written = 0;
-        std::size_t n_sets = sets.size();
-        os.write(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-        bytes_written += sizeof(std::size_t);
-
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            bytes_written += sets[i].serialize(os);
-        }
-        return bytes_written;
-    }
-
-    void load(istream& is){
-        std::size_t n_sets = 0;
-        is.read(reinterpret_cast<char*>(&n_sets), sizeof(std::size_t));
-
-        sets.resize(n_sets);
-        for (std::size_t i = 0; i < n_sets; ++i) {
-            colorset_t cs;
-            cs.load(is);
-            sets[i] = cs;
-        }
-    }
-
-    int64_t number_of_sets_stored() const{
-        return sets.size();
-    }
-
-    vector<colorset_view_t> get_all_sets() const{
-        return sets;
-    }
-
-    // Returns map: component -> number of bytes
-    map<string, int64_t> space_breakdown() const{
-        map<string, int64_t> breakdown;
-        sbwt::SeqIO::NullStream ns;
-        int64_t total_set_byte_size = 0;
-        for(int64_t i = 0; i < sets.size(); i++){
-            total_set_byte_size += sets[i].serialize(ns);
-        }
-        breakdown["sets"] = total_set_byte_size;
-
-        return breakdown;
-    }
-
-
-};
-
 
 // Takes as parameter a class that encodes a single color set, and a viewer class for that
 template<typename colorset_t = Color_Set, typename colorset_view_t = Color_Set_View> 
