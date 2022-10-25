@@ -50,7 +50,7 @@ void test_sparse_color_set(){
 TEST(TEST_COLOR_SET, sparse){
     test_sparse_color_set<Roaring_Color_Set>();
     test_sparse_color_set<Bit_Magic_Color_Set>();
-    test_sparse_color_set<Color_Set>();
+    test_sparse_color_set<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -70,7 +70,7 @@ void test_dense_color_set(){
 TEST(TEST_COLOR_SET, dense){
     test_dense_color_set<Roaring_Color_Set>();
     test_dense_color_set<Bit_Magic_Color_Set>();
-    test_dense_color_set<Color_Set>();
+    test_dense_color_set<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -101,7 +101,7 @@ void test_sparse_vs_sparse(){
 TEST(TEST_COLOR_SET, sparse_vs_sparse){
     test_sparse_vs_sparse<Roaring_Color_Set>();
     test_sparse_vs_sparse<Bit_Magic_Color_Set>();
-    test_sparse_vs_sparse<Color_Set>();
+    test_sparse_vs_sparse<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -131,7 +131,7 @@ void test_dense_vs_dense(){
 TEST(TEST_COLOR_SET, dense_vs_dense){
     test_dense_vs_dense<Roaring_Color_Set>();
     test_dense_vs_dense<Bit_Magic_Color_Set>();
-    test_dense_vs_dense<Color_Set>();
+    test_dense_vs_dense<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -162,7 +162,7 @@ void test_dense_vs_sparse(){
 TEST(TEST_COLOR_SET, dense_vs_sparse){
     test_dense_vs_sparse<Roaring_Color_Set>();
     test_dense_vs_sparse<Bit_Magic_Color_Set>();
-    test_dense_vs_sparse<Color_Set>();
+    test_dense_vs_sparse<SDSL_Variant_Color_Set>();
 }
 
 
@@ -194,7 +194,7 @@ void test_sparse_vs_dense(){
 TEST(TEST_COLOR_SET, sparse_vs_dense){
     test_sparse_vs_dense<Roaring_Color_Set>();
     test_sparse_vs_dense<Bit_Magic_Color_Set>();
-    test_sparse_vs_dense<Color_Set>();
+    test_sparse_vs_dense<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>
@@ -211,7 +211,7 @@ void test_empty_color_set(){
 TEST(TEST_COLOR_SET, empty){
     test_empty_color_set<Roaring_Color_Set>();
     test_empty_color_set<Bit_Magic_Color_Set>();
-    test_empty_color_set<Color_Set>();
+    test_empty_color_set<SDSL_Variant_Color_Set>();
 }
 
 template<typename color_set_t> requires Color_Set_Interface<color_set_t>

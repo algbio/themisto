@@ -180,12 +180,12 @@ template<typename colorset_t>
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
-        Coloring_Builder<colorset_t, typename colorset_t::view_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
+        Coloring_Builder<colorset_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
         Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
-        Coloring_Builder<colorset_t, typename colorset_t::view_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
+        Coloring_Builder<colorset_t, sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> cb; // Builder without gzipped input
         sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
@@ -365,10 +365,10 @@ int build_index_main(int argc, char** argv){
         dbg_ptr->load(C.from_index + ".tdbg");
 
         sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
-        std::variant<Coloring<Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> old_coloring;
+        std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> old_coloring;
         load_coloring(C.from_index + ".tcolors", *dbg_ptr, old_coloring);
 
-        if(std::holds_alternative<Coloring<Color_Set>>(old_coloring))
+        if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(old_coloring))
             write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
         if(std::holds_alternative<Coloring<Roaring_Color_Set>>(old_coloring))
             write_log("roaring coloring structure loaded", LogLevel::MAJOR);
@@ -377,7 +377,7 @@ int build_index_main(int argc, char** argv){
 
         auto visitor = [&](auto& old){
             if(C.coloring_structure_type == "sdsl-hybrid"){
-                build_from_index<decltype(old), Coloring<Color_Set>>(*dbg_ptr, old, C);
+                build_from_index<decltype(old), Coloring<SDSL_Variant_Color_Set>>(*dbg_ptr, old, C);
             } else if(C.coloring_structure_type == "roaring"){
                 build_from_index<decltype(old), Coloring<Roaring_Color_Set>>(*dbg_ptr, old, C);
             } else if(C.coloring_structure_type == "bitmagic"){
@@ -465,7 +465,7 @@ int build_index_main(int argc, char** argv){
 
         vector<int64_t> color_assignment = read_colorfile(C.colorfile);
         if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_coloring<Color_Set>(*dbg_ptr, color_assignment, C);
+            build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "roaring"){
             build_coloring<Roaring_Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "bitmagic"){

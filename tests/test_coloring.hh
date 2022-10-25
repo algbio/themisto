@@ -181,7 +181,7 @@ TEST(COLORING_TESTS, coli3) {
     plain_matrix_sbwt_t matrix(config);
 
     write_log("Testing Standard color set", LogLevel::MAJOR);
-    test_coloring_on_coli3<Color_Set, Color_Set_View>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
     write_log("Testing Bit_Magic_Color_Set", LogLevel::MAJOR);

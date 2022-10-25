@@ -27,8 +27,7 @@
 #include "Fixed_Width_Int_Color_Set.hh"
 #include "bit_magic_color_set.hh"
 
-template<typename colorset_t = Color_Set,
-         typename colorset_view_t = Color_Set_View,
+template<typename colorset_t = SDSL_Variant_Color_Set,
          typename sequence_reader_t = sbwt::SeqIO::Reader<>> 
 requires Color_Set_Interface<colorset_t>
 class Coloring_Builder{

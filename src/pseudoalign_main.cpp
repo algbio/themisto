@@ -164,12 +164,12 @@ int pseudoalign_main(int argc, char** argv){
     SBWT.load(C.index_dbg_file);
 
     // Load whichever coloring data structure type is stored on disk
-    std::variant<Coloring<Color_Set>,
+    std::variant<Coloring<SDSL_Variant_Color_Set>,
                  Coloring<Roaring_Color_Set>,
                  Coloring<Bit_Magic_Color_Set>> coloring;
     load_coloring(C.index_color_file, SBWT, coloring);
 
-    if(std::holds_alternative<Coloring<Color_Set>>(coloring))
+    if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(coloring))
         write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
@@ -183,8 +183,8 @@ int pseudoalign_main(int argc, char** argv){
             write_log("Aligning " + C.query_files[i] + " (printing output)", LogLevel::MAJOR);
         }
 
-        if(std::holds_alternative<Coloring<Color_Set>>(coloring))
-            call_pseudoalign(SBWT, get<Coloring<Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
+        if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(coloring))
+            call_pseudoalign(SBWT, get<Coloring<SDSL_Variant_Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
         if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
             call_pseudoalign(SBWT, get<Coloring<Roaring_Color_Set>>(coloring), C, C.query_files[i], (C.outfiles.size() > 0 ? C.outfiles[i] : ""));
         if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))

@@ -97,7 +97,7 @@ int64_t array_vs_array_union(sdsl::int_vector<>& A, int64_t A_len, const sdsl::i
     return 0; // TODO
 }
 
-Color_Set_View::Color_Set_View(const Color_Set& cs) : start(cs.start), length(cs.length) {
+SDSL_Variant_Color_Set_View::SDSL_Variant_Color_Set_View(const SDSL_Variant_Color_Set& cs) : start(cs.start), length(cs.length) {
     auto set_data_ptr = [&](auto& ptr){this->data_ptr = ptr;};
     std::visit(set_data_ptr, cs.data_ptr);
 }

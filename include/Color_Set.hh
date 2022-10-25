@@ -153,9 +153,9 @@ int64_t bitmap_vs_array_union(sdsl::bit_vector& bv, int64_t bv_size, const sdsl:
 // space to accommodate the union
 int64_t array_vs_array_union(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
 
-class Color_Set;
+class SDSL_Variant_Color_Set;
 
-class Color_Set_View{
+class SDSL_Variant_Color_Set_View{
 
 public:
 
@@ -163,10 +163,10 @@ public:
     int64_t start;
     int64_t length; // Number of bits in case of bit vector, number of elements in case of array
 
-    Color_Set_View(std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr, int64_t start, int64_t length)
+    SDSL_Variant_Color_Set_View(std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr, int64_t start, int64_t length)
         : data_ptr(data_ptr), start(start), length(length){}
 
-    Color_Set_View(const Color_Set& cs); // Defined in the .cpp file because Color_Set is not yet defined at this point of this header
+    SDSL_Variant_Color_Set_View(const SDSL_Variant_Color_Set& cs); // Defined in the .cpp file because Color_Set is not yet defined at this point of this header
 
     bool empty() const {return colorset_is_empty(*this);};
     bool is_bitmap() const {return colorset_is_bitmap(*this);};
@@ -177,21 +177,21 @@ public:
 
 };
 
-class Color_Set{
+class SDSL_Variant_Color_Set{
 
     public:
 
-    typedef Color_Set_View view_t;
+    typedef SDSL_Variant_Color_Set_View view_t;
 
     std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = (sdsl::bit_vector*) nullptr; // Owning pointer
     int64_t start = 0;
     int64_t length = 0; // Number of bits in case of bit vector, number of elements in case of array
 
-    Color_Set(){
+    SDSL_Variant_Color_Set(){
         data_ptr = new sdsl::bit_vector();
     }
 
-    const Color_Set& operator=(const Color_Set& other){
+    const SDSL_Variant_Color_Set& operator=(const SDSL_Variant_Color_Set& other){
         if(this == &other) return *this; // Assignment to itself
 
         // Free existing memory
@@ -208,12 +208,12 @@ class Color_Set{
         return *this;
     }
 
-    Color_Set(const Color_Set& other){
+    SDSL_Variant_Color_Set(const SDSL_Variant_Color_Set& other){
         *this = other;
     }
 
     // Construct a copy of a color set from a view
-    Color_Set(const Color_Set_View& view) : length(view.length){
+    SDSL_Variant_Color_Set(const SDSL_Variant_Color_Set_View& view) : length(view.length){
         if(std::holds_alternative<const sdsl::bit_vector*>(view.data_ptr)){
             data_ptr = new sdsl::bit_vector(view.length, 0);
 
@@ -237,7 +237,7 @@ class Color_Set{
         }
     }
 
-    Color_Set(const vector<int64_t>& set){
+    SDSL_Variant_Color_Set(const vector<int64_t>& set){
         int64_t max_element = *std::max_element(set.begin(), set.end());
         if(log2(max_element) * set.size() > max_element){ // TODO: this if-statement is duplicated in this file
             // Dense -> bitmap
@@ -258,7 +258,7 @@ class Color_Set{
         }
     }
 
-    ~Color_Set(){
+    ~SDSL_Variant_Color_Set(){
         auto call_delete = [](auto ptr){delete ptr;};
         std::visit(call_delete, data_ptr);
     }
@@ -271,7 +271,7 @@ class Color_Set{
     vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
 
     // Stores the intersection back to to this object
-    void intersection(const Color_Set_View& other){
+    void intersection(const SDSL_Variant_Color_Set_View& other){
         if(is_bitmap() && other.is_bitmap()){
             this->length = bitmap_vs_bitmap_intersection(*std::get<sdsl::bit_vector*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(!is_bitmap() && other.is_bitmap()){
@@ -293,14 +293,14 @@ class Color_Set{
         }
     }
 
-    void do_union(const Color_Set_View& other){
+    void do_union(const SDSL_Variant_Color_Set_View& other){
         // TODO: DO PROPERLY
         vector<int64_t> A = this->get_colors_as_vector();
         vector<int64_t> B = other.get_colors_as_vector();
         vector<int64_t> AB(A.size() + B.size());
         int64_t len = union_buffers(A, A.size(), B, B.size(), AB);
         AB.resize(len);
-        *this = Color_Set(AB);
+        *this = SDSL_Variant_Color_Set(AB);
     }
 
 };

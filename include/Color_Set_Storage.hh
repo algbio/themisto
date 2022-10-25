@@ -87,7 +87,7 @@ public:
 
 /* 
 
-Template specialization for Color_Set and Color_Set_View
+Template specialization for SDSL_Variant_Color_Set and SDSL_Variant_Color_Set_View
 
 The purpose of this storage class is to have a color set class that avoids space
 overheads associated with allocating each color set from the heap separately.
@@ -101,7 +101,7 @@ which one is smaller.
 */
 
 template<>
-class Color_Set_Storage<Color_Set>{
+class Color_Set_Storage<SDSL_Variant_Color_Set>{
 
     private:
 
@@ -149,28 +149,28 @@ class Color_Set_Storage<Color_Set>{
     // Build from list of sets directly. Instead of using this constructor, you should probably just
     // call add_set for each set you want to add separately and then call prepare_for_queries when done.
     // This constructor is just to have the same interface as the other color set storage class.
-    Color_Set_Storage(const vector<Color_Set>& sets){
-        for(const Color_Set& cs : sets){
+    Color_Set_Storage(const vector<SDSL_Variant_Color_Set>& sets){
+        for(const SDSL_Variant_Color_Set& cs : sets){
             add_set(cs.get_colors_as_vector());
         }
         prepare_for_queries();
     }
 
-    Color_Set::view_t get_color_set_by_id(int64_t id) const{
+    SDSL_Variant_Color_Set::view_t get_color_set_by_id(int64_t id) const{
         if(is_bitmap_marks[id]){
             int64_t bitmap_idx = is_bitmap_marks_rs.rank(id); // This many bitmaps come before this bitmap
             int64_t start = bitmap_starts[bitmap_idx];
             int64_t end = bitmap_starts[bitmap_idx+1]; // One past the end
 
             std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &bitmap_concat;
-            return Color_Set::view_t(data_ptr, start, end-start);
+            return SDSL_Variant_Color_Set::view_t(data_ptr, start, end-start);
         } else{
             int64_t arrays_idx = id - is_bitmap_marks_rs.rank(id); // Rank-0. This many arrays come before this bitmap
             int64_t start = arrays_starts[arrays_idx];
             int64_t end = arrays_starts[arrays_idx+1]; // One past the end
 
             std::variant<const sdsl::bit_vector*, const sdsl::int_vector<>*> data_ptr = &arrays_concat;
-            return Color_Set::view_t(data_ptr, start, end-start);
+            return SDSL_Variant_Color_Set::view_t(data_ptr, start, end-start);
         }
     }
 
@@ -269,8 +269,8 @@ class Color_Set_Storage<Color_Set>{
         return is_bitmap_marks.size();
     }
 
-    vector<Color_Set::view_t> get_all_sets() const{
-        vector<Color_Set::view_t> all;
+    vector<SDSL_Variant_Color_Set::view_t> get_all_sets() const{
+        vector<SDSL_Variant_Color_Set::view_t> all;
         for(int64_t i = 0; i < number_of_sets_stored(); i++){
             all.push_back(get_color_set_by_id(i));
         }

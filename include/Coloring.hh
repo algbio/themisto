@@ -34,7 +34,7 @@
 #include "bit_magic_color_set.hh"
 
 // Takes as parameter a class that encodes a single color set
-template<typename colorset_t = Color_Set> 
+template<typename colorset_t = SDSL_Variant_Color_Set> 
 requires Color_Set_Interface<colorset_t>
 class Coloring {
 
@@ -74,7 +74,7 @@ public:
     std::size_t serialize(std::ostream& os) const {
         std::size_t bytes_written = 0;
 
-        if(std::is_same<colorset_t, Color_Set>::value){
+        if(std::is_same<colorset_t, SDSL_Variant_Color_Set>::value){
             string type_id = "sdsl-hybrid-v4";
             bytes_written += sbwt::serialize_string(type_id, os);
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
@@ -106,7 +106,7 @@ public:
 
         // Check that the type id is correct for this class
         if(type_id == "sdsl-hybrid-v4"){
-            if(!std::is_same<colorset_t, Color_Set>::value){
+            if(!std::is_same<colorset_t, SDSL_Variant_Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
         } else if(type_id == "roaring-v0"){
@@ -232,7 +232,7 @@ public:
         return breakdown;
     }
 
-    template<typename T1, typename T2, typename T3> requires Color_Set_Interface<T1>
+    template<typename T1, typename T2> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 };
 
@@ -240,7 +240,7 @@ public:
 // The returned pointer must be eventually freed by the caller with delete
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
-Coloring<Color_Set>,
+Coloring<SDSL_Variant_Color_Set>,
 Coloring<Roaring_Color_Set>,
 Coloring<Bit_Magic_Color_Set>>& coloring);
 
