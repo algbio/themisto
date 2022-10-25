@@ -19,7 +19,7 @@
 #include "commands.hh"
 #include "DBG.hh"
 #include "sbwt/SBWT.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 
 using namespace sbwt;
 

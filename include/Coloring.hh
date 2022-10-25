@@ -27,7 +27,7 @@
 #include "WorkDispatcher.hh"
 #include "hybrid_color_set.hh"
 #include "Roaring_Color_Set.hh"
-#include "new_new_coloring.hh"
+#include "Color_Set.hh"
 #include "Color_Set_Interface.hh"
 #include <variant>
 #include "bit_magic_color_set.hh"

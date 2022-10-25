@@ -1,4 +1,4 @@
-#include "new_new_coloring.hh"
+#include "Color_Set.hh"
 
 // See header for description
 int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_start, int64_t buf2_len){

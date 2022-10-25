@@ -5,7 +5,7 @@
 #include "version.h"
 #include "sbwt/globals.hh"
 #include "sbwt/variants.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 #include "globals.hh"
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"

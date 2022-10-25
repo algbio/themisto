@@ -10,7 +10,7 @@
 #include "commands.hh"
 #include "sbwt/variants.hh"
 #include "sbwt/SBWT.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 #include "pseudoalign.hh"
 
 using namespace sbwt;

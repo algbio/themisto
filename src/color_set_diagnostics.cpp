@@ -1,4 +1,4 @@
-#include "new_coloring.hh"
+#include "Coloring.hh"
 #include "globals.hh"
 #include "zpipe.hh"
 #include <string>

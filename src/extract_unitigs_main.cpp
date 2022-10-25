@@ -5,7 +5,7 @@
 #include "cxxopts.hpp"
 #include "extract_unitigs.hh"
 #include "DBG.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 #include "sbwt/SBWT.hh"
 #include "sbwt/variants.hh"
 

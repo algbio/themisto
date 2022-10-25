@@ -8,7 +8,7 @@
 #include "test_tools.hh"
 #include "sbwt/SBWT.hh"
 #include "sbwt/globals.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 #include "Coloring_Builder.hh"
 
 // Testcase: put in a couple of reference sequences, sweep different k. For each k-mer,

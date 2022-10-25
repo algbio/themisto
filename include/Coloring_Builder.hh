@@ -13,7 +13,7 @@
 #include "core_kmer_marker.hh"
 #include "backward_traversal.hh"
 #include "Sparse_Uint_Array.hh"
-#include "new_coloring.hh"
+#include "Coloring.hh"
 
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
