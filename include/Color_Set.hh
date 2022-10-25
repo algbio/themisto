@@ -143,6 +143,22 @@ int64_t bitmap_vs_array_intersection(sdsl::bit_vector& bv, int64_t bv_size, cons
 // but the old elements past the end are left in place to avoid memory reallocations.
 int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
 
+// Stores the result into A and returns the length of the new bit vector. A must have enough
+// space to accommodate the union
+int64_t bitmap_vs_bitmap_union(sdsl::bit_vector& A, int64_t A_size, const sdsl::bit_vector& B, int64_t B_start, int64_t B_size);
+
+// Stores the result into A and returns the length of the new bit vector. A must have enough
+// space to accommodate the union
+int64_t array_vs_bitmap_union(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size);
+
+// Stores the result into A and returns the length of the new bit vector. A must have enough
+// space to accommodate the union
+int64_t bitmap_vs_array_union(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size);
+
+// Stores the result into A and returns the length of the new bit vector. A must have enough
+// space to accommodate the union
+int64_t array_vs_array_union(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len);
+
 class Color_Set;
 
 class Color_Set_View{

@@ -15,8 +15,6 @@ int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl
     return k;
 }
 
-
-
 // See header for description
 int64_t union_buffers(vector<int64_t>& buf1, int64_t buf1_len, vector<int64_t>& buf2, int64_t buf2_len, vector<int64_t>& result_buf){
 
@@ -38,9 +36,10 @@ int64_t bitmap_vs_bitmap_intersection(sdsl::bit_vector& A, int64_t A_size, const
         A.set_int(w*64, A.get_int(w*64) & B.get_int(B_start + w*64));
     }
 
-    // Do the rest one bit at a time. TODO: use a bit mask and do with just one and-operation
-    for(int64_t i = words*64; i < n; i++){
-        A[i] = A[i] && B[B_start + i];
+    // Do the rest
+    int64_t remaining = n - n/64;
+    if(remaining > 0){
+        A.set_int(words*64, A.get_int(words*64) & B.get_int(B_start + words*64), remaining);
     }
 
     return n;
@@ -76,7 +75,29 @@ int64_t array_vs_array_intersection(sdsl::int_vector<>& A, int64_t A_len, const 
     return intersect_buffers(A, A_len, B, B_start, B_len);
 }
 
+// See header for description
+int64_t bitmap_vs_bitmap_union(sdsl::bit_vector& A, int64_t A_size, const sdsl::bit_vector& B, int64_t B_start, int64_t B_size){
+    return 0; // TODO
+}
+
+// See header for description
+int64_t array_vs_bitmap_union(sdsl::int_vector<>& iv, int64_t iv_size, const sdsl::bit_vector& bv, int64_t bv_start, int64_t bv_size){
+    return 0; // TODO
+}
+
+// See header for description
+int64_t bitmap_vs_array_union(sdsl::bit_vector& bv, int64_t bv_size, const sdsl::int_vector<>& iv, int64_t iv_start, int64_t iv_size){
+    return 0; // TODO
+}
+
+// See header for description
+int64_t array_vs_array_union(sdsl::int_vector<>& A, int64_t A_len, const sdsl::int_vector<>& B, int64_t B_start, int64_t B_len){
+    return 0; // TODO
+}
+
 Color_Set_View::Color_Set_View(const Color_Set& cs) : start(cs.start), length(cs.length) {
     auto set_data_ptr = [&](auto& ptr){this->data_ptr = ptr;};
     std::visit(set_data_ptr, cs.data_ptr);
 }
+
+
