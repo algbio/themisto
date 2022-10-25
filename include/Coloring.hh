@@ -33,7 +33,7 @@
 #include <variant>
 #include "bit_magic_color_set.hh"
 
-// Takes as parameter a class that encodes a single color set, and a viewer class for that
+// Takes as parameter a class that encodes a single color set
 template<typename colorset_t = Color_Set> 
 requires Color_Set_Interface<colorset_t>
 class Coloring {

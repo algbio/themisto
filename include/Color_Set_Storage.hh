@@ -8,7 +8,7 @@
 
 using namespace std;
 
-// Takes as parameter a class that encodes a single color set, and a viewer class for that
+// Takes as parameter a class that encodes a single color set
 template<typename colorset_t> 
 requires Color_Set_Interface<colorset_t>
 class Color_Set_Storage{
