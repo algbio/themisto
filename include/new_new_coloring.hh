@@ -38,7 +38,8 @@ You may be thinking, why not just use inheritance? That is not an option because
 class needs a const-pointer whereas the other class needs a regular pointer. The view needs
 a const-pointer so that the get-colorset method of the coloring storage can be const. The mutable
 class needs a regular pointer because, well, it is supposed to be mutable. A std::variant of
-a const-pointer and a regular pointer would be possible, but very ugly.
+a const-pointer and a regular pointer would be possible, but very ugly. Virtual inheritance
+is not an option for performance reasons.
 
 */
 
