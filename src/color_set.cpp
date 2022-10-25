@@ -37,12 +37,14 @@ int64_t bitmap_vs_bitmap_intersection(sdsl::bit_vector& A, int64_t A_size, const
     }
 
     // Do the rest
-    int64_t remaining = n - n/64;
+    int64_t remaining = n - words*64;
     if(remaining > 0){
-        A.set_int(words*64, A.get_int(words*64) & B.get_int(B_start + words*64), remaining);
+        uint64_t x = A.get_int(words*64, remaining);
+        uint64_t y = B.get_int(B_start + words*64, remaining);
+        A.set_int(words*64, x & y, remaining);
     }
 
-    return n;
+    return n; // Everything after n is ignored
 }
 
 // See header for description

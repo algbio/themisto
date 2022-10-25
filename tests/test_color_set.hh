@@ -241,3 +241,22 @@ TEST(TEST_COLOR_SET, sparse_serialization){
     test_sparse_color_set_serialization<Bit_Magic_Color_Set>();
     // The Newnew color set does not have serialization for individual color sets
 }
+
+TEST(TEST_COLOR_SET, test_bitmap_vs_bitmap_intersection){
+    int64_t n = 200; // Not powers of two to test special case in end
+    int64_t m = 220; // Not powers of two to test special case in end
+    sdsl::bit_vector A(n);
+    sdsl::bit_vector B(m);
+
+    // Put in random data
+    for(int64_t i = 0; i < n; i++) A[i] = rand() % 2;
+    for(int64_t i = 0; i < m; i++) B[i] = rand() % 2;
+
+    sdsl::bit_vector AB = A;
+    int64_t n_ab = bitmap_vs_bitmap_intersection(AB, n, B, 1, m); // Start from offset 1 at B
+    ASSERT_EQ(n_ab, n);
+
+    for(int64_t i = 0; i < n; i++){
+        ASSERT_EQ(AB[i], A[i] & B[1 + i]); // Add the offset 1 we used earlier in B
+    }
+}
