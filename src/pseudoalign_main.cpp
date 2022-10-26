@@ -27,6 +27,7 @@ struct Pseudoalign_Config{
     bool reverse_complements = false;
     bool sort_output = false;
     LL n_threads = 1;
+    double buffer_size_megas = 8;
     bool verbose = false;
     bool silent = false;
 
@@ -76,10 +77,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(SeqIO::figure_out_file_format(inputfile).gzipped){
         SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, 1<<23, C.gzipped_output, C.sort_output); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
     } else{
         SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, 1<<23, C.gzipped_output, C.sort_output); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
     }
 }
 
@@ -104,6 +105,7 @@ int pseudoalign_main(int argc, char** argv){
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
+        ("buffer-size-megas", "Size of the input buffer in megabytes in each thread. If this is larger than the number of nucleotides in the input divided by the number of threads, then some threads will be idle. So if your input files are really small and you have a lot of threads, consider using a small buffer.", cxxopts::value<double>()->default_value("8.0"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -142,6 +144,7 @@ int pseudoalign_main(int argc, char** argv){
     C.sort_output = opts["sort-output"].as<bool>();
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
+    C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
