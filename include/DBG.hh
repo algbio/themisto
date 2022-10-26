@@ -223,7 +223,7 @@ public:
 
         Edge operator*(){
             int64_t source = node_idx;
-            char label = char_idx_to_DNA(sbwt_row);
+            char label = sbwt::char_idx_to_DNA(sbwt_row);
             int64_t dest = SBWT->forward(source, label);
             return {.source = source, .dest = dest, .label = label};
         }
