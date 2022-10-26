@@ -15,15 +15,18 @@
 #include "roaring/roaring.hh"
 #include "roaring/roaring64map.hh"
 
+class Roaring_Color_Set_View;
 
 class Roaring_Color_Set {
     Roaring64Map roaring;
 
 public:
 
-    typedef Roaring_Color_Set view_t; // No separate view class yet
+    typedef Roaring_Color_Set_View view_t;
 
     Roaring_Color_Set() {}
+
+    Roaring_Color_Set(const view_t& view); // This is defined at the .cpp file because the view is not yet defined here
 
     Roaring_Color_Set(const Roaring_Color_Set& r){
         *this = r;
@@ -53,7 +56,7 @@ public:
         roaring.shrinkToFit();
     }
 
-    void add(const vector<std::int64_t>& colors) {
+    void add(const std::vector<std::int64_t>& colors) {
         for (const auto x : colors)
             roaring.add(static_cast<std::uint64_t>(x));
 
@@ -129,4 +132,35 @@ public:
         roaring = Roaring64Map::read(serialized_bytes, false);
         delete[] serialized_bytes;
     }
+};
+
+class Roaring_Color_Set_View {
+
+    public:
+
+    const Roaring_Color_Set* ptr; // Non-owning pointer
+
+    Roaring_Color_Set_View(const Roaring_Color_Set& c) : ptr(&c) {}
+
+    bool empty() const{
+        return ptr->empty();
+    }
+
+    int64_t size() const{
+        return ptr->size();
+    }
+
+    int64_t size_in_bits() const{
+        return ptr->size_in_bits();
+    }
+
+    bool contains(int64_t color) const{
+        return ptr->contains(color);
+    }
+
+    std::vector<int64_t> get_colors_as_vector() const{
+        return ptr->get_colors_as_vector();
+    }
+
+
 };
