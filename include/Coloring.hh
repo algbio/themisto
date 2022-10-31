@@ -49,7 +49,6 @@ class WrongTemplateParameterException : public std::exception{
     }
 };
 
-
 private:    
 
     colorset_storage_type sets;
