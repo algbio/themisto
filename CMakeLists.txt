@@ -4,8 +4,12 @@ include(ExternalProject)
 
 ## Set maximum k-mer length
 if(NOT MAX_KMER_LENGTH)
-  set(MAX_KMER_LENGTH 31) ## Default max k-mer length is 31
+  set(MAX_KMER_LENGTH 32) ## Default max k-mer length is 32
 endif()
+if(BUILD_THEMISTO_TESTS)
+  set(MAX_KMER_LENGTH=255) # 255 required in tests
+endif()
+
 if(MAX_KMER_LENGTH GREATER 255)
   message(${MAX_KMER_LENGTH})
   message(FATAL_ERROR "Error: MAX_KMER_LENGTH can be at most 255")
@@ -179,15 +183,6 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core 
   ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/)
 
-## Libraries & executables to build
-#add_library(kmc_wrapper src/KMC_wrapper.cpp)
-add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
-
-target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
-
-## Fix compilation order
-add_dependencies(sdsl divsufsort64)
-
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
   add_subdirectory(${CMAKE_BINARY_DIR}/external/zlib
@@ -198,31 +193,28 @@ endif()
 if(CMAKE_BUILD_BZIP2)
 endif()
 
-## Link
-target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+# Build main executable if not building for tests
+if(NOT BUILD_THEMISTO_TESTS)
+  add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
+  target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
+  # Fix compilation order
+  add_dependencies(sdsl divsufsort64)
+  ## Link
+  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+endif()
 
-## Build tests if doing a Debug build
+# Build tests if requested
 if (BUILD_THEMISTO_TESTS)
-
   add_subdirectory(${CMAKE_SOURCE_DIR}/googletest
     ${CMAKE_BINARY_DIR}/external/googletest/build)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
-    
   add_dependencies(sdsl divsufsort64)
-  #find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
-  target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=255) # 255 required in tests
-  
-else()
-#  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
-#  set_target_properties(gtest_main PROPERTIES EXCLUDE_FROM_ALL 1)
+  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)  
 endif()
 
 if(BUILD_IO_BENCHMARK)
-
   message("Setting up IO benchmark.")
   add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
   target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
-
 endif()
