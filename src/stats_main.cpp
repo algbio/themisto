@@ -73,15 +73,13 @@ int stats_main(int argc, char** argv){
     plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> coloring;
+    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> coloring;
     load_coloring(index_color_file, SBWT, coloring);
 
     if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(coloring))
         write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
     if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
-    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring))
-        write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
 
     // Helper functions to be able to call member functions of coloring with std::visit.
     // This cleans up the code so that we don't have the branch where we check which

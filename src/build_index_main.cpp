@@ -64,7 +64,7 @@ struct Build_Config{
             sbwt::check_readable(colorfile);
         }
 
-        if(coloring_structure_type != "sdsl-fixed" && coloring_structure_type != "sdsl-hybrid" && coloring_structure_type != "roaring" && coloring_structure_type != "bitmagic"){
+        if(coloring_structure_type != "sdsl-hybrid" && coloring_structure_type != "roaring"){
             throw std::runtime_error("Unknown coloring structure type: " + coloring_structure_type);
         }
 
@@ -302,7 +302,7 @@ int build_index_main(int argc, char** argv){
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
-        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-fixed\", \"sdsl-hybrid\", \"roaring\" or \"bitmagic\" ).", cxxopts::value<string>()->default_value("sdsl-hybrid"))
+        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
         ("from-index", "Take as input a pre-built Themisto index. Builds a new index in the format specified by --coloring-structure-type. This is currenlty implemented by decompressing the distinct color sets in memory before re-encoding them, so this might take a lot of RAM.", cxxopts::value<string>()->default_value(""))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
@@ -365,23 +365,19 @@ int build_index_main(int argc, char** argv){
         dbg_ptr->load(C.from_index + ".tdbg");
 
         sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
-        std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> old_coloring;
+        std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> old_coloring;
         load_coloring(C.from_index + ".tcolors", *dbg_ptr, old_coloring);
 
         if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(old_coloring))
             write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
         if(std::holds_alternative<Coloring<Roaring_Color_Set>>(old_coloring))
             write_log("roaring coloring structure loaded", LogLevel::MAJOR);
-        if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(old_coloring))
-            write_log("BitMagic coloring structure loaded", LogLevel::MAJOR);
 
         auto visitor = [&](auto& old){
             if(C.coloring_structure_type == "sdsl-hybrid"){
                 build_from_index<decltype(old), Coloring<SDSL_Variant_Color_Set>>(*dbg_ptr, old, C);
             } else if(C.coloring_structure_type == "roaring"){
                 build_from_index<decltype(old), Coloring<Roaring_Color_Set>>(*dbg_ptr, old, C);
-            } else if(C.coloring_structure_type == "bitmagic"){
-                build_from_index<decltype(old), Coloring<Bit_Magic_Color_Set>>(*dbg_ptr, old, C);
             } else{
                 throw std::runtime_error("Unkown coloring structure type: " + C.coloring_structure_type);
             }
@@ -468,8 +464,6 @@ int build_index_main(int argc, char** argv){
             build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, color_assignment, C);
         } else if(C.coloring_structure_type == "roaring"){
             build_coloring<Roaring_Color_Set>(*dbg_ptr, color_assignment, C);
-        } else if(C.coloring_structure_type == "bitmagic"){
-            build_coloring<Bit_Magic_Color_Set>(*dbg_ptr, color_assignment, C);
         }
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it

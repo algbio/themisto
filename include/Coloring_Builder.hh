@@ -25,7 +25,6 @@
 #include "hybrid_color_set.hh"
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
-#include "bit_magic_color_set.hh"
 
 template<typename colorset_t = SDSL_Variant_Color_Set,
          typename sequence_reader_t = sbwt::SeqIO::Reader<>> 

@@ -3,12 +3,10 @@
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
 Coloring<SDSL_Variant_Color_Set>,
-Coloring<Roaring_Color_Set>,
-Coloring<Bit_Magic_Color_Set>>& coloring){
+Coloring<Roaring_Color_Set>>& coloring){
 
     Coloring<SDSL_Variant_Color_Set> coloring1;
     Coloring<Roaring_Color_Set> coloring2;
-    Coloring<Bit_Magic_Color_Set> coloring3;
 
     try{
         throwing_ifstream colors_in(filename, ios::binary);
@@ -25,15 +23,6 @@ Coloring<Bit_Magic_Color_Set>>& coloring){
         std::get<Coloring<Roaring_Color_Set>>(coloring).load(colors_in.stream, SBWT);
         return; // No exception thrown
     } catch(Coloring<Roaring_Color_Set>::WrongTemplateParameterException& e){
-        // Was not this one
-    }
-
-    try{
-        throwing_ifstream colors_in(filename, ios::binary);
-        coloring = coloring3;
-        std::get<Coloring<Bit_Magic_Color_Set>>(coloring).load(colors_in.stream, SBWT);
-        return; // No exception thrown
-    } catch(Coloring<Bit_Magic_Color_Set>::WrongTemplateParameterException& e){
         // Was not this one
     }
 

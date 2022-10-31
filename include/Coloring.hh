@@ -31,7 +31,6 @@
 #include "Color_Set.hh"
 #include "Color_Set_Interface.hh"
 #include <variant>
-#include "bit_magic_color_set.hh"
 
 // Takes as parameter a class that encodes a single color set
 template<typename colorset_t = SDSL_Variant_Color_Set> 
@@ -80,10 +79,7 @@ public:
         } else if(std::is_same<colorset_t, Roaring_Color_Set>::value){
             string type_id = "roaring-v0";
             bytes_written += sbwt::serialize_string(type_id, os);
-        } else if(std::is_same<colorset_t, Bit_Magic_Color_Set>::value){
-            string type_id = "bitmagic-v0";
-            bytes_written += sbwt::serialize_string(type_id, os);
-        }  else{
+        } else{
             throw std::runtime_error("Unsupported color set template");
         }
 
@@ -111,10 +107,6 @@ public:
             }
         } else if(type_id == "roaring-v0"){
             if(!std::is_same<colorset_t, Roaring_Color_Set>::value){
-                throw WrongTemplateParameterException();
-            }
-        } else if(type_id == "bitmagic-v0"){
-            if(!std::is_same<colorset_t, Bit_Magic_Color_Set>::value){
                 throw WrongTemplateParameterException();
             }
         } else{
@@ -241,6 +233,5 @@ public:
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<
 Coloring<SDSL_Variant_Color_Set>,
-Coloring<Roaring_Color_Set>,
-Coloring<Bit_Magic_Color_Set>>& coloring);
+Coloring<Roaring_Color_Set>>& coloring);
 

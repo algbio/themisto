@@ -91,7 +91,7 @@ int extract_unitigs_main(int argc, char** argv){
     sbwt::plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>, Coloring<Bit_Magic_Color_Set>> coloring;
+    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> coloring;
     if(do_colors){
         // Load whichever coloring data structure type is stored on disk
         load_coloring(index_color_file, SBWT, coloring);
@@ -109,11 +109,6 @@ int extract_unitigs_main(int argc, char** argv){
         UnitigExtractor<Coloring<Roaring_Color_Set>> UE;
         UE.extract_unitigs(dbg, std::get<Coloring<Roaring_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
     }
-    if(std::holds_alternative<Coloring<Bit_Magic_Color_Set>>(coloring)){
-        UnitigExtractor<Coloring<Bit_Magic_Color_Set>> UE;
-        UE.extract_unitigs(dbg, std::get<Coloring<Bit_Magic_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
-    }
-
 
     return 0;
 
