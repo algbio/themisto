@@ -2,7 +2,7 @@
 
 #include <string>
 #include "sbwt/SBWT.hh"
-#include "Coloring.hh"
+#include "coloring/Coloring.hh"
 #include "SeqIO.hh"
 #include "variants.hh"
 

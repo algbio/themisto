@@ -1,7 +1,7 @@
 #pragma once
 
 #include "setup_tests.hh"
-#include "delta_vector.hh"
+#include "coloring/delta_vector.hh"
 
 template<typename delta_vector_t>
 void test_delta_vector(){

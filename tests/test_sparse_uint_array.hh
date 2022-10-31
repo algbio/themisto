@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "globals.hh"
 #include "sbwt/globals.hh"
-#include "Sparse_Uint_Array.hh"
+#include "coloring/Sparse_Uint_Array.hh"
 
 using namespace sbwt;
 

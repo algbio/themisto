@@ -11,9 +11,9 @@
 #include <map>
 #include <gtest/gtest.h>
 #include <cassert>
-#include "hybrid_color_set.hh"
-#include "Fixed_Width_Int_Color_Set.hh"
-#include "Color_Set.hh"
+#include "coloring/hybrid_color_set.hh"
+#include "coloring/Fixed_Width_Int_Color_Set.hh"
+#include "coloring/Color_Set.hh"
 
 using namespace sbwt;
 

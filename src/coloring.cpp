@@ -1,4 +1,4 @@
-#include "Coloring.hh"
+#include "coloring/Coloring.hh"
 
 void load_coloring(string filename, const plain_matrix_sbwt_t& SBWT,
 std::variant<

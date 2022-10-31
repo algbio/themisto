@@ -5,11 +5,11 @@
 #include "version.h"
 #include "sbwt/globals.hh"
 #include "sbwt/variants.hh"
-#include "Coloring.hh"
+#include "coloring/Coloring.hh"
 #include "globals.hh"
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
-#include "Coloring_Builder.hh"
+#include "coloring/Coloring_Builder.hh"
 
 using namespace std;
 typedef long long LL;

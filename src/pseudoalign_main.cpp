@@ -2,7 +2,7 @@
 #include <cstring>
 #include "zpipe.hh"
 #include "version.h"
-#include "Coloring.hh"
+#include "coloring/Coloring.hh"
 #include "globals.hh"
 #include "pseudoalign.hh"
 #include "sbwt/globals.hh"
