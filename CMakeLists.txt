@@ -32,11 +32,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Our sources, excluding the file with the main function
 set(THEMISTO_SOURCES 
-  src/Roaring_Color_Set.cpp 
+  src/coloring/Roaring_Color_Set.cpp 
+  src/coloring/coloring.cpp 
+  src/coloring/color_set.cpp 
+  src/coloring/color_set_diagnostics.cpp 
   src/pseudoalign_main.cpp 
-  src/coloring.cpp 
-  src/color_set.cpp 
-  src/color_set_diagnostics.cpp 
   src/pseudoalign.cpp 
   src/globals.cpp 
   src/test_tools.cpp 
