@@ -28,7 +28,7 @@ int main(int argc, char** argv){
 
     if(!silent_in_argv){
         sbwt::write_log("Themisto-" + std::string(THEMISTO_BUILD_VERSION), sbwt::LogLevel::MAJOR);
-        sbwt::write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(KMER_MAX_LENGTH), sbwt::LogLevel::MAJOR);
+        sbwt::write_log("Maximum k-mer length (size of the de Bruijn graph node labels): " + std::to_string(MAX_KMER_LENGTH), sbwt::LogLevel::MAJOR);
     }
 
     if(argc == 1){

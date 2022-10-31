@@ -183,7 +183,7 @@ include_directories(
 #add_library(kmc_wrapper src/KMC_wrapper.cpp)
 add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
 
-target_compile_definitions(themisto PUBLIC KMER_MAX_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler. Note that the variable name here is KMER_MAX_LENGTH, not MAX_KMER_LENGTH, but that is correct.
+target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
 
 ## Fix compilation order
 add_dependencies(sdsl divsufsort64)
@@ -212,7 +212,7 @@ if (BUILD_THEMISTO_TESTS)
   #find_library(GTEST NAMES gtest PATHS ${CMAKE_SOURCE_DIR}/googletest/build/lib/)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
-  target_compile_definitions(themisto_tests PUBLIC KMER_MAX_LENGTH=255) # 255 required in tests
+  target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=255) # 255 required in tests
   
 else()
 #  set_target_properties(gtest PROPERTIES EXCLUDE_FROM_ALL 1)
