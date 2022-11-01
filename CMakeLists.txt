@@ -208,6 +208,7 @@ if (BUILD_THEMISTO_TESTS)
   add_subdirectory(${CMAKE_SOURCE_DIR}/googletest
     ${CMAKE_BINARY_DIR}/external/googletest/build)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
+  target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
   add_dependencies(sdsl divsufsort64)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)  
