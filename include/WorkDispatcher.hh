@@ -78,7 +78,7 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
     }
 
     virtual void flush(){
-         gzip_outstream->flush();
+        gzip_outstream->flush();
     }
 
     virtual ~ParallelGzipWriter(){

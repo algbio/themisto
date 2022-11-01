@@ -19,14 +19,35 @@ int64_t fast_int_to_string(int64_t x, char* buffer);
 // returns a vector where element i is the ref ids aligned with query i
 vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename);
 
+template<class coloring_t>
+class ThresholdPseudoaligner : public DispatcherConsumerCallback{
+
+    // Todo
+
+
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+
+    }
+
+
+    virtual void callback(const char* S, LL S_size, int64_t string_id){
+
+    }
+
+    virtual void finish(){
+
+    }
+
+    virtual ~ThresholdPseudoaligner() {} 
+};
 
 template<class coloring_t>
-class AlignerThread : public DispatcherConsumerCallback{
+class IntersectionPseudoaligner : public DispatcherConsumerCallback{
 
 private:
 
-    AlignerThread(const AlignerThread&); // No copying
-    AlignerThread& operator=(const AlignerThread&); // No copying
+    IntersectionPseudoaligner(const IntersectionPseudoaligner&); // No copying
+    IntersectionPseudoaligner& operator=(const IntersectionPseudoaligner&); // No copying
 
     public:
 
@@ -49,7 +70,7 @@ private:
         vector<int64_t> color_set_id_buffer;
         vector<int64_t> rc_color_set_id_buffer;
 
-        AlignerThread(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+        IntersectionPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
             this->out = out;
@@ -243,25 +264,19 @@ void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
     assert(Q.empty());
 }
 
-template<typename coloring_t, typename sequence_reader_t>
-void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+// If outfile is empty, creates a writer to cout
+std::unique_ptr<ParallelBaseWriter> create_writer(const string& outfile, bool gzipped);
 
-    ParallelBaseWriter* out = nullptr;
-    if (!outfile.empty()) {
-        if (gzipped)
-            out = new ParallelGzipWriter(outfile);
-        else
-            out = new ParallelOutputWriter(outfile);
-    } else {
-        if (gzipped)
-            out = new ParallelGzipWriter(cout);
-        else
-            out = new ParallelOutputWriter(cout);
-    }
+void call_sort_parallel_output_file(const string& outfile, bool gzipped);
+
+template<typename coloring_t, typename sequence_reader_t>
+void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+
+    std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
 
     vector<DispatcherConsumerCallback*> threads;
     for (LL i = 0; i < n_threads; i++) {
-        AlignerThread<coloring_t>* T = new AlignerThread<coloring_t>(&SBWT, &coloring, out, reverse_complements, buffer_size);
+        IntersectionPseudoaligner<coloring_t>* T = new IntersectionPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size);
         threads.push_back(T);
     }
 
@@ -270,21 +285,30 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
     // Clean up
     for (DispatcherConsumerCallback* t : threads) delete t;
     out->flush();
-    delete out;
+    out.reset(); // Free the memory
 
-    if (sorted_output) {
-        write_log("Sorting output file", LogLevel::MAJOR);
-        string tempfile =
-            get_temp_file_manager().create_filename("results_temp");
-        if (gzipped) {
-            zstr::ifstream instream(outfile);
-            zstr::ofstream outstream(tempfile);
-            sort_parallel_output_file(instream, outstream);
-        } else {
-            throwing_ifstream instream(outfile);
-            throwing_ofstream outstream(tempfile);
-            sort_parallel_output_file(instream.stream, outstream.stream);
-        }
-        std::filesystem::rename(tempfile, outfile);
+    if (sorted_output) call_sort_parallel_output_file(outfile, gzipped);
+    
+}
+
+template<typename coloring_t, typename sequence_reader_t>
+void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+
+    std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
+
+    vector<DispatcherConsumerCallback*> threads;
+    for (LL i = 0; i < n_threads; i++) {
+        ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out, reverse_complements, buffer_size);
+        threads.push_back(T);
     }
+
+    run_dispatcher(threads, reader, buffer_size);
+
+    // Clean up
+    for (DispatcherConsumerCallback* t : threads) delete t;
+    out->flush();
+    out.reset(); // Free the memory
+
+    if (sorted_output) call_sort_parallel_output_file(outfile, gzipped);
+    
 }

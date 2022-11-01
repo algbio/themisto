@@ -61,3 +61,39 @@ int64_t fast_int_to_string(int64_t x, char* buffer){
     buffer[i] = '\0';
     return i;
 }
+
+
+
+// If outfile is empty, creates a writer to cout
+std::unique_ptr<ParallelBaseWriter> create_writer(const string& outfile, bool gzipped){
+    std::unique_ptr<ParallelBaseWriter> out = nullptr;
+    if (!outfile.empty()) {
+        if (gzipped)
+            out = std::make_unique<ParallelGzipWriter>(outfile);
+        else
+            out = std::make_unique<ParallelOutputWriter>(outfile);
+    } else {
+        if (gzipped)
+            out = std::make_unique<ParallelGzipWriter>(cout);
+        else
+            out = std::make_unique<ParallelOutputWriter>(cout);
+    }
+    return out;
+}
+
+void call_sort_parallel_output_file(const string& outfile, bool gzipped){
+    if(outfile == "") throw std::runtime_error("Can't sort stdout output");
+
+    write_log("Sorting output file", LogLevel::MAJOR);
+    string tempfile = get_temp_file_manager().create_filename("results_temp");
+    if (gzipped) {
+        zstr::ifstream instream(outfile);
+        zstr::ofstream outstream(tempfile);
+        sort_parallel_output_file(instream, outstream);
+    } else {
+        throwing_ifstream instream(outfile);
+        throwing_ofstream outstream(tempfile);
+        sort_parallel_output_file(instream.stream, outstream.stream);
+    }
+    std::filesystem::rename(tempfile, outfile);
+}

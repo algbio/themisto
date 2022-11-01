@@ -77,10 +77,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(SeqIO::figure_out_file_format(inputfile).gzipped){
         SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
+        pseudoalign_intersected(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
     } else{
         SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
+        pseudoalign_intersected(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
     }
 }
 

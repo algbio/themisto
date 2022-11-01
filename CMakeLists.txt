@@ -7,7 +7,7 @@ if(NOT MAX_KMER_LENGTH)
   set(MAX_KMER_LENGTH 32) ## Default max k-mer length is 32
 endif()
 if(BUILD_THEMISTO_TESTS)
-  set(MAX_KMER_LENGTH=255) # 255 required in tests
+  set(MAX_KMER_LENGTH 255) # 255 required in tests
 endif()
 
 if(MAX_KMER_LENGTH GREATER 255)
