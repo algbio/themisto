@@ -254,6 +254,33 @@ Usage:
   -h, --help              Print usage
 ```
 
+## Dumping the color matrix with `dump-color-matrix`
+
+This command prints a file where each line corresponds to a k-mer in the index. The line starts with the k-mer, followed by space, followed by the color set of that k-mer. If `--sparse` is given, the color set is printed as a space-separated list of integers. Otherwise, the color set is printed as a string of zeroes and ones such that the i-th character is '1' iff color i is present in the color set.
+
+Example:
+
+```
+./build/bin/themisto dump-color-matrix -i my_index -o dump.txt --sparse
+```
+
+Full instructions:
+
+```
+Usage:
+  dump-color-matrix [OPTION...]
+
+  -i, --index-prefix arg  The index prefix that was given to the build 
+                          command.
+  -o, --output-file arg   The output file for the dump.
+  -v, --verbose           More verbose progress reporting into stderr.
+      --silent            Print as little as possible to stderr (only 
+                          errors).
+      --sparse            Print only the indices of non-zero entries.
+  -h, --help              Print usage
+```
+
+
 # For developers: building the tests
 
 ```

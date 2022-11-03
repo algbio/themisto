@@ -72,7 +72,7 @@ void dump_colors(const DBG& dbg, const coloring_t& coloring, string outfile, boo
 
 int dump_color_matrix_main(int argc, char** argv){
 
-    cxxopts::Options options(argv[0], "Dump the color matrix out of a Themisto index.");
+    cxxopts::Options options(argv[0], "This command prints a file where each line corresponds to a k-mer in the index. The line starts with the k-mer, followed by space, followed by the color set of that k-mer. If `--sparse` is given, the color set is printed as a space-separated list of integers. Otherwise, the color set is printed as a string of zeroes and ones such that the i-th character is '1' iff color i is present in the color set.");
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
