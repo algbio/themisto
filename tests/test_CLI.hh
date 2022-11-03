@@ -293,12 +293,12 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
         }
     }
 
-    // Parse the sparse dump file and check against truth
+    // Check the sparse dump
     string line;
-    throwing_ifstream dump_in(sparse_dump_file);
+    throwing_ifstream sparse_dump_in(sparse_dump_file);
     int64_t line_idx = 0;
-    while(getline(dump_in.stream, line)){
-        cout << "Line: " << line << endl;
+    while(getline(sparse_dump_in.stream, line)){
+        logger << "Line: " << line << endl;
         vector<string> tokens = split(line);
         string kmer = tokens[0];
         ASSERT_EQ(kmer, all_kmers[line_idx]); // Check that the k-mer is correct
@@ -312,6 +312,25 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
         line_idx++;
     }
 
-    // TODO: check the dense dump
+    // Check the dense dump
+    throwing_ifstream dense_dump_in(dense_dump_file);
+    line_idx = 0;
+    while(getline(dense_dump_in.stream, line)){
+        logger << "Line: " << line << endl;
+        vector<string> tokens = split(line);
+        ASSERT_EQ(tokens.size(), 2);
+        string kmer = tokens[0];
+        ASSERT_EQ(kmer, all_kmers[line_idx]); // Check that the k-mer is correct
+
+        vector<int64_t> parsed_colors;
+        string ASCII_row = tokens[1];
+        for(int64_t i = 0; i < ASCII_row.size(); i++){
+            if(ASCII_row[i] == '1') parsed_colors.push_back(i);
+        }
+
+        ASSERT_EQ(true_colors[kmer], parsed_colors); // Check that the colors are correct
+        line_idx++;
+    }
+
 
 }
