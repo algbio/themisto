@@ -39,30 +39,6 @@ vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename){
     return just_color_sets;
 }
 
-int64_t fast_int_to_string(int64_t x, char* buffer){
-    // Fast manual integer-to-string conversion
-
-    LL i = 0;
-    // Write the digits in reverse order (reversed back at the end)
-    if(x == -1){
-        buffer[0] = '1';
-        buffer[1] = '-';
-        i = 2;
-    } else if(x == 0){
-        buffer[0] = '0';
-        i = 1;
-    } else{
-        while(x > 0){
-            buffer[i++] = '0' + (x % 10);
-            x /= 10;
-        }
-    }
-    std::reverse(buffer, buffer + i);
-    buffer[i] = '\0';
-    return i;
-}
-
-
 
 // If outfile is empty, creates a writer to cout
 std::unique_ptr<ParallelBaseWriter> create_writer(const string& outfile, bool gzipped){

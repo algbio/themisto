@@ -2,7 +2,7 @@
 #include <vector>
 
 template <typename T>
-concept Color_Set_Interface = requires(T& t, T::view_t& view){
+concept Color_Set_Interface = requires(T& t, typename T::view_t& view){
     { t.empty() } -> std::same_as<bool>; // This should take constant time
     { t.size() } -> std::same_as<int64_t>; // This may take linear time
     { t.size_in_bits() } -> std::same_as<int64_t>;

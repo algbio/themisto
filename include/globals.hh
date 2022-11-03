@@ -48,3 +48,7 @@ char char_idx_to_DNA(int64_t i); // 0123 -> ACGT
 void sigint_handler(int sig);
 
 void sigabrt_handler(int sig);
+
+// Fast manual integer-to-string conversion. ASSUMES x >= -1
+// Returns the length of the string
+int64_t fast_int_to_string(int64_t x, char* buffer);

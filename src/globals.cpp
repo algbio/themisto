@@ -316,3 +316,24 @@ string get_reverse_complement(const std::string& S){
 
 auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the SIGINT handler
 auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler
+
+int64_t fast_int_to_string(int64_t x, char* buffer){
+    LL i = 0;
+    // Write the digits in reverse order (reversed back at the end)
+    if(x == -1){
+        buffer[0] = '1';
+        buffer[1] = '-';
+        i = 2;
+    } else if(x == 0){
+        buffer[0] = '0';
+        i = 1;
+    } else{
+        while(x > 0){
+            buffer[i++] = '0' + (x % 10);
+            x /= 10;
+        }
+    }
+    std::reverse(buffer, buffer + i);
+    buffer[i] = '\0';
+    return i;
+}

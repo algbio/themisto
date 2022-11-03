@@ -36,6 +36,7 @@ set(THEMISTO_SOURCES
   src/coloring/coloring.cpp 
   src/coloring/color_set.cpp 
   src/coloring/color_set_diagnostics.cpp 
+  src/dump_color_matrix_main.cpp 
   src/pseudoalign_main.cpp 
   src/pseudoalign.cpp 
   src/globals.cpp 
