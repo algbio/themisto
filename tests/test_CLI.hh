@@ -258,27 +258,33 @@ TEST(PREPROCESSING, upper_case){
 }
 
 TEST_F(CLI_TEST, test_color_matrix_dump){
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--color-file", colorfile};
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--color-file", colorfile};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+    load_sbwt_and_coloring(SBWT, coloring, indexprefix);
 
-    string color_dump_file = get_temp_file_manager().create_filename("", ".txt");
-    vector<string> args2 = {"dump-color-matrix", "-i", indexprefix, "-o", color_dump_file};
+    // Do a dump in sparse format
+    string sparse_dump_file = get_temp_file_manager().create_filename("", ".txt");
+    vector<string> args2 = {"dump-color-matrix", "-i", indexprefix, "-o", sparse_dump_file, "--sparse"};
     sbwt::Argv argv2(args2);
     dump_color_matrix_main(argv2.size, argv2.array);
 
-    /* Check */
+    // Do a dump in dense format
+    string dense_dump_file = get_temp_file_manager().create_filename("", ".txt");
+    vector<string> args3 = {"dump-color-matrix", "-i", indexprefix, "-o", dense_dump_file};
+    sbwt::Argv argv3(args3);
+    dump_color_matrix_main(argv3.size, argv3.array);
 
-    // Extract true k-mers
+    // Extract true k-mers from the DBG (assuming the DBG works correctly)
     DBG dbg(&SBWT);
     vector<string> all_kmers;
     for(DBG::Node v : dbg.all_nodes()) 
         all_kmers.push_back(dbg.get_node_label(v));
 
     // Build true colors
-    map<string, vector<int64_t> > true_colors;
+    map<string, vector<int64_t> > true_colors; // kmer -> color set
     for(int64_t seq_idx = 0; seq_idx < seqs.size(); seq_idx++){
         string S = seqs[seq_idx];
         int64_t color = colors[seq_idx];
@@ -287,11 +293,12 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
         }
     }
 
-    // Parse the dump file and check
+    // Parse the sparse dump file and check against truth
     string line;
-    throwing_ifstream dump_in(color_dump_file);
+    throwing_ifstream dump_in(sparse_dump_file);
     int64_t line_idx = 0;
     while(getline(dump_in.stream, line)){
+        cout << "Line: " << line << endl;
         vector<string> tokens = split(line);
         string kmer = tokens[0];
         ASSERT_EQ(kmer, all_kmers[line_idx]); // Check that the k-mer is correct
@@ -304,5 +311,7 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
         ASSERT_EQ(true_colors[kmer], parsed_colors); // Check that the colors are correct
         line_idx++;
     }
+
+    // TODO: check the dense dump
 
 }
