@@ -60,8 +60,8 @@ void dump_colors(const DBG& dbg, const coloring_t& coloring, string outfile, boo
         // Write the k-mer and a space
         out.write(kmer.c_str(), kmer.size());
 
-        if(sparse) print_color_set_as_bitmap(v.id, coloring, out);
-        else print_color_set_as_integers(v.id, coloring, out);
+        if(sparse) print_color_set_as_integers(v.id, coloring, out);
+        else print_color_set_as_bitmap(v.id, coloring, out);
 
         char newline = '\n'; out.write(&newline, 1); // Write a line break
 

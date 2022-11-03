@@ -105,7 +105,7 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_auto_colors){
 }
 
 TEST_F(CLI_TEST, reverse_complement_construction_with_colorfile){
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--color-file", colorfile,};
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--color-file", colorfile};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
@@ -254,5 +254,55 @@ TEST(PREPROCESSING, upper_case){
     vector<set<LL> > correct = {{0},{0}};
     ASSERT_EQ(res1, correct);
 
+
+}
+
+TEST_F(CLI_TEST, test_color_matrix_dump){
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--color-file", colorfile};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+
+    string color_dump_file = get_temp_file_manager().create_filename("", ".txt");
+    vector<string> args2 = {"dump-color-matrix", "-i", indexprefix, "-o", color_dump_file};
+    sbwt::Argv argv2(args2);
+    dump_color_matrix_main(argv2.size, argv2.array);
+
+    /* Check */
+
+    // Extract true k-mers
+    DBG dbg(&SBWT);
+    vector<string> all_kmers;
+    for(DBG::Node v : dbg.all_nodes()) 
+        all_kmers.push_back(dbg.get_node_label(v));
+
+    // Build true colors
+    map<string, vector<int64_t> > true_colors;
+    for(int64_t seq_idx = 0; seq_idx < seqs.size(); seq_idx++){
+        string S = seqs[seq_idx];
+        int64_t color = colors[seq_idx];
+        for(string x : get_all_distinct_kmers(S, k)){
+            true_colors[x].push_back(color);
+        }
+    }
+
+    // Parse the dump file and check
+    string line;
+    throwing_ifstream dump_in(color_dump_file);
+    int64_t line_idx = 0;
+    while(getline(dump_in.stream, line)){
+        vector<string> tokens = split(line);
+        string kmer = tokens[0];
+        ASSERT_EQ(kmer, all_kmers[line_idx]); // Check that the k-mer is correct
+
+        vector<int64_t> parsed_colors;
+        for(int64_t i = 1; i < tokens.size(); i++){
+            parsed_colors.push_back(stoll(tokens[i]));
+        }
+
+        ASSERT_EQ(true_colors[kmer], parsed_colors); // Check that the colors are correct
+        line_idx++;
+    }
 
 }
