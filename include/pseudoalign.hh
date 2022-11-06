@@ -148,8 +148,9 @@ public:
 
             typename coloring_t::colorset_type fw_set;
             for(int64_t kmer_idx = 0; kmer_idx < S_size - Base::k  + 1; kmer_idx++){
-                fw_set = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[kmer_idx]);
-                if(Base::reverse_complements){
+                if(Base::color_set_id_buffer[kmer_idx] == -1) fw_set = (typename coloring_t::colorset_type){}; // Empty
+                else fw_set = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[kmer_idx]);
+                if(Base::reverse_complements && Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx] != -1){
                     typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx]);
                     fw_set.do_union(rc_set_view);
                 }
