@@ -14,27 +14,27 @@ string vec_to_string(const vector<T>& v){
     return ss.str();
 }
 
-vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename){
-    vector<pair<LL, set<LL>>> results; // Pairs (query id, color set)
+vector<vector<int64_t> > parse_pseudoalignment_output_format_from_disk(string filename){
+    vector<pair<int64_t, vector<int64_t>>> results; // Pairs (query id, color set)
     check_readable(filename);
     throwing_ifstream input(filename);
     string line;
 
-    LL line_number = 0;
+    int64_t line_number = 0;
     while(input.getline(line)){
-        vector<LL> tokens = parse_tokens<LL>(line);
+        vector<int64_t> tokens = parse_tokens<int64_t>(line);
         assert(tokens.size() >= 1);
-        LL query_id = tokens[0];
-        set<LL> alignments;
-        for(LL i = 1; i < tokens.size(); i++){
-            alignments.insert(tokens[i]);
+        int64_t query_id = tokens[0];
+        vector<int64_t> alignments;
+        for(int64_t i = 1; i < tokens.size(); i++){
+            alignments.push_back(tokens[i]);
         }
         results.push_back({query_id, alignments});
         line_number++;
     }
 
     sort(results.begin(), results.end());
-    vector<set<LL> > just_color_sets;
+    vector<vector<int64_t> > just_color_sets;
     for(auto X : results) just_color_sets.push_back(X.second);
     return just_color_sets;
 }

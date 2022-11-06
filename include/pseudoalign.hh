@@ -17,7 +17,7 @@ typedef int64_t color_t;
 int64_t fast_int_to_string(int64_t x, char* buffer);
 
 // returns a vector where element i is the ref ids aligned with query i
-vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename);
+vector<vector<int64_t> >  parse_pseudoalignment_output_format_from_disk(string filename);
 
 template<class coloring_t>
 class Pseudoaligner_Base{

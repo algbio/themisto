@@ -22,7 +22,7 @@ class TestCase{
     public:
 
     vector<string> genomes;
-    unordered_map<string, set<LL> > node_to_color_ids; // kmer- > set of color ids
+    unordered_map<string, set<int64_t> > node_to_color_ids; // kmer- > set of color ids
     vector<string> queries;
     vector<string> colex_kmers;
     LL n_colors; // Distinct colors
@@ -36,13 +36,13 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
     srand(random_seed);
     vector<TestCase> testcases;
 
-    for(LL rep = 0; rep < 5; rep++){
-        for(LL k = min_k; k <= max_k; k++){
+    for(int64_t rep = 0; rep < 5; rep++){
+        for(int64_t k = min_k; k <= max_k; k++){
             TestCase tcase;
             tcase.k = k;
 
             // Build genomes and assign color ids
-            for(LL i = 0; i < n_genomes; i++){
+            for(int64_t i = 0; i < n_genomes; i++){
                 tcase.genomes.push_back(get_random_dna_string(genome_length,2));
                 tcase.seq_to_color_id.push_back(rand() % n_colors);
             }
@@ -51,7 +51,7 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
 
             // Get all k-mers and colex-sort them
             set<string> all_kmers;
-            for(LL i = 0; i < n_genomes; i++){
+            for(int64_t i = 0; i < n_genomes; i++){
                 for(string kmer : get_all_distinct_kmers(tcase.genomes[i], k)) all_kmers.insert(kmer);
             }
             
@@ -60,9 +60,9 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
 
             // List k-mer sets for each color
             vector<set<string> > color_to_kmer_set(n_colors);
-            for(LL genome_id = 0; genome_id < tcase.genomes.size(); genome_id++){
+            for(int64_t genome_id = 0; genome_id < tcase.genomes.size(); genome_id++){
                 string genome = tcase.genomes[genome_id];
-                LL color_id = tcase.seq_to_color_id[genome_id];
+                int64_t color_id = tcase.seq_to_color_id[genome_id];
                 for(string kmer : get_all_distinct_kmers(genome,k)){
                     color_to_kmer_set[color_id].insert(kmer);
                 }
@@ -70,8 +70,8 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
 
             // List all color names for each k-mer (!= each node)
             for(string kmer : tcase.colex_kmers){
-                set<LL> colorset;
-                for(LL color_id = 0; color_id < n_colors; color_id++){
+                set<int64_t> colorset;
+                for(int64_t color_id = 0; color_id < n_colors; color_id++){
                     if(color_to_kmer_set[color_id].count(kmer)){
                         colorset.insert(color_id);
                     }
@@ -81,7 +81,7 @@ vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries
             
 
             // Build queries
-            for(LL i = 0; i < n_queries; i++) tcase.queries.push_back(get_random_dna_string(query_length,2));
+            for(int64_t i = 0; i < n_queries; i++) tcase.queries.push_back(get_random_dna_string(query_length,2));
 
             testcases.push_back(tcase);
         }
@@ -101,17 +101,17 @@ set<T> intersect(const set<T>& S1, const set<T>& S2){
 }
 
 // Returns set of color names
-set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
-    set<LL> alignments;
-    for(LL i = 0; i < tcase.n_colors; i++) alignments.insert(i); // All color names
+vector<int64_t> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool reverse_complements){
+    set<int64_t> alignments;
+    for(int64_t i = 0; i < tcase.n_colors; i++) alignments.insert(i); // All color names
 
     bool at_least_one = false;
     // For each k-mer in query, get the color set and intersect that with alignments
     for(string kmer : get_all_kmers(query, tcase.k)){
-        set<LL> colorset = tcase.node_to_color_ids[kmer];
+        set<int64_t> colorset = tcase.node_to_color_ids[kmer];
         if(reverse_complements){
-            set<LL> colorset_rc = tcase.node_to_color_ids[sbwt::get_rc(kmer)];
-            for(LL color : colorset_rc) colorset.insert(color);
+            set<int64_t> colorset_rc = tcase.node_to_color_ids[sbwt::get_rc(kmer)];
+            for(int64_t color : colorset_rc) colorset.insert(color);
         }
         if(colorset.size() >= 1) {
             at_least_one = true;
@@ -120,11 +120,12 @@ set<LL> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bool rever
     }
 
     if(at_least_one == false) alignments.clear();
-    return alignments;
+    vector<int64_t> ans(alignments.begin(), alignments.end());
+    return ans;
 }
 
 
-TEST(TEST_PSEUDOALIGN, random_testcases){
+TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
     logger << "Testing pseudolign" << endl;
 
     LL testcase_id = -1;
@@ -181,7 +182,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
 
         ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
 
-        vector<set<LL> > our_results = parse_pseudoalignment_output_format_from_disk(final_file);
+        vector<vector<int64_t> > our_results = parse_pseudoalignment_output_format_from_disk(final_file);
 
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
@@ -190,7 +191,7 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 
-        vector<set<LL> > our_results_rc = parse_pseudoalignment_output_format_from_disk(final_file_rc);
+        vector<vector<int64_t> > our_results_rc = parse_pseudoalignment_output_format_from_disk(final_file_rc);
 
         // Run with gzipped input
         string final_file_gzip = get_temp_file_manager().create_filename("finalfile_gzip-");
@@ -199,15 +200,15 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         Argv pseudoalign_gzip_argv(split(pseudoalign_gzip_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_gzip_argv.size, pseudoalign_gzip_argv.array),0);
 
-        vector<set<LL> > our_results_gzip = parse_pseudoalignment_output_format_from_disk(final_file_gzip);
+        vector<vector<int64_t> > our_results_gzip = parse_pseudoalignment_output_format_from_disk(final_file_gzip);
 
         for(LL i = 0; i < tcase.queries.size(); i++){
             string query = tcase.queries[i];
 
-            set<LL> brute = pseudoalign_to_colors_trivial(query, tcase, false);
-            set<LL> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
+            vector<int64_t> brute = pseudoalign_to_colors_trivial(query, tcase, false);
+            vector<int64_t> brute_rc = pseudoalign_to_colors_trivial(query, tcase, true);
 
-            logger << brute << endl << brute_rc << "-" << endl;
+            //logger << brute << endl << brute_rc << "-" << endl;
 
             ASSERT_EQ(brute, our_results[i]);
             ASSERT_EQ(brute, our_results_gzip[i]);
@@ -240,7 +241,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
 
     double threshold = 0.5;
 
-    vector<vector<int64_t> > answers(queries.size());
+    vector<vector<int64_t> > true_answers(queries.size());
     for(string Q : queries){
         vector<int64_t> counters(seqs.size());
         for(string x : get_all_kmers(Q,k)){
@@ -258,21 +259,37 @@ TEST(TEST_PSEUDOALIGN, thresholded){
                 answer.push_back(color);
             }
         }
-        answers.push_back(answer);
+        true_answers.push_back(answer);
     }
 
-    string fastafile = get_temp_file_manager().create_filename("", ".fna");
+    string ref_fastafile = get_temp_file_manager().create_filename("", ".fna");
+    string query_fastafile = get_temp_file_manager().create_filename("", ".fna");
+    string resultfile = get_temp_file_manager().create_filename("", ".txt");
     string indexprefix = get_temp_file_manager().create_filename();
     string tempdir = get_temp_file_manager().get_dir();
-    write_as_fasta(seqs, fastafile);
+    write_as_fasta(seqs, ref_fastafile);
+    write_as_fasta(queries, query_fastafile);
 
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
-    cout << args << endl;
+    vector<string> args = {"build", "-k", to_string(k), "-i", ref_fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     SBWT.load(indexprefix + ".tdbg");
     coloring.load(indexprefix + ".tcolors", SBWT);
+
+    vector<string> args2 = {"pseudoalign", "-q", query_fastafile, "-i", indexprefix, "-o", resultfile, "--temp-dir", tempdir, "--rc"};
+    sbwt::Argv argv2(args2);
+    pseudoalign_main(argv2.size, argv2.array);
+
+    vector<vector<int64_t> > results = parse_pseudoalignment_output_format_from_disk(resultfile);
+    
+    ASSERT_EQ(results.size(), queries.size());
+    for(int64_t i = 0; i < results.size(); i++){
+        print(results[i], logger);
+        print(true_answers[i], logger);
+        logger << "==" << endl;
+        ASSERT_EQ(results[i], true_answers[i]);
+    }
 
     //void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output)
 }

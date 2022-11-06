@@ -109,7 +109,7 @@ int pseudoalign_main(int argc, char** argv){
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
-        ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<int64_t>()->default_value("-1.0"))
+        ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
         ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))

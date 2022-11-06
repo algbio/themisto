@@ -26,6 +26,13 @@ void print(T C){
     cout << "]" << endl;
 }
 
+template <typename T, typename ostream_t>
+void print(T C, ostream_t& out){
+    out << "[";
+    for(auto x : C) out << x << ", ";
+    out << "]" << endl;
+}
+
 template<typename T>
 void write_vector(vector<T>& v, string outfilename){
     sbwt::throwing_ofstream out(outfilename);

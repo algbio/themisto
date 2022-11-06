@@ -247,11 +247,11 @@ TEST(PREPROCESSING, upper_case){
 
     ASSERT_TRUE(files_are_equal(q_resultfile1, q_resultfile2));
 
-    vector<set<LL> > res1 = parse_pseudoalignment_output_format_from_disk(q_resultfile1);
-    vector<set<LL> > res2 = parse_pseudoalignment_output_format_from_disk(q_resultfile2);
+    vector<vector<int64_t> > res1 = parse_pseudoalignment_output_format_from_disk(q_resultfile1);
+    vector<vector<int64_t> > res2 = parse_pseudoalignment_output_format_from_disk(q_resultfile2);
 
     ASSERT_EQ(res1, res2);
-    vector<set<LL> > correct = {{0},{0}};
+    vector<vector<int64_t> > correct = {{0},{0}};
     ASSERT_EQ(res1, correct);
 
 
