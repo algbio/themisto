@@ -232,7 +232,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
                               "GTGCTACGTTAGCACCATAGTT", // Reverse complement of seq 1
                               "ACATGACGATACATGCTGTAC", // Single mutation to seq 0
                               "GTACAGCATTTGTCGTCATGT", // Single mutation to RC of seq 0
-                              "AACTATGGTTCTAACGTAGCAC" // Single mutation to seq 1
+                              "AACTATGGTTCTAACGTAGCAC", // Single mutation to seq 1
                               "GTGCTACGTAAGCACCATAGTT", // Single mutation to RC of seq 1
                               "GTGTAGTAGTGTGTAGTAGCATGGGCAC", // Exact match to seq 2
                               "GTGTAGTAGTGTGTTGTAGCATGGGCAC", // Exact match to seq 3
