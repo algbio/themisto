@@ -20,36 +20,11 @@ int64_t fast_int_to_string(int64_t x, char* buffer);
 vector<set<LL> > parse_pseudoalignment_output_format_from_disk(string filename);
 
 template<class coloring_t>
-class ThresholdPseudoaligner : public DispatcherConsumerCallback{
+class Pseudoaligner_Base{
 
-    // Todo
+    // This class contains code that is common to both the intersection and threshold pseudualigners
 
-
-    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
-
-    }
-
-
-    virtual void callback(const char* S, LL S_size, int64_t string_id){
-
-    }
-
-    virtual void finish(){
-
-    }
-
-    virtual ~ThresholdPseudoaligner() {} 
-};
-
-template<class coloring_t>
-class IntersectionPseudoaligner : public DispatcherConsumerCallback{
-
-private:
-
-    IntersectionPseudoaligner(const IntersectionPseudoaligner&); // No copying
-    IntersectionPseudoaligner& operator=(const IntersectionPseudoaligner&); // No copying
-
-    public:
+public:
 
         const plain_matrix_sbwt_t* SBWT; // Not owned by this class
         const coloring_t* coloring; // Not owned by this class
@@ -70,7 +45,7 @@ private:
         vector<int64_t> color_set_id_buffer;
         vector<int64_t> rc_color_set_id_buffer;
 
-        IntersectionPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+        Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
             this->out = out;
@@ -81,6 +56,7 @@ private:
             output_buffer.resize(output_buffer_capacity);
             output_buffer_size = 0;
         }
+
 
         void add_to_output(char* data, int64_t data_length){
             if(data_length > output_buffer_capacity) throw std::runtime_error("Bug: output buffer too small");
@@ -125,30 +101,68 @@ private:
             }
         }
 
+};
+
+template<class coloring_t>
+class ThresholdPseudoaligner : public DispatcherConsumerCallback{
+
+    // Todo
+
+
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+
+    }
+
+
+    virtual void callback(const char* S, LL S_size, int64_t string_id){
+
+    }
+
+    virtual void finish(){
+
+    }
+
+    virtual ~ThresholdPseudoaligner() {} 
+};
+
+template<class coloring_t>
+class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoaligner_Base<coloring_t>{
+
+    private:
+
+    typedef Pseudoaligner_Base<coloring_t> Base;
+
+    IntersectionPseudoaligner(const IntersectionPseudoaligner&); // No copying
+    IntersectionPseudoaligner& operator=(const IntersectionPseudoaligner&); // No copying
+
+    public:
+
+        IntersectionPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity){}
+
         // Returns the color set
         vector<int64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
-            LL n_kmers = color_set_id_buffer.size();
+            LL n_kmers = Base::color_set_id_buffer.size();
 
             bool first_nonempty_union_found = false;
             typename coloring_t::colorset_type result;
             for(LL i = 0; i < n_kmers; i++){
                 if(i > 0
-                && (color_set_id_buffer[i] == color_set_id_buffer[i-1])
-                && (rc_color_set_id_buffer[n_kmers-1-i] == rc_color_set_id_buffer[n_kmers-1-i+1])){
+                && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])
+                && (Base::rc_color_set_id_buffer[n_kmers-1-i] == Base::rc_color_set_id_buffer[n_kmers-1-i+1])){
                     continue; // This pair of color set ids was already intersected in the previous iteration
                 }
 
-                int64_t fw_id = color_set_id_buffer[i];
-                int64_t rc_id = rc_color_set_id_buffer[n_kmers-1-i];
+                int64_t fw_id = Base::color_set_id_buffer[i];
+                int64_t rc_id = Base::rc_color_set_id_buffer[n_kmers-1-i];
 
                 typename coloring_t::colorset_type cs; // For union. TODO: Reuse a union buffer
                 if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
-                else if(fw_id == -1 && rc_id >= 0) cs = coloring->get_color_set_by_color_set_id(rc_id);
-                else if(fw_id >= 0 && rc_id == -1) cs = coloring->get_color_set_by_color_set_id(fw_id);
+                else if(fw_id == -1 && rc_id >= 0) cs = Base::coloring->get_color_set_by_color_set_id(rc_id);
+                else if(fw_id >= 0 && rc_id == -1) cs = Base::coloring->get_color_set_by_color_set_id(fw_id);
                 else if(fw_id >= 0 && rc_id >= 0){
                     // Take union of forward and reverse complement
-                    cs = coloring->get_color_set_by_color_set_id(fw_id);
-                    cs.do_union(coloring->get_color_set_by_color_set_id(rc_id));
+                    cs = Base::coloring->get_color_set_by_color_set_id(fw_id);
+                    cs.do_union(Base::coloring->get_color_set_by_color_set_id(rc_id));
                 }
 
                 if(!cs.empty()){
@@ -165,17 +179,17 @@ private:
 
         // Returns the color se
         vector<int64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
-            LL n_kmers = color_set_id_buffer.size();
+            LL n_kmers = Base::color_set_id_buffer.size();
 
             bool first_nonempty_color_set_found = false;
             typename coloring_t::colorset_type result;
             for(LL i = 0; i < n_kmers; i++){
-                if(i > 0  && (color_set_id_buffer[i] == color_set_id_buffer[i-1])){
+                if(i > 0  && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])){
                     continue; // This color set was already intersected in the previous iteration
                 }
-                if(color_set_id_buffer[i] == -1) continue; // k-mer not found
+                if(Base::color_set_id_buffer[i] == -1) continue; // k-mer not found
 
-                const typename coloring_t::colorset_type& cs = coloring->get_color_set_by_color_set_id(color_set_id_buffer[i]);
+                const typename coloring_t::colorset_type& cs = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[i]);
                 if(cs.size() > 0){
                     if(!first_nonempty_color_set_found){
                         result = cs; // This is the first nonempty color set
@@ -193,8 +207,8 @@ private:
             char newline = '\n';
             char space = ' ';
 
-            color_set_id_buffer.resize(0);
-            rc_color_set_id_buffer.resize(0);
+            Base::color_set_id_buffer.resize(0);
+            Base::rc_color_set_id_buffer.resize(0);
             // Clearing the buffers like this might look bad for performance at first glance because
             // we will then need to allocate new space for new elements that will be pushed to the buffers.
             // But in fact it's ok because resize is not supposed to affect the internal capacity of the vector.
@@ -203,44 +217,44 @@ private:
             //      invalidate all iterators, rather than only the ones that would be invalidated by the
             //      equivalent sequence of pop_back() calls."
 
-            if(S_size < k){
+            if(S_size < Base::k){
                 write_log("Warning: query is shorter than k", LogLevel::MINOR);
                 int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-                add_to_output(string_to_int_buffer, len);
-                add_to_output(&newline, 1);
+                Base::add_to_output(string_to_int_buffer, len);
+                Base::add_to_output(&newline, 1);
             }
             else{
-                vector<int64_t> colex_ranks = SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
-                push_color_set_ids_to_buffer(colex_ranks, color_set_id_buffer);
+                vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
+                Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
                 vector<int64_t> rc_colex_ranks;
-                if(reverse_complements){
-                    while(S_size > rc_buffer.size()){ // Make sure buffer is long enough. TODO: cleaner code with resize()?
-                        rc_buffer.resize(rc_buffer.size()*2);
+                if(Base::reverse_complements){
+                    while(S_size > Base::rc_buffer.size()){
+                        Base::rc_buffer.resize(Base::rc_buffer.size()*2);
                     }
-                    memcpy(rc_buffer.data(), S, S_size);
-                    reverse_complement_c_string(rc_buffer.data(), S_size); // There is no null at the end but that is ok
-                    rc_colex_ranks = SBWT->streaming_search(rc_buffer.data(), S_size);
-                    push_color_set_ids_to_buffer(rc_colex_ranks, rc_color_set_id_buffer);
+                    memcpy(Base::rc_buffer.data(), S, S_size);
+                    reverse_complement_c_string(Base::rc_buffer.data(), S_size); // There is no null at the end but that is ok
+                    rc_colex_ranks = Base::SBWT->streaming_search(Base::rc_buffer.data(), S_size);
+                    Base::push_color_set_ids_to_buffer(rc_colex_ranks, Base::rc_color_set_id_buffer);
                 }
 
                 vector<int64_t> intersection;
-                if(reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
+                if(Base::reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
                 else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
                 int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-                add_to_output(string_to_int_buffer, len);
+                Base::add_to_output(string_to_int_buffer, len);
                 for(color_t x : intersection){
                     len = fast_int_to_string(x, string_to_int_buffer);
-                    add_to_output(&space, 1);
-                    add_to_output(string_to_int_buffer, len);
+                    Base::add_to_output(&space, 1);
+                    Base::add_to_output(string_to_int_buffer, len);
                 }
-                add_to_output(&newline, 1);
+                Base::add_to_output(&newline, 1);
             }
         }
 
         virtual void finish(){
-            out->write(output_buffer.data(), output_buffer_size);
-            output_buffer_size = 0;
+            Base::out->write(Base::output_buffer.data(), Base::output_buffer_size);
+            Base::output_buffer_size = 0;
         }
 };
 
