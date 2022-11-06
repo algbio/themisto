@@ -246,10 +246,11 @@ TEST(TEST_PSEUDOALIGN, thresholded){
         vector<int64_t> counters(seqs.size());
         for(string x : get_all_kmers(Q,k)){
             for(int64_t color = 0; color < seqs.size(); color++){
-                if(seqs[color].find(x) != string::npos){
-                    // k-mer `x` is found in color `color`
-                    counters[color]++;
-                }
+                bool found = 0;
+                if(seqs[color].find(x) != string::npos) found = true;
+                if(get_rc(seqs[color]).find(x) != string::npos) found = true;
+
+                counters[color] += found; // k-mer `x` is found in color `color`
             }
         }
 
