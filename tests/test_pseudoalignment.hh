@@ -228,7 +228,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     int64_t k = 6;
     vector<string> queries = {"ACATGACGACACATGCTGTAC", // Exact match to seq 0
                               "GTACAGCATGTGTCGTCATGT", // Reverse complement of seq 0
-                              "AACTATGGTGCTAACGTAGCAC" // Exact match to seq 1
+                              "AACTATGGTGCTAACGTAGCAC", // Exact match to seq 1
                               "GTGCTACGTTAGCACCATAGTT", // Reverse complement of seq 1
                               "ACATGACGATACATGCTGTAC", // Single mutation to seq 0
                               "GTACAGCATTTGTCGTCATGT", // Single mutation to RC of seq 0
