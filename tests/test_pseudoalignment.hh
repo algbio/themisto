@@ -241,7 +241,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
 
     double threshold = 0.5;
 
-    vector<vector<int64_t> > true_answers(queries.size());
+    vector<vector<int64_t> > true_answers;
     for(string Q : queries){
         vector<int64_t> counters(seqs.size());
         for(string x : get_all_kmers(Q,k)){
