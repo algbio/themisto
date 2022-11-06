@@ -104,22 +104,78 @@ public:
 };
 
 template<class coloring_t>
-class ThresholdPseudoaligner : public DispatcherConsumerCallback{
+class ThresholdPseudoaligner : public DispatcherConsumerCallback, Pseudoaligner_Base<coloring_t>{
 
-    // Todo
+private:
 
+typedef Pseudoaligner_Base<coloring_t> Base;
+double count_threshold; // Fraction of k-mers that need to be found to report pseudoalignment to a color
 
-    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+public:
 
-    }
-
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){}
 
     virtual void callback(const char* S, LL S_size, int64_t string_id){
+        char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
+        char newline = '\n';
+        char space = ' ';
 
+        Base::color_set_id_buffer.resize(0);
+        Base::rc_color_set_id_buffer.resize(0);
+
+        if(S_size < Base::k){
+            write_log("Warning: query is shorter than k", LogLevel::MINOR);
+            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
+            Base::add_to_output(string_to_int_buffer, len);
+            Base::add_to_output(&newline, 1);
+        }
+        else{
+            vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
+            Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
+            vector<int64_t> rc_colex_ranks;
+            if(Base::reverse_complements){
+                while(S_size > Base::rc_buffer.size()){
+                    Base::rc_buffer.resize(Base::rc_buffer.size()*2);
+                }
+                memcpy(Base::rc_buffer.data(), S, S_size);
+                reverse_complement_c_string(Base::rc_buffer.data(), S_size); // There is no null at the end but that is ok
+                rc_colex_ranks = Base::SBWT->streaming_search(Base::rc_buffer.data(), S_size);
+                Base::push_color_set_ids_to_buffer(rc_colex_ranks, Base::rc_color_set_id_buffer);
+            }
+
+            // Todo: use something better than a std::map for the counters
+            map<int64_t, int64_t> counts; // color id -> count of that color id
+
+            typename coloring_t::colorset_type fw_set;
+            for(int64_t kmer_idx = 0; kmer_idx < S_size - Base::k  + 1; kmer_idx++){
+                fw_set = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[kmer_idx]);
+                if(Base::reverse_complements){
+                    typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx]);
+                    fw_set.do_union(rc_set_view);
+                }
+                for(int64_t color : fw_set.get_colors_as_vector()){
+                    counts[color]++;
+                }
+            }
+
+            // Print the colors of all counters that are above threshold
+            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
+            Base::add_to_output(string_to_int_buffer, len); // String id
+            for(auto [color, count] : counts){
+                if(count >= (S_size - Base::k + 1) * count_threshold){
+                    // Report color
+                    len = fast_int_to_string(color, string_to_int_buffer);
+                    Base::add_to_output(&space, 1);
+                    Base::add_to_output(string_to_int_buffer, len);
+                }
+            }
+            Base::add_to_output(&newline, 1);
+        }
     }
 
     virtual void finish(){
-
+        Base::out->write(Base::output_buffer.data(), Base::output_buffer_size);
+        Base::output_buffer_size = 0;
     }
 
     virtual ~ThresholdPseudoaligner() {} 
@@ -306,13 +362,13 @@ void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
 }
 
 template<typename coloring_t, typename sequence_reader_t>
-void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
+void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold){
 
     std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
 
     vector<DispatcherConsumerCallback*> threads;
     for (LL i = 0; i < n_threads; i++) {
-        ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out, reverse_complements, buffer_size);
+        ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size, threshold);
         threads.push_back(T);
     }
 

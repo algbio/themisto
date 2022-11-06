@@ -215,3 +215,64 @@ TEST(TEST_PSEUDOALIGN, random_testcases){
         }
     }
 }
+
+TEST(TEST_PSEUDOALIGN, thresholded){
+    vector<string> seqs = {"ACATGACGACACATGCTGTAC", // Random keyboard mashing
+                           "AACTATGGTGCTAACGTAGCAC", // Random keyboard mashing
+                           "GTGTAGTAGTGTGTAGTAGCATGGGCAC", // Random keyboard mashing
+                           "GTGTAGTAGTGTGTTGTAGCATGGGCAC", // Copy of previous with one mutation in the middle
+                           "GTGCCCATGCTACTACACACTACTACAC", // RC of seqs[3]
+                           "GTGCCCATGCTACAACACACTACTACAC"}; // RC of seqs[4]
+
+    int64_t k = 6;
+    vector<string> queries = {"ACATGACGACACATGCTGTAC", // Exact match to seq 0
+                              "GTACAGCATGTGTCGTCATGT", // Reverse complement of seq 0
+                              "AACTATGGTGCTAACGTAGCAC" // Exact match to seq 1
+                              "GTGCTACGTTAGCACCATAGTT", // Reverse complement of seq 1
+                              "ACATGACGATACATGCTGTAC", // Single mutation to seq 0
+                              "GTACAGCATTTGTCGTCATGT", // Single mutation to RC of seq 0
+                              "AACTATGGTTCTAACGTAGCAC" // Single mutation to seq 1
+                              "GTGCTACGTAAGCACCATAGTT", // Single mutation to RC of seq 1
+                              "GTGTAGTAGTGTGTAGTAGCATGGGCAC", // Exact match to seq 2
+                              "GTGTAGTAGTGTGTTGTAGCATGGGCAC", // Exact match to seq 3
+                              "GTGCCCATGCTACTACACACTACTACAC", // Exact match to seq 4
+                              "GTGCCCATGCTACAACACACTACTACAC"}; // Exact match to seq 5
+
+    double threshold = 0.5;
+
+    vector<vector<int64_t> > answers(queries.size());
+    for(string Q : queries){
+        vector<int64_t> counters(seqs.size());
+        for(string x : get_all_kmers(Q,k)){
+            for(int64_t color = 0; color < seqs.size(); color++){
+                if(seqs[color].find(x) != string::npos){
+                    // k-mer `x` is found in color `color`
+                    counters[color]++;
+                }
+            }
+        }
+
+        vector<int64_t> answer;
+        for(int64_t color = 0; color < seqs.size(); color++){
+            if(counters[color] >= (seqs[color].size()-k+1) * threshold){
+                answer.push_back(color);
+            }
+        }
+        answers.push_back(answer);
+    }
+
+    string fastafile = get_temp_file_manager().create_filename("", ".fna");
+    string indexprefix = get_temp_file_manager().create_filename();
+    string tempdir = get_temp_file_manager().get_dir();
+    write_as_fasta(seqs, fastafile);
+
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT; Coloring<> coloring;
+    SBWT.load(indexprefix + ".tdbg");
+    coloring.load(indexprefix + ".tcolors", SBWT);
+
+    //void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output)
+}
