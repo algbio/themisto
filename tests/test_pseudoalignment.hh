@@ -240,10 +240,11 @@ TEST(TEST_PSEUDOALIGN, thresholded){
                               "GTGCCCATGCTACAACACACTACTACAC", // Exact match to seq 5
                               "AC"}; // Shorter than k
 
-    // Add queries for increasingly long prefixes of a reference sequence to check that
-    // the threshold kicks in at the right length
-    for(int64_t len = 1; len <= seqs[5].size(); len++){
-        queries.push_back(seqs[5].substr(0,len));
+    // Append stuff to seqs[5] to check that the query turns
+    // negative at the right time when not enough k-mers are found
+    for(int64_t len = 1; len <= 40; len++){
+        string suffix(len, 'A');
+        queries.push_back(seqs[5] + suffix);
     }
 
     double threshold = 0.5;
@@ -263,7 +264,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
 
         vector<int64_t> answer;
         for(int64_t color = 0; color < seqs.size(); color++){
-            if(counters[color] >= (seqs[color].size()-k+1) * threshold){
+            if(Q.size() >= k && counters[color] >= ((int64_t)Q.size()-k+1) * threshold){
                 answer.push_back(color);
             }
         }
@@ -293,6 +294,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     
     ASSERT_EQ(results.size(), queries.size());
     for(int64_t i = 0; i < results.size(); i++){
+        logger << queries[i] << endl;
         print(results[i], logger);
         print(true_answers[i], logger);
         logger << "==" << endl;
