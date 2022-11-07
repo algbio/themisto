@@ -57,7 +57,7 @@ set<string> get_all_distinct_cyclic_kmers(vector<string>& A, int64_t k){
 
 vector<string> get_all_kmers(string& S, int64_t k){
     vector<string> kmers;
-    for(int64_t i = 0; i < S.size()-k+1; i++){
+    for(int64_t i = 0; i < (int64_t)S.size()-k+1; i++){
         kmers.push_back(S.substr(i,k));
     }
     return kmers;

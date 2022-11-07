@@ -237,7 +237,14 @@ TEST(TEST_PSEUDOALIGN, thresholded){
                               "GTGTAGTAGTGTGTAGTAGCATGGGCAC", // Exact match to seq 2
                               "GTGTAGTAGTGTGTTGTAGCATGGGCAC", // Exact match to seq 3
                               "GTGCCCATGCTACTACACACTACTACAC", // Exact match to seq 4
-                              "GTGCCCATGCTACAACACACTACTACAC"}; // Exact match to seq 5
+                              "GTGCCCATGCTACAACACACTACTACAC", // Exact match to seq 5
+                              "AC"}; // Shorter than k
+
+    // Add queries for increasingly long prefixes of a reference sequence to check that
+    // the threshold kicks in at the right length
+    for(int64_t len = 1; len <= seqs[5].size(); len++){
+        queries.push_back(seqs[5].substr(0,len));
+    }
 
     double threshold = 0.5;
 
