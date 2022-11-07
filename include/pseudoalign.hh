@@ -145,17 +145,35 @@ public:
 
             // Todo: use something better than a std::map for the counters
             map<int64_t, int64_t> counts; // color id -> count of that color id
-
             typename coloring_t::colorset_type fw_set;
-            for(int64_t kmer_idx = 0; kmer_idx < S_size - Base::k  + 1; kmer_idx++){
-                if(Base::color_set_id_buffer[kmer_idx] == -1) fw_set = (typename coloring_t::colorset_type){}; // Empty
-                else fw_set = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[kmer_idx]);
-                if(Base::reverse_complements && Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx] != -1){
-                    typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx]);
-                    fw_set.do_union(rc_set_view);
-                }
-                for(int64_t color : fw_set.get_colors_as_vector()){
-                    counts[color]++;
+            int64_t n_kmers = S_size - Base::k  + 1;
+            int64_t run_length = 0; // Number of consecutive identical color sets 
+            for(int64_t kmer_idx = 0; kmer_idx < n_kmers; kmer_idx++){
+                run_length++;
+
+                bool last = (kmer_idx == n_kmers - 1);
+                bool fw_different = !last && Base::color_set_id_buffer[kmer_idx] != Base::color_set_id_buffer[kmer_idx+1];
+                bool rc_different = !last && Base::reverse_complements && Base::rc_color_set_id_buffer[n_kmers-1-kmer_idx] != Base::rc_color_set_id_buffer[n_kmers-1-kmer_idx-1];
+                bool end_of_run = (last || fw_different || rc_different);
+
+                if(end_of_run){
+
+                    // Retrieve forward color set
+                    if(Base::color_set_id_buffer[kmer_idx] == -1) fw_set = (typename coloring_t::colorset_type){}; // Empty
+                    else fw_set = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[kmer_idx]);
+                    
+                    // Retrieve reverse complement color set
+                    if(Base::reverse_complements && Base::rc_color_set_id_buffer[n_kmers - 1  - kmer_idx] != -1){
+                        typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx]);
+                        fw_set.do_union(rc_set_view);
+                    }
+
+                    // Add the run length to the counts
+                    for(int64_t color : fw_set.get_colors_as_vector()){
+                        counts[color] += run_length;
+                    }
+
+                    run_length = 0; // Reset the run
                 }
             }
 
