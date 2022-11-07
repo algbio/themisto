@@ -143,7 +143,6 @@ public:
                 Base::push_color_set_ids_to_buffer(rc_colex_ranks, Base::rc_color_set_id_buffer);
             }
 
-            // Todo: use something better than a std::map for the counters
             unordered_map<int64_t, int64_t> counts; // color id -> count of that color id
             typename coloring_t::colorset_type fw_set;
             int64_t n_kmers = S_size - Base::k  + 1;
