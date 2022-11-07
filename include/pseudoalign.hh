@@ -164,7 +164,7 @@ public:
                     
                     // Retrieve reverse complement color set
                     if(Base::reverse_complements && Base::rc_color_set_id_buffer[n_kmers - 1  - kmer_idx] != -1){
-                        typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[S_size - Base::k  - kmer_idx]);
+                        typename coloring_t::colorset_type::view_t rc_set_view = Base::coloring->get_color_set_by_color_set_id(Base::rc_color_set_id_buffer[n_kmers - 1 - kmer_idx]);
                         fw_set.do_union(rc_set_view);
                     }
 
