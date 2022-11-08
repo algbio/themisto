@@ -183,18 +183,6 @@ void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_colori
 
 }
 
-/*
-    Coloring(const colorset_storage_type& sets,
-             const Sparse_Uint_Array& node_id_to_color_set_id,
-             const plain_matrix_sbwt_t& index,
-             const int64_t largest_id,
-             const int64_t total_color_set_length) 
-             : sets(sets), node_id_to_color_set_id(node_id_to_color_set_id), index_ptr(&index), largest_color_id(largest_color_id), total_color_set_length(total_color_set_length){
-    }
-
-*/
-
-
 // Creates a new file and returns the new filename.
 // Transforms:
 // 1
