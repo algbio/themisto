@@ -16,7 +16,7 @@
 using namespace std;
 using namespace sbwt;
 
-LL random_seed = 123674;
+int64_t random_seed = 123674;
 
 class TestCase{
     public:
@@ -25,14 +25,14 @@ class TestCase{
     unordered_map<string, set<int64_t> > node_to_color_ids; // kmer- > set of color ids
     vector<string> queries;
     vector<string> colex_kmers;
-    LL n_colors; // Distinct colors
-    LL k;
+    int64_t n_colors; // Distinct colors
+    int64_t k;
 
-    vector<LL> seq_to_color_id; // for each sequence: the color of that sequence
+    vector<int64_t> seq_to_color_id; // for each sequence: the color of that sequence
 };
 
 
-vector<TestCase> generate_testcases(LL genome_length, LL n_genomes, LL n_queries, LL query_length, LL min_k, LL max_k, LL n_colors){
+vector<TestCase> generate_testcases(int64_t genome_length, int64_t n_genomes, int64_t n_queries, int64_t query_length, int64_t min_k, int64_t max_k, int64_t n_colors){
     srand(random_seed);
     vector<TestCase> testcases;
 
@@ -158,14 +158,14 @@ TEST(TEST_PSEUDOALIGN, coli3_parallelism){
 TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
     logger << "Testing pseudolign" << endl;
 
-    LL testcase_id = -1;
-    LL ref_length = 100;
-    LL n_refs = 50;
-    LL n_queries = 10000;
-    LL query_length = 20;
-    LL k_min = 1;
-    LL k_max = 20;
-    LL n_colors = 5;
+    int64_t testcase_id = -1;
+    int64_t ref_length = 100;
+    int64_t n_refs = 50;
+    int64_t n_queries = 10000;
+    int64_t query_length = 20;
+    int64_t k_min = 1;
+    int64_t k_max = 20;
+    int64_t n_colors = 5;
     for(TestCase tcase : generate_testcases(ref_length, n_refs, n_queries, query_length, k_min,k_max, n_colors)){
         testcase_id++;
         logger << "Running alignment testcase" << endl;
@@ -183,7 +183,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         genomes_out.close();
 
         sbwt::throwing_ofstream colors_out(colorfile_outfilename);
-        for(LL i = 0; i < tcase.seq_to_color_id.size(); i++){
+        for(int64_t i = 0; i < tcase.seq_to_color_id.size(); i++){
             colors_out << tcase.seq_to_color_id[i] << "\n";
         }
         colors_out.close();
@@ -232,7 +232,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
 
         vector<vector<int64_t> > our_results_gzip = parse_pseudoalignment_output_format_from_disk(final_file_gzip);
 
-        for(LL i = 0; i < tcase.queries.size(); i++){
+        for(int64_t i = 0; i < tcase.queries.size(); i++){
             string query = tcase.queries[i];
 
             vector<int64_t> brute = pseudoalign_to_colors_trivial(query, tcase, false);

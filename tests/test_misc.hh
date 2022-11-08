@@ -27,7 +27,7 @@ TEST(MISC_TEST, randomize_non_ACGT){
     write_as_fasta(seqs, fastafile);
     string fixedfile = fix_alphabet(fastafile);
     sbwt::SeqIO::Reader<> sr(fixedfile);
-    LL seqs_read = 0;
+    int64_t seqs_read = 0;
 
     auto is_dna = [](char c){
         c = toupper(c);
@@ -40,7 +40,7 @@ TEST(MISC_TEST, randomize_non_ACGT){
         string S = seqs[seqs_read++];
         logger << S << endl << S_fixed << endl;
         ASSERT_EQ(S.size(), S_fixed.size());
-        for(LL i = 0; i < S.size(); i++){
+        for(int64_t i = 0; i < S.size(); i++){
             if(is_dna(S[i])) {ASSERT_EQ(toupper(S[i]), toupper(S_fixed[i]));}
             if(!is_dna(S[i])) {ASSERT_TRUE(is_dna(S_fixed[i]));}
         }
@@ -57,7 +57,7 @@ TEST(MISC_TEST, delete_non_ACGT){
     string color_data = "0\n1\n";
 
     vector<string> correct_out_seqs = {"AGTATTG", "CTGTAG", "GTCAGTGCTACGTACT", "AGTTCT", "TAGTGC", "T", "AGCCA"};
-    vector<LL> correct_out_colors = {0,0,0,1,1,1,1};
+    vector<int64_t> correct_out_colors = {0,0,0,1,1,1,1};
 
     // Write to files
 
@@ -78,7 +78,7 @@ TEST(MISC_TEST, delete_non_ACGT){
     std::tie(fasta2, colors2) = split_all_seqs_at_non_ACGT(fasta1, "fasta", colors1);
 
     // Verify
-    vector<LL> out_colors;
+    vector<int64_t> out_colors;
     string line;
     ifstream colors_stream(colors2);
     while(getline(colors_stream, line))

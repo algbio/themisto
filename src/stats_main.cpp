@@ -45,7 +45,7 @@ int stats_main(int argc, char** argv){
         ("h,help", "Print usage")
     ;
 
-    LL old_argc = argc; // Must store this because the parser modifies it
+    int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
     if (old_argc == 1 || opts.count("help")){
@@ -129,13 +129,13 @@ int stats_main(int argc, char** argv){
         std::visit(call_extract_unitigs, coloring);
         unitigs_out.close();
 
-        LL unitig_count = 0;
+        int64_t unitig_count = 0;
         sbwt::SeqIO::Reader<> sr(unitigs_file);
-        LL min_unitig_len = 1e18;
-        LL max_unitig_len = 0;
-        LL unitig_len_sum = 0;
+        int64_t min_unitig_len = 1e18;
+        int64_t max_unitig_len = 0;
+        int64_t unitig_len_sum = 0;
         while(true){
-            LL len = sr.get_next_read_to_buffer();
+            int64_t len = sr.get_next_read_to_buffer();
             if(len == 0) break;
             unitig_count++;
             min_unitig_len = min(min_unitig_len, len);

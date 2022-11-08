@@ -30,7 +30,7 @@ public:
         const coloring_t* coloring; // Not owned by this class
         ParallelBaseWriter* out;
         bool reverse_complements;
-        LL k;
+        int64_t k;
 
         // Buffer for reverse-complementing strings
         vector<char> rc_buffer;
@@ -38,13 +38,13 @@ public:
         // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the
         // parallel writer so often to avoid locking the writer from other threads.
         vector<char> output_buffer;
-        LL output_buffer_flush_threshold;
+        int64_t output_buffer_flush_threshold;
 
         // Buffer for storing color set ids
         vector<int64_t> color_set_id_buffer;
         vector<int64_t> rc_color_set_id_buffer;
 
-        Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity){
+        Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity){
             this->SBWT = SBWT;
             this->coloring = coloring;
             this->out = out;
@@ -97,7 +97,7 @@ public:
             }
         }
 
-        vector<int64_t> get_rc_colex_ranks(const char* S, LL S_size){
+        vector<int64_t> get_rc_colex_ranks(const char* S, int64_t S_size){
             while(S_size > rc_buffer.size()){
                 rc_buffer.resize(rc_buffer.size()*2);
             }
@@ -118,9 +118,9 @@ double count_threshold; // Fraction of k-mers that need to be found to report ps
 
 public:
 
-    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){}
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){}
 
-    virtual void callback(const char* S, LL S_size, int64_t string_id){
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id){
         char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
         char newline = '\n';
         char space = ' ';
@@ -207,15 +207,15 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
 
     public:
 
-        IntersectionPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, LL output_buffer_capacity) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity){}
+        IntersectionPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity){}
 
         // Returns the color set
         vector<int64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
-            LL n_kmers = Base::color_set_id_buffer.size();
+            int64_t n_kmers = Base::color_set_id_buffer.size();
 
             bool first_nonempty_union_found = false;
             typename coloring_t::colorset_type result;
-            for(LL i = 0; i < n_kmers; i++){
+            for(int64_t i = 0; i < n_kmers; i++){
                 if(i > 0
                 && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])
                 && (Base::rc_color_set_id_buffer[n_kmers-1-i] == Base::rc_color_set_id_buffer[n_kmers-1-i+1])){
@@ -249,11 +249,11 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
 
         // Returns the color se
         vector<int64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
-            LL n_kmers = Base::color_set_id_buffer.size();
+            int64_t n_kmers = Base::color_set_id_buffer.size();
 
             bool first_nonempty_color_set_found = false;
             typename coloring_t::colorset_type result;
-            for(LL i = 0; i < n_kmers; i++){
+            for(int64_t i = 0; i < n_kmers; i++){
                 if(i > 0  && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])){
                     continue; // This color set was already intersected in the previous iteration
                 }
@@ -272,7 +272,7 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
             return result.get_colors_as_vector();
         }
 
-        virtual void callback(const char* S, LL S_size, int64_t string_id){
+        virtual void callback(const char* S, int64_t S_size, int64_t string_id){
             char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
             char newline = '\n';
             char space = ' ';
@@ -322,14 +322,14 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
 
 template<typename instream_t, typename outstream_t>
 void sort_parallel_output_file(instream_t& instream, outstream_t& outstream){
-    set<pair<LL, string> > Q; // Priority queue with pairs (priority, content)
+    set<pair<int64_t, string> > Q; // Priority queue with pairs (priority, content)
     string line;
     vector<string> tokens;
-    LL current_query_id = 0;
+    int64_t current_query_id = 0;
 
     while(getline(instream,line)){
         stringstream ss(line);
-        LL priority; ss >> priority;
+        int64_t priority; ss >> priority;
         Q.insert({priority, line + "\n"});
         while(Q.begin()->first == current_query_id){
             outstream << Q.begin()->second;
@@ -351,7 +351,7 @@ void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
     std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
 
     vector<DispatcherConsumerCallback*> threads;
-    for (LL i = 0; i < n_threads; i++) {
+    for (int64_t i = 0; i < n_threads; i++) {
         IntersectionPseudoaligner<coloring_t>* T = new IntersectionPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size);
         threads.push_back(T);
     }
@@ -373,7 +373,7 @@ void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
     std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
 
     vector<DispatcherConsumerCallback*> threads;
-    for (LL i = 0; i < n_threads; i++) {
+    for (int64_t i = 0; i < n_threads; i++) {
         ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size, threshold);
         threads.push_back(T);
     }

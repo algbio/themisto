@@ -28,7 +28,7 @@ void construct_unitig_extraction_test_input(string fastafile, string colorfile){
     string random_data = "AATACCATGTCACAGCGTCAACGTTCAACACGCCCATACTGTGTTCCTGCGATGGGGGAGTAGTGACCCTCGATGCTGGACAATAACCCGATGACTAGACATAACGTCAATCTCGCTCTGTGTATTCGTATCGCCCATAGCTCTTCCATAAGCGTATTGAGTTGGGCTGTAAACACGGCCCCTTATAATTCTCTATTCTATGCACCGGTACCTATCTCAGGGCACAACTCCTGCCCGCTTTGGATTACTCGAGTACTGGCGCCACCTAATGCAGTACCCCCGAGTGGGATGAGTCAAATTTACGTGACCGGGAACACCATAGGTCCGCGTAAATACTGTGGGGCTATCCTTGGGCAACCTACTGTCACAGAGCTGGTACTCATATCTACATCACGCGTCGCAGAACAGCCAATCGGGCTGGATGTCAAAAGTAACAAGCGTGGTCCCTTAGGCGAAACCCGATCCTGATTTCAATAGGTTCCGTCCCGGGGGAGTAGCATCGGGCACGCAGCTTCCAAAACAGAATCGCCGTGGCCATATCGATGTCACGACGACGTTCACGGTTGGTTCCTCTTGAAGGCTCCCAGTCCTAGTGACGCGAGACGGTGATGTCGTGAGCGGAAGTGAACTCGGTCTTTGATTAATGTCAAAGCGCCGAGGCCCACGCATTCCCATCCACAAGTGTCTCTATGTGAGTGGTTTGTCCGCAAAGTAACCGGCGGACGCCCATCCCCGATCCTATAGCCGGAATAGTAGATGTTATAATTCTGAGGTATCGCCGTTGAGAGCTTATGCACCTCGGCCGTAGGGAGGTGGGAAGCGTTAGCGTCCCATAGACGGGGGTATATTTTCATCATGACTGTTGAAATCTGCGTTCGGAGGTTACACAGGGACGGAAGTGACTAATCGTGTCAAAGGACTTGTCTTCTCCTCTGCTCATGGGAAACCTACCACCACAGTCCCTGTGATGAAACGGATTTTCTCACTGTAGCTTTCAATT";
 
     vector<string> seqs;
-    vector<LL> colors;
+    vector<int64_t> colors;
 
     // Single nucleotide change
 
@@ -100,7 +100,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
     private:
 
-    vector<string> run_and_return_unitigs(string indexprefix, LL split_by_colors){
+    vector<string> run_and_return_unitigs(string indexprefix, int64_t split_by_colors){
         // Call extract unitigs
         string unitigs_outfile = get_temp_file_manager().create_filename();
         string colors_outfile = get_temp_file_manager().create_filename();
@@ -127,7 +127,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
             while(getline(colors_in.stream, line)){
                 vector<string> tokens = split(line, ' ');
                 vector<color_t> colors;
-                for(LL i = 1; i < (LL)tokens.size(); i++){ // First token is unitig id -> skip
+                for(int64_t i = 1; i < (int64_t)tokens.size(); i++){ // First token is unitig id -> skip
                     colors.push_back(string_to_integer_safe(tokens[i]));
                 }
                 unitig_colors.push_back(colors);
@@ -156,7 +156,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         string seqfile = get_temp_file_manager().create_filename("",".fna");
         string colorfile = get_temp_file_manager().create_filename("",".txt");
         construct_unitig_extraction_test_input(seqfile, colorfile);
-        LL k = 30;
+        int64_t k = 30;
 
         // Build Themisto
 
@@ -194,21 +194,21 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 // edges from non-dummy nodes.
 
 TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
     for(string unitig : unitigs_without_colorsplit){
         if(unitig.size() == k) continue; // Only one node: trivially ok
-        for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
+        for(int64_t i = 0; i < (int64_t)unitig.size()-k+1; i++){
             string kmer = unitig.substr(i,k);
             DBG::Node node = dbg->locate(kmer);
             ASSERT_GE(node.id, 0); // Exists in graph
             if(i == 0){ // Start node
                 ASSERT_LT(dbg->outdegree(node), 2);
             }
-            if(i > 0 && i < (LL)unitig.size()-k){ // Internal node
+            if(i > 0 && i < (int64_t)unitig.size()-k){ // Internal node
                 ASSERT_LT(dbg->indegree(node), 2);
                 ASSERT_LT(dbg->outdegree(node), 2);
             }
-            if(i == (LL)unitig.size()-k){ // Last node
+            if(i == (int64_t)unitig.size()-k){ // Last node
                 ASSERT_LT(dbg->indegree(node), 2);
             }
 
@@ -219,12 +219,12 @@ TEST_F(EXTRACT_UNITIGS_TEST, no_branches){
 TEST_F(EXTRACT_UNITIGS_TEST, split_by_colorsets){
 
     // Verify that the colorsets of all nodes in the unitig match the colorset of the unitig
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
     ASSERT_EQ(unitigs_with_colorsplit.size(), unitig_colors.size());
-    for(LL unitig_id = 0; unitig_id < (LL)unitigs_with_colorsplit.size(); unitig_id++){
+    for(int64_t unitig_id = 0; unitig_id < (int64_t)unitigs_with_colorsplit.size(); unitig_id++){
         string unitig = unitigs_with_colorsplit[unitig_id];
-        for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
-            LL node = SBWT.search(unitig.substr(i,k));
+        for(int64_t i = 0; i < (int64_t)unitig.size()-k+1; i++){
+            int64_t node = SBWT.search(unitig.substr(i,k));
             vector<color_t> node_colors = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(node_colors, unitig_colors[unitig_id]);
         }
@@ -241,15 +241,15 @@ bool is_cyclic(DBG::Node first, DBG::Node last, DBG* dbg){
 }
 
 TEST_F(EXTRACT_UNITIGS_TEST, maximality_no_color_split){
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
 
-    for(LL unitig_id = 0; unitig_id < (LL)unitigs_without_colorsplit.size(); unitig_id++){
+    for(int64_t unitig_id = 0; unitig_id < (int64_t)unitigs_without_colorsplit.size(); unitig_id++){
         string unitig = unitigs_without_colorsplit[unitig_id];
 
         DBG::Node first = dbg->locate(unitig.substr(0, k));
         ASSERT_GE(first.id, 0); // Must exist in graph
 
-        DBG::Node last = dbg->locate(unitig.substr((LL)unitig.size()-k, k));
+        DBG::Node last = dbg->locate(unitig.substr((int64_t)unitig.size()-k, k));
         ASSERT_GE(last.id, 0); // Must exist in graph
 
         if(!is_cyclic(first, last, dbg)){
@@ -268,15 +268,15 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_no_color_split){
 }
 
 TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
 
-    for(LL unitig_id = 0; unitig_id < (LL)unitigs_with_colorsplit.size(); unitig_id++){
+    for(int64_t unitig_id = 0; unitig_id < (int64_t)unitigs_with_colorsplit.size(); unitig_id++){
         string unitig = unitigs_with_colorsplit[unitig_id];
 
         DBG::Node first = dbg->locate(unitig.substr(0, k));
         ASSERT_GE(first.id, 0); // Must exist in graph
 
-        DBG::Node last = dbg->locate(unitig.substr((LL)unitig.size()-k, k));
+        DBG::Node last = dbg->locate(unitig.substr((int64_t)unitig.size()-k, k));
         ASSERT_GE(last.id, 0); // Must exist in graph
 
         if(!is_cyclic(first, last, dbg)){
@@ -305,11 +305,11 @@ TEST_F(EXTRACT_UNITIGS_TEST, maximality_with_color_split){
 
 // Check that every non-dummy node is in exactly one unitig
 TEST_F(EXTRACT_UNITIGS_TEST, partition_without_colorsplit){
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
 
     sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_without_colorsplit){
-        for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
+        for(int64_t i = 0; i < (int64_t)unitig.size()-k+1; i++){
             DBG::Node node = dbg->locate(unitig.substr(i,k));
             ASSERT_EQ(found[node.id], 0);
             found[node.id] = 1;
@@ -317,18 +317,18 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_without_colorsplit){
     }
 
     // Check that all were found
-    for(LL i = 0; i < found.size(); i++){
+    for(int64_t i = 0; i < found.size(); i++){
         ASSERT_EQ(found[i], 1);
     }
 }
 
 // Check that every non-dummy node is in exactly one unitig
 TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
-    LL k = SBWT.get_k();
+    int64_t k = SBWT.get_k();
 
     sdsl::bit_vector found = is_dummy; // dummies are marked as found from the beginning
     for(string unitig : unitigs_with_colorsplit){
-        for(LL i = 0; i < (LL)unitig.size()-k+1; i++){
+        for(int64_t i = 0; i < (int64_t)unitig.size()-k+1; i++){
             DBG::Node node = dbg->locate(unitig.substr(i,k));
             ASSERT_EQ(found[node.id], 0);
             found[node.id] = 1;
@@ -336,7 +336,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
     }
 
     // Check that all were found
-    for(LL i = 0; i < found.size(); i++){
+    for(int64_t i = 0; i < found.size(); i++){
         ASSERT_EQ(found[i], 1);
     }
 }

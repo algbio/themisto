@@ -18,19 +18,19 @@
 struct ColoringTestCase{
     vector<string> references; //
     vector<string> colex_kmers; //
-    unordered_map<string,set<LL> > kmer_to_ref_ids; //
-    vector<set<LL> > color_sets; // kmer id -> color ids
+    unordered_map<string,set<int64_t> > kmer_to_ref_ids; //
+    vector<set<int64_t> > color_sets; // kmer id -> color ids
     vector<int64_t> seq_id_to_color_id; //
     string fasta_data; //
-    LL k; //
+    int64_t k; //
 };
 
-ColoringTestCase generate_testcase(vector<string> refs, vector<LL> colors, LL k){
+ColoringTestCase generate_testcase(vector<string> refs, vector<int64_t> colors, int64_t k){
     ColoringTestCase tcase;
     tcase.k = k;
     tcase.references = refs;
     set<string> kmer_set;
-    for(LL i = 0; i < refs.size(); i++){
+    for(int64_t i = 0; i < refs.size(); i++){
         tcase.fasta_data += ">\n" + refs[i] + "\n";
         tcase.seq_id_to_color_id.push_back(colors[i]);
         for(string kmer : get_all_distinct_kmers(refs[i], k)) kmer_set.insert(kmer);
@@ -42,9 +42,9 @@ ColoringTestCase generate_testcase(vector<string> refs, vector<LL> colors, LL k)
     tcase.color_sets.resize(colex_kmers.size());
 
     // For all refs
-    for(LL ref = 0; ref < tcase.references.size(); ref++){
+    for(int64_t ref = 0; ref < tcase.references.size(); ref++){
         set<string> ref_kmers = get_all_distinct_kmers(tcase.references[ref], k);
-        LL kmer_id = 0;
+        int64_t kmer_id = 0;
 
         // For all kmers of the whole data in colex order
         for(string kmer : tcase.colex_kmers){
@@ -60,9 +60,9 @@ ColoringTestCase generate_testcase(vector<string> refs, vector<LL> colors, LL k)
 
 
 // All colors distinct
-ColoringTestCase generate_testcase(vector<string> refs, LL k){
-    vector<LL> colors;
-    for(LL i = 0; i < refs.size(); i++){
+ColoringTestCase generate_testcase(vector<string> refs, int64_t k){
+    vector<int64_t> colors;
+    for(int64_t i = 0; i < refs.size(); i++){
         colors.push_back(i);
     }
     return generate_testcase(refs,colors,k);
@@ -70,10 +70,10 @@ ColoringTestCase generate_testcase(vector<string> refs, LL k){
 
 vector<ColoringTestCase> generate_testcases(){
     vector<ColoringTestCase> cases;
-    for(LL rep = 0; rep < 20; rep++){
-        for(LL k = 1; k <= 20; k++){
+    for(int64_t rep = 0; rep < 20; rep++){
+        for(int64_t k = 1; k <= 20; k++){
             vector<string> refs;
-            for(LL i = 0; i < 11; i++){
+            for(int64_t i = 0; i < 11; i++){
                 if(rep % 2 == 0 && i == 10) // Add a duplicate to get redundant nodes
                     refs.push_back(refs.back());
                 else
@@ -102,12 +102,12 @@ TEST(COLORING_TESTS, random_testcases){
         sbwt::SeqIO::Reader<> reader(fastafilename);
         cb.build_coloring(coloring, SBWT, reader, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
 
-        for(LL kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
+        for(int64_t kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
             string kmer = tcase.colex_kmers[kmer_id];
-            LL node_id = SBWT.search(kmer);
-            set<LL> correct_colorset = tcase.color_sets[kmer_id];
+            int64_t node_id = SBWT.search(kmer);
+            set<int64_t> correct_colorset = tcase.color_sets[kmer_id];
             vector<int64_t> colorvec = coloring.get_color_set_of_node_as_vector(node_id);
-            set<LL> colorset(colorvec.begin(), colorvec.end());
+            set<int64_t> colorset(colorvec.begin(), colorvec.end());
             logger << node_id << ": " << colorset << " - " << correct_colorset << endl;
             ASSERT_EQ(correct_colorset, colorset);
         }
@@ -142,8 +142,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 
         const auto nodes = matrix.streaming_search(seq);
 
-        for(LL i = 0; i < (LL)seq.size()-k+1; i++){
-            LL node = nodes[i];
+        for(int64_t i = 0; i < (int64_t)seq.size()-k+1; i++){
+            int64_t node = nodes[i];
             if (node <= 0) {
                 // This can happen if the input file has a non-ACGT character, as it does in this case
                 ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));

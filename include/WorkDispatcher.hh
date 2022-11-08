@@ -98,7 +98,7 @@ class ParallelBinaryOutputWriter{
         outstream.open(outfile);
     }
 
-    void write(const char* data, LL n_bytes){
+    void write(const char* data, int64_t n_bytes){
         std::lock_guard<std::mutex> lg(mutex);
         outstream.write(data, n_bytes);
     }
@@ -138,12 +138,12 @@ public:
 
 class DispatcherConsumerCallback{
 public:
-    virtual void callback(const char* S, LL S_size, int64_t string_id) = 0;
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id) = 0;
     virtual void finish() = 0;
     virtual ~DispatcherConsumerCallback() {} 
 };
 
-void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id);
+void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, int64_t thread_id);
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
@@ -151,13 +151,13 @@ template<typename sequence_reader_t>
 void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t& sr, int64_t batch_size){
     // Push work in batches of approximately buffer_size base pairs
 
-    LL read_id = 0;
+    int64_t read_id = 0;
     ReadBatch* batch = new ReadBatch(); // Deleted by consumer
 
     while(true){
         // Create a new read batch and push it to the work queue
 
-        LL len = sr.get_next_read_to_buffer();
+        int64_t len = sr.get_next_read_to_buffer();
         if(len == 0){
             // All reads read. Push the current batch if it's non-empty and quit
             if(batch->data.size() > 0) {
@@ -170,7 +170,7 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t&
             // Add read to batch
             if(batch->data.size() == 0) batch->firstReadID = read_id;
             batch->readStarts.push_back(batch->data.size());   
-            for(LL i = 0; i < len; i++) batch->data.push_back(sr.read_buf[i]);
+            for(int64_t i = 0; i < len; i++) batch->data.push_back(sr.read_buf[i]);
             if(batch->data.size() >= batch_size){
                 batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
                 Q.push(batch, batch->data.size());
@@ -185,7 +185,7 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t&
 }
 
 template<typename sequence_reader_t>
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_reader_t& sr, LL buffer_size){
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_reader_t& sr, int64_t buffer_size){
     vector<std::thread> threads;
     ParallelBoundedQueue<ReadBatch*> Q(buffer_size);
 

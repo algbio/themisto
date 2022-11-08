@@ -18,7 +18,7 @@ int color_set_diagnostics_main(int argc, char** argv){
         ("h,help", "Print usage")
     ;
 
-    LL old_argc = argc; // Must store this because the parser modifies it
+    int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
     if (old_argc == 1 || opts.count("help")){

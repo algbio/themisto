@@ -15,11 +15,9 @@
 
 using namespace sbwt;
 
-typedef long long LL;
-
 struct CLI_test_files{
     string fastafile, indexprefix, tempdir, colorfile;
-    CLI_test_files(vector<string> seqs, vector<LL> colors){
+    CLI_test_files(vector<string> seqs, vector<int64_t> colors){
         fastafile = get_temp_file_manager().create_filename("",".fna");
         indexprefix = get_temp_file_manager().create_filename();
         tempdir = get_temp_file_manager().get_dir();
@@ -28,7 +26,7 @@ struct CLI_test_files{
         write_as_fasta(seqs, fastafile);
 
         throwing_ofstream colors_out(colorfile);
-        for(LL c : colors) colors_out << c << "\n";
+        for(int64_t c : colors) colors_out << c << "\n";
     }
 };
 
@@ -37,8 +35,8 @@ class CLI_TEST : public ::testing::Test {
     public:
 
     vector<string> seqs;
-    vector<LL> colors;
-    LL k;
+    vector<int64_t> colors;
+    int64_t k;
     string fastafile, indexprefix, tempdir, colorfile;
 
     void SetUp() override {
@@ -67,9 +65,9 @@ TEST_F(CLI_TEST, auto_colors){
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
-    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+    for(int64_t seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], seq_id);
@@ -84,9 +82,9 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_auto_colors){
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
-    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+    for(int64_t seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             ASSERT_GE(node, 0);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
@@ -95,7 +93,7 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_auto_colors){
         
         string rc = get_reverse_complement(seqs[seq_id]);
         for(string kmer : get_all_kmers(rc, k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             ASSERT_GE(node, 0);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
@@ -111,9 +109,9 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_colorfile){
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
-    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+    for(int64_t seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             ASSERT_GE(node, 0);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
@@ -122,7 +120,7 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_colorfile){
         
         string rc = get_reverse_complement(seqs[seq_id]);
         for(string kmer : get_all_kmers(rc, k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             ASSERT_GE(node, 0);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
@@ -171,9 +169,9 @@ TEST_F(CLI_TEST, build_colors_separately){
     // Check colors
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
-    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+    for(int64_t seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], colors[seq_id]);
@@ -197,9 +195,9 @@ TEST_F(CLI_TEST, gzip_input_in_building){
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
     load_sbwt_and_coloring(SBWT, coloring, indexprefix);
-    for(LL seq_id = 0; seq_id < seqs.size(); seq_id++){
+    for(int64_t seq_id = 0; seq_id < seqs.size(); seq_id++){
         for(string kmer : get_all_kmers(seqs[seq_id], k)){
-            LL node = SBWT.search(kmer);
+            int64_t node = SBWT.search(kmer);
             vector<int64_t> colorset = coloring.get_color_set_of_node_as_vector(node);
             ASSERT_EQ(colorset.size(), 1);
             ASSERT_EQ(colorset[0], seq_id);
@@ -208,7 +206,7 @@ TEST_F(CLI_TEST, gzip_input_in_building){
 }
 
 TEST(PREPROCESSING, upper_case){
-    LL k = 4;
+    int64_t k = 4;
 
     vector<string> seqs = {"AGGTCGATTCGATCGATGC"};
     vector<string> seqs2 = {"AGGtCGATTcGATCgaTGC"};

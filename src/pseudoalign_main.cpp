@@ -14,8 +14,6 @@
 using namespace std;
 using namespace sbwt;
 
-typedef long long LL;
-
 struct Pseudoalign_Config{
     vector<string> query_files;
     vector<string> outfiles;
@@ -26,7 +24,7 @@ struct Pseudoalign_Config{
     bool gzipped_output = false;
     bool reverse_complements = false;
     bool sort_output = false;
-    LL n_threads = 1;
+    int64_t n_threads = 1;
     double buffer_size_megas = 8;
     bool verbose = false;
     bool silent = false;
@@ -96,7 +94,7 @@ int pseudoalign_main(int argc, char** argv){
 
     // Legacy support: transform old option format --outfile --out-file
     string legacy_support_fix = "--out-file";
-    for(LL i = 1; i < argc; i++){
+    for(int64_t i = 1; i < argc; i++){
         if(string(argv[i]) == "--outfile") argv[i] = &(legacy_support_fix[0]);
     }
 
@@ -111,7 +109,7 @@ int pseudoalign_main(int argc, char** argv){
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
         ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false"))
-        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
         ("buffer-size-megas", "Size of the input buffer in megabytes in each thread. If this is larger than the number of nucleotides in the input divided by the number of threads, then some threads will be idle. So if your input files are really small and you have a lot of threads, consider using a small buffer.", cxxopts::value<double>()->default_value("8.0"))
@@ -120,7 +118,7 @@ int pseudoalign_main(int argc, char** argv){
         ("h,help", "Print usage")
     ;
 
-    LL old_argc = argc; // Must store this because the parser modifies it
+    int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
     if (old_argc == 1 || opts.count("help")){
@@ -148,7 +146,7 @@ int pseudoalign_main(int argc, char** argv){
     C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.reverse_complements = opts["rc"].as<bool>();
-    C.n_threads = opts["n-threads"].as<LL>();
+    C.n_threads = opts["n-threads"].as<int64_t>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output = opts["sort-output"].as<bool>();
     C.verbose = opts["verbose"].as<bool>();
@@ -186,7 +184,7 @@ int pseudoalign_main(int argc, char** argv){
     if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring))
         write_log("roaring coloring structure loaded", LogLevel::MAJOR);
 
-    for(LL i = 0; i < C.query_files.size(); i++){
+    for(int64_t i = 0; i < C.query_files.size(); i++){
         if (C.outfiles.size() > 0) {
             write_log("Aligning " + C.query_files[i] + " (writing output to " + C.outfiles[i] + ")", LogLevel::MAJOR);
         } else {

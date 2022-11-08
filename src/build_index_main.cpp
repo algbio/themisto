@@ -12,11 +12,10 @@
 #include "coloring/Coloring_Builder.hh"
 
 using namespace std;
-typedef long long LL;
 
 struct Build_Config{
-    LL k = 0;
-    LL n_threads = 1;
+    int64_t k = 0;
+    int64_t n_threads = 1;
     string inputfile;
     string colorfile;
     string index_dbg_file;
@@ -26,10 +25,10 @@ struct Build_Config{
     string from_index;
     sbwt::SeqIO::FileFormat input_format;
     bool load_dbg = false;
-    LL memory_megas = 1000;
+    int64_t memory_megas = 1000;
     bool no_colors = false;
     bool del_non_ACGT = false;
-    LL colorset_sampling_distance = 1;
+    int64_t colorset_sampling_distance = 1;
     bool verbose = false;
     bool silent = false;
     bool reverse_complements = false;
@@ -279,7 +278,7 @@ int build_index_main(int argc, char** argv){
 
     // Legacy support: transform old option format --k to -k
     string legacy_support_fix = "-k";
-    for(LL i = 1; i < argc; i++){
+    for(int64_t i = 1; i < argc; i++){
         if(string(argv[i]) == "--auto-colors"){
             cerr << "Flag --auto-colors is now redundant as it is the default behavior starting from Themisto 2.0.0. There are also other changes to the CLI in Themisto 2.0.0. Please read the release notes and update your scripts accordingly." << endl;
             return 1;
@@ -290,16 +289,16 @@ int build_index_main(int argc, char** argv){
     cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the Wheeler graph data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
 
     options.add_options()
-        ("k,node-length", "The k of the k-mers.", cxxopts::value<LL>()->default_value("0"))
+        ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
-        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<LL>()->default_value("2048"))
-        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<LL>()->default_value("1"))
+        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
+        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
-        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<LL>()->default_value("1"))
+        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
@@ -309,7 +308,7 @@ int build_index_main(int argc, char** argv){
         ("h,help", "Print usage")
     ;
 
-    LL old_argc = argc; // Must store this because the parser modifies it
+    int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
     if (old_argc == 1 || opts.count("help")){
@@ -325,19 +324,19 @@ int build_index_main(int argc, char** argv){
     }    
 
     Build_Config C;
-    C.k = opts["k"].as<LL>();
+    C.k = opts["k"].as<int64_t>();
     C.inputfile = opts["input-file"].as<string>();
     if(C.inputfile != "")
         C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile);
-    C.n_threads = opts["n-threads"].as<LL>();
+    C.n_threads = opts["n-threads"].as<int64_t>();
     C.colorfile = opts["color-file"].as<string>();
     C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.load_dbg = opts["load-dbg"].as<bool>();
-    C.memory_megas = opts["mem-megas"].as<LL>();
+    C.memory_megas = opts["mem-megas"].as<int64_t>();
     C.no_colors = opts["no-colors"].as<bool>();
-    C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<LL>();
+    C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<int64_t>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
@@ -448,7 +447,7 @@ int build_index_main(int argc, char** argv){
         sbwt_config.max_abundance = 1e9;
         sbwt_config.min_abundance = 1;
         sbwt_config.n_threads = C.n_threads;
-        sbwt_config.ram_gigas = min(2LL, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
+        sbwt_config.ram_gigas = min((int64_t)2, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
         sbwt_config.temp_dir = C.temp_dir;
         dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
         dbg_ptr->serialize(C.index_dbg_file);

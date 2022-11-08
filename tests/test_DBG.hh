@@ -15,7 +15,7 @@ public:
     unordered_map<string, vector<string>> inedges; // Inedges to a node are colex-sorted by source
 
     DBG_Reference_Implementation(){}
-    DBG_Reference_Implementation(vector<string> reads, LL k){
+    DBG_Reference_Implementation(vector<string> reads, int64_t k){
         // Get sorted k-mers
         for(string S : reads) 
             for(string x : get_all_distinct_kmers(S, k)) 
@@ -44,7 +44,7 @@ class TEST_DBG : public ::testing::Test {
     protected:
 
     vector<string> reads;
-    LL k;
+    int64_t k;
     DBG_Reference_Implementation ref;
     plain_matrix_sbwt_t SBWT;
     SBWT_backward_traversal_support* backward_support;
@@ -90,7 +90,7 @@ TEST_F(TEST_DBG, locate){
 }
 
 TEST_F(TEST_DBG, iterate_all_nodes){
-    LL kmer_idx = 0;
+    int64_t kmer_idx = 0;
     for(DBG::Node v : dbg->all_nodes()){
         string fetched = backward_support->get_node_label(v.id);
         string correct = ref.colex_kmers[kmer_idx++];
@@ -109,7 +109,7 @@ TEST_F(TEST_DBG, indegree){
 
 TEST_F(TEST_DBG, inedges){
     for(DBG::Node v : dbg->all_nodes()){
-        LL in_idx = 0;
+        int64_t in_idx = 0;
         for(DBG::Edge e : dbg->inedges(v)){
             ASSERT_EQ(e.dest, v.id);
             string kmer_from = backward_support->get_node_label(e.source);
@@ -131,7 +131,7 @@ TEST_F(TEST_DBG, outdegree){
 
 TEST_F(TEST_DBG, outedges){
     for(DBG::Node v : dbg->all_nodes()){
-        LL out_idx = 0;
+        int64_t out_idx = 0;
         for(DBG::Edge e : dbg->outedges(v)){
             ASSERT_EQ(e.source, v.id);
             string kmer_from = backward_support->get_node_label(e.source);

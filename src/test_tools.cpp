@@ -13,7 +13,7 @@
 #include <cassert>
 
 using namespace std;
-typedef int64_t LL;
+typedef int64_t int64_t;
 
 set<char> get_alphabet(string S){
     set<char> ans;
@@ -23,7 +23,7 @@ set<char> get_alphabet(string S){
 
 set<string> get_all_distinct_kmers(string S, int64_t k){
     set<string> kmers;
-    for(LL i = 0; i < (LL)S.size()-k+1; i++){
+    for(int64_t i = 0; i < (int64_t)S.size()-k+1; i++){
         kmers.insert(S.substr(i,k));
     }
     return kmers;
@@ -136,11 +136,11 @@ vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT){
     sdsl::util::init_support(select_supports[3], &SBWT.get_subset_rank_structure().T_bits);
 
     vector<string> labels;
-    LL k = SBWT.get_k();
-    for(LL i = 0; i < SBWT.number_of_subsets(); i++){
+    int64_t k = SBWT.get_k();
+    for(int64_t i = 0; i < SBWT.number_of_subsets(); i++){
         string label;
-        LL node = i;
-        for(LL j = 0; j < k; j++){
+        int64_t node = i;
+        for(int64_t j = 0; j < k; j++){
             char c = incoming_label(SBWT, node);
             label.push_back(c);
             if(c == '$') 

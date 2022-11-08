@@ -8,8 +8,6 @@
 
 using namespace std;
 
-typedef long long LL;
-
 static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "dump-color-matrix", "stats"};
 
 void print_help(int argc, char** argv){
@@ -22,7 +20,7 @@ void print_help(int argc, char** argv){
 int main(int argc, char** argv){
 
     bool silent_in_argv = false;
-    for(LL i = 1; i < argc; i++)
+    for(int64_t i = 1; i < argc; i++)
         if(string(argv[i]) == string("--silent"))
             silent_in_argv = true;
 

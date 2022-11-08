@@ -7,8 +7,6 @@
 #include "sbwt/SeqIO.hh"
 #include <csignal>
 
-typedef long long LL;
-
 void create_directory_if_does_not_exist(string path){
     std::filesystem::create_directory(path);
 }
@@ -35,9 +33,9 @@ void check_dir_exists(string path){
 int64_t string_to_integer_safe(const string& S){
 
     // Figure out leading and trailing whitespace
-    LL pos_of_first_digit = 1e18;
-    LL pos_of_last_digit = -1;
-    for(LL i = 0; i < (LL)S.size(); i++){
+    int64_t pos_of_first_digit = 1e18;
+    int64_t pos_of_last_digit = -1;
+    for(int64_t i = 0; i < (int64_t)S.size(); i++){
         if(!std::isdigit(S[i]) && !std::isspace(S[i]))
             throw std::runtime_error("Error parsing color file: could not parse integer: " + S);
         if(std::isdigit(S[i])){
@@ -48,7 +46,7 @@ int64_t string_to_integer_safe(const string& S){
     if(pos_of_last_digit == -1) throw std::runtime_error("Error parsing color file: could not parse integer: " + S); // No digits found
 
     // Check that there are no internal spaces
-    for(LL i = pos_of_first_digit; i <= pos_of_last_digit; i++)
+    for(int64_t i = pos_of_first_digit; i <= pos_of_last_digit; i++)
         if(!std::isdigit(S[i])) throw std::runtime_error("Error parsing color file: could not parse integer: " + S); // Internat whitespace
 
     // Checks ok, convert to integer
@@ -87,17 +85,17 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
     sbwt::Buffered_ofstream<> sequences_out(new_seqfile);
 
     sbwt::SeqIO::Reader<> sr(inputfile);
-    LL seq_id = 0;
-    LL n_written = 0;
+    int64_t seq_id = 0;
+    int64_t n_written = 0;
     stringstream ss;
     while(true){
-        LL len = sr.get_next_read_to_buffer();
+        int64_t len = sr.get_next_read_to_buffer();
         if(len == 0) break;
 
         // Chop the sequence into pieces that have only ACGT characters
         sr.read_buf[len] = '$'; // Trick to avoid having a special case for the last sequence. Replaces null-terminator
         string new_seq;
-        for(LL i = 0; i <= len; i++){
+        for(int64_t i = 0; i <= len; i++){
             char c = sr.read_buf[i];
             if((!(c >= 'A' && c <= 'Z') && c != '$'))
                 throw runtime_error("Invalid character found: '" + std::string(1,c) + "'");
@@ -183,14 +181,14 @@ std::string fix_alphabet(const std::string& input_file){
     const std::string output_file = sbwt::get_temp_file_manager().create_filename("seqs-",".fna");
     sbwt::Buffered_ofstream<> out(output_file);
 
-    LL n_replaced = 0;
+    int64_t n_replaced = 0;
     sbwt::SeqIO::Reader<> sr(input_file);
     string header = ">\n";
     string newline = "\n";
     while(true){
-        LL len = sr.get_next_read_to_buffer();
+        int64_t len = sr.get_next_read_to_buffer();
         if(len == 0) break;
-        for(LL i = 0; i < len; i++) {
+        for(int64_t i = 0; i < len; i++) {
             char c = fix_char(sr.read_buf[i]);
             if(c != sr.read_buf[i]) n_replaced++;
             sr.read_buf[i] = c;
@@ -207,7 +205,7 @@ std::string fix_alphabet(const std::string& input_file){
 
 // true if S is colexicographically-smaller than T
 bool colex_compare(const string& S, const string& T){
-    LL i = 0;
+    int64_t i = 0;
     while(true){
         if(i == S.size() || i == T.size()){
             // One of the strings is a suffix of the other. Return the shorter.
@@ -232,17 +230,17 @@ vector<string> split(string text){
 // Split by delimiter
 vector<string> split(string text, char delimiter){
     assert(text.size() != 0); // If called with empty string we probably have a bug
-    vector<LL> I; // Delimiter indices
+    vector<int64_t> I; // Delimiter indices
     I.push_back(-1);
-    for(LL i = 0; i < text.size(); i++){
+    for(int64_t i = 0; i < text.size(); i++){
         if(text[i] == delimiter){
             I.push_back(i);
         }
     }
     I.push_back(text.size());
     vector<string> tokens;
-    for(LL i = 0; i < I.size()-1; i++){
-        LL len = I[i+1] - I[i] + 1 - 2;
+    for(int64_t i = 0; i < I.size()-1; i++){
+        int64_t len = I[i+1] - I[i] + 1 - 2;
         tokens.push_back(text.substr(I[i]+1, len));
     }
     
@@ -256,7 +254,7 @@ vector<string> split(const char* text, char delimiter){
 // This is designed to work even if S is not null-terminated. Calling code depends on this.
 void reverse_complement_c_string(char* S, int64_t len){
     std::reverse(S, S + len);
-    for(LL i = 0; i < len; i++)
+    for(int64_t i = 0; i < len; i++)
         S[i] = sbwt::get_rc(S[i]);
 }
 
@@ -318,7 +316,7 @@ auto sigint_register_return_value = signal(SIGINT, sigint_handler); // Set the S
 auto sigabrt_register_return_value = signal(SIGABRT, sigabrt_handler); // Set the SIGABRT handler
 
 int64_t fast_int_to_string(int64_t x, char* buffer){
-    LL i = 0;
+    int64_t i = 0;
     // Write the digits in reverse order (reversed back at the end)
     if(x == -1){
         buffer[0] = '1';

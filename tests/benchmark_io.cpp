@@ -13,8 +13,8 @@ int main(){
 
     // Generate 10 megabases of reads of length 100
     vector<string> reads;
-    LL total_len = 0;
-    for(LL i = 0; i < 100000; i++){
+    int64_t total_len = 0;
+    for(int64_t i = 0; i < 100000; i++){
         reads.push_back(get_random_dna_string(100, 4));
         total_len += 100;
     }
@@ -31,11 +31,11 @@ int main(){
     // Unbuffered
 
     Sequence_Reader sr(fastq1, FASTQ_MODE);
-    LL sr_t0 = cur_time_millis();
+    int64_t sr_t0 = cur_time_millis();
     while(!sr.done()){
         sr.get_next_query_stream().get_all();
     }
-    LL sr_t1 = cur_time_millis();
+    int64_t sr_t1 = cur_time_millis();
     double sr_seconds = (sr_t1 - sr_t0) / 1000.0;
     cout << total_len / 1e6 / sr_seconds << " Mbp/s" << endl;
 
@@ -43,11 +43,11 @@ int main(){
     // Buffered
 
     Sequence_Reader_Buffered srb(fastq2, FASTQ_MODE);
-    LL srb_t0 = cur_time_millis();
+    int64_t srb_t0 = cur_time_millis();
     while(true){
         if(srb.get_next_read_to_buffer() == 0) break;
     }
-    LL srb_t1 = cur_time_millis();
+    int64_t srb_t1 = cur_time_millis();
     double srb_seconds = (srb_t1 - srb_t0) / 1000.0;
     cout << total_len / 1e6 / srb_seconds << " Mbp/s" << endl;
 

@@ -19,7 +19,7 @@ private:
     // Stores the intersection into buf1 and returns the number of elements in the
     // intersection (does not resize buf1). Buffer elements must be sorted.
     // Assumes all elements in a buffer are distinct
-    int64_t intersect_buffers(sdsl::int_vector<>& buf1, LL buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len) const{
+    int64_t intersect_buffers(sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len) const{
 
         int64_t i = 0, j = 0, k = 0;
         while(i < buf1_len && j < buf2_len){
@@ -37,7 +37,7 @@ private:
     // union (does not resize result_buf). Buffers elements must be sorted.
     // Assumes all elements in a buffer are distinct. result_buf must have enough
     // space to accommodate the union
-    int64_t union_buffers(const sdsl::int_vector<>& buf1, LL buf1_len, const sdsl::int_vector<>& buf2, LL buf2_len, sdsl::int_vector<>& result_buf) const{
+    int64_t union_buffers(const sdsl::int_vector<>& buf1, int64_t buf1_len, const sdsl::int_vector<>& buf2, int64_t buf2_len, sdsl::int_vector<>& result_buf) const{
 
         auto end = std::set_union(
                         buf1.begin(), buf1.begin() + buf1_len,

@@ -74,7 +74,7 @@ private:
         }
 
         virtual void callback(const char* S,
-                              LL S_size,
+                              int64_t S_size,
                               int64_t string_id) {
 
             const std::int64_t color = seq_id_to_color_id.at(string_id);
@@ -386,9 +386,9 @@ private:
         int64_t in_neighbors[4];
         int64_t indegree;
         backward_support.list_DBG_in_neighbors(from_node, in_neighbors, indegree);
-        for(LL i = 0; i < indegree; i++){
-            LL u = in_neighbors[i];
-            LL counter = 0;
+        for(int64_t i = 0; i < indegree; i++){
+            int64_t u = in_neighbors[i];
+            int64_t counter = 0;
             while(cores[u] == 0){
                 counter++;
                 if(counter == colorset_sampling_distance){

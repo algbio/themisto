@@ -22,17 +22,17 @@ using namespace std;
 //      0 if x = y
 //      1 if x > y
 int compare_as_numbers(const char* x, const char* y){
-    LL nx = strlen(x);
-    LL ny = strlen(y);
+    int64_t nx = strlen(x);
+    int64_t ny = strlen(y);
     if(nx < ny) return -1;
     if(nx > ny) return 1;
     return strcmp(x,y);
 }
 
 bool memcmp_variable_binary_records(const char* x, const char* y){
-    LL nx = parse_big_endian_LL(x);
-    LL ny = parse_big_endian_LL(y);
-    LL c = memcmp(x + 8, y + 8, min(nx-8,ny-8));
+    int64_t nx = parse_big_endian_int64_t(x);
+    int64_t ny = parse_big_endian_int64_t(y);
+    int64_t c = memcmp(x + 8, y + 8, min(nx-8,ny-8));
     if(c < 0){
         return true;
     }
@@ -45,15 +45,15 @@ bool memcmp_variable_binary_records(const char* x, const char* y){
 }
 
 template <typename record_reader_t, typename record_writer_t>
-void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, LL& merge_count, record_reader_t& reader, record_writer_t& writer){
+void merge_files_generic(const std::function<bool(const char* x, const char* y)>& cmp, int64_t& merge_count, record_reader_t& reader, record_writer_t& writer){
 
     write_log("Doing merge number " + to_string(merge_count), LogLevel::MINOR);
 
     vector<char*> input_buffers;
-    vector<LL> input_buffer_sizes;
+    vector<int64_t> input_buffer_sizes;
 
     for(int64_t i = 0; i < reader.get_num_files(); i++){
-        LL buf_size = 1024;
+        int64_t buf_size = 1024;
         input_buffers.push_back((char*)malloc(buf_size)); // Freed at the end of this function
         input_buffer_sizes.push_back(buf_size);
     }
@@ -75,7 +75,7 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
     // Do the merge
     while(!Q.empty()){
 
-        char* record; LL stream_idx;
+        char* record; int64_t stream_idx;
         std::tie(record, stream_idx) = *(Q.begin());
         Q.erase(Q.begin()); // pop
 
@@ -98,9 +98,9 @@ void merge_files_generic(const std::function<bool(const char* x, const char* y)>
 }
 
 template <typename record_reader_t, typename record_writer_t>
-void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, record_reader_t& reader, record_writer_t& writer){
+void EM_sort_generic(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, int64_t RAM_bytes, Generic_Block_Producer* producer, vector<Generic_Block_Consumer*> consumers, record_reader_t& reader, record_writer_t& writer){
 
-    LL max_files = 512;
+    int64_t max_files = 512;
 
     // Number of blocks in the memory at once:
     // - 1 per consumer thread in processing
@@ -109,8 +109,8 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     // So if block size is B, we have (n_threads + 2)*B blocks in memory at a time
     // So we have the equation (n_threads + 2)*B = RAM_bytes. Solve for B:
 
-    LL B = RAM_bytes / (consumers.size() + 2);
-    B = min(B, (LL)(std::filesystem::file_size(infile) / consumers.size())); // Make sure all threads have work
+    int64_t B = RAM_bytes / (consumers.size() + 2);
+    B = min(B, (int64_t)(std::filesystem::file_size(infile) / consumers.size())); // Make sure all threads have work
 
     vector<string> block_files;
     ParallelBoundedQueue<Generic_Block*> Q(1); // 1 byte = basically only one block can be in the queue at a time
@@ -139,13 +139,13 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
     }
 
     // Merge blocks
-    LL merge_count = 0;
+    int64_t merge_count = 0;
     vector<string> cur_round = block_files;
     while(cur_round.size() > 1){
         vector<string> next_round;
-        for(LL i = 0; i < cur_round.size(); i += max_files){
+        for(int64_t i = 0; i < cur_round.size(); i += max_files){
             // Merge
-            vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + max_files, (LL)cur_round.size()));
+            vector<string> to_merge(cur_round.begin() + i, cur_round.begin() + min(i + max_files, (int64_t)cur_round.size()));
             string round_file = get_temp_file_manager().create_filename();
             writer.open_file(round_file);
             reader.open_files(to_merge);
@@ -155,7 +155,7 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
             reader.close_files();
 
             // Clear files
-            for(LL j = i; j < min(i+max_files, (LL)cur_round.size()); j++){
+            for(int64_t j = i; j < min(i+max_files, (int64_t)cur_round.size()); j++){
                 get_temp_file_manager().delete_file(cur_round[j].c_str());
             }
         }
@@ -175,11 +175,11 @@ void EM_sort_generic(string infile, string outfile, const std::function<bool(con
 }
 
 // Constant size records of record_size bytes each
-void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL record_size, LL n_threads){
+void EM_sort_constant_binary(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, int64_t RAM_bytes, int64_t record_size, int64_t n_threads){
 
     Generic_Block_Producer* producer = new Constant_Block_Producer(infile, record_size);
     vector<Generic_Block_Consumer*> consumers;
-    for(LL i = 0; i < n_threads; i++)
+    for(int64_t i = 0; i < n_threads; i++)
         consumers.push_back(new Block_Consumer(i));
     Constant_Record_Reader reader(record_size);
     Constant_Record_Writer writer(record_size);
@@ -191,13 +191,13 @@ void EM_sort_constant_binary(string infile, string outfile, const std::function<
 
 }
 
-void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, LL RAM_bytes, LL n_threads){
+void EM_sort_variable_length_records(string infile, string outfile, const std::function<bool(const char* x, const char* y)>& cmp, int64_t RAM_bytes, int64_t n_threads){
 
     Generic_Block_Producer* producer = new Variable_Block_Producer(infile);
 
     vector<Generic_Block_Consumer*> consumers;
 
-    for(LL i = 0; i < n_threads; i++)
+    for(int64_t i = 0; i < n_threads; i++)
         consumers.push_back(new Block_Consumer(i));
     
     Variable_Record_Reader reader;

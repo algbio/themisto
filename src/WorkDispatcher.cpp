@@ -9,7 +9,7 @@
 using namespace std;
 using namespace sbwt;
 
-void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, LL thread_id){
+void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, int64_t thread_id){
     write_log("Starting thread " + to_string(thread_id), LogLevel::MINOR);
     while(true){
         ReadBatch* batch  = Q.pop();
@@ -20,7 +20,7 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
         ReadBatchIterator rbi(batch, 0);
         int64_t read_id = batch->firstReadID;
         const char* read;
-        LL read_len;
+        int64_t read_len;
         while(true){
             std::tie(read, read_len) = rbi.getNextRead();
             if(read_len == 0) break; // End of batch
