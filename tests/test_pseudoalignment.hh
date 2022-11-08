@@ -217,7 +217,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
         stringstream pseudoalign_rc_argstring;
-        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001"; // Really small buffer to expose race conditions
+        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001 --sort-output"; // Really small buffer to expose race conditions
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 
@@ -226,7 +226,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run with gzipped input
         string final_file_gzip = get_temp_file_manager().create_filename("finalfile_gzip-");
         stringstream pseudoalign_gzip_argstring;
-        pseudoalign_gzip_argstring << "pseudoalign -q " << queries_gzip_outfilename << " -i " << index_prefix << " -o " << final_file_gzip << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        pseudoalign_gzip_argstring << "pseudoalign -q " << queries_gzip_outfilename << " -i " << index_prefix << " -o " << final_file_gzip << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir() << " --sort-output";
         Argv pseudoalign_gzip_argv(split(pseudoalign_gzip_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_gzip_argv.size, pseudoalign_gzip_argv.array),0);
 
@@ -316,7 +316,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     SBWT.load(indexprefix + ".tdbg");
     coloring.load(indexprefix + ".tcolors", SBWT);
 
-    vector<string> args2 = {"pseudoalign", "-q", query_fastafile, "-i", indexprefix, "-o", resultfile, "--temp-dir", tempdir, "--rc", "--threshold", to_string(threshold)};
+    vector<string> args2 = {"pseudoalign", "-q", query_fastafile, "-i", indexprefix, "-o", resultfile, "--temp-dir", tempdir, "--rc", "--threshold", to_string(threshold), "--sort-output"};
     sbwt::Argv argv2(args2);
     pseudoalign_main(argv2.size, argv2.array);
 
@@ -324,6 +324,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     
     ASSERT_EQ(results.size(), queries.size());
     for(int64_t i = 0; i < results.size(); i++){
+        std::sort(results[i].begin(), results[i].end());
         logger << queries[i] << endl;
         print(results[i], logger);
         print(true_answers[i], logger);
