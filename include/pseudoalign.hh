@@ -101,6 +101,15 @@ public:
             }
         }
 
+        vector<int64_t> get_rc_colex_ranks(const char* S, LL S_size){
+            while(S_size > rc_buffer.size()){
+                rc_buffer.resize(rc_buffer.size()*2);
+            }
+            memcpy(rc_buffer.data(), S, S_size);
+            reverse_complement_c_string(rc_buffer.data(), S_size); // There is no null at the end but that is ok
+            return SBWT->streaming_search(rc_buffer.data(), S_size);
+        }
+
 };
 
 template<class coloring_t>
@@ -128,19 +137,11 @@ public:
             int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
             Base::add_to_output(string_to_int_buffer, len);
             Base::add_to_output(&newline, 1);
-        }
-        else{
+        } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
             Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
-            vector<int64_t> rc_colex_ranks;
             if(Base::reverse_complements){
-                while(S_size > Base::rc_buffer.size()){
-                    Base::rc_buffer.resize(Base::rc_buffer.size()*2);
-                }
-                memcpy(Base::rc_buffer.data(), S, S_size);
-                reverse_complement_c_string(Base::rc_buffer.data(), S_size); // There is no null at the end but that is ok
-                rc_colex_ranks = Base::SBWT->streaming_search(Base::rc_buffer.data(), S_size);
-                Base::push_color_set_ids_to_buffer(rc_colex_ranks, Base::rc_color_set_id_buffer);
+                Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
             }
 
             unordered_map<int64_t, int64_t> counts; // color id -> count of that color id
@@ -300,15 +301,8 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
             else{
                 vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
                 Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
-                vector<int64_t> rc_colex_ranks;
                 if(Base::reverse_complements){
-                    while(S_size > Base::rc_buffer.size()){
-                        Base::rc_buffer.resize(Base::rc_buffer.size()*2);
-                    }
-                    memcpy(Base::rc_buffer.data(), S, S_size);
-                    reverse_complement_c_string(Base::rc_buffer.data(), S_size); // There is no null at the end but that is ok
-                    rc_colex_ranks = Base::SBWT->streaming_search(Base::rc_buffer.data(), S_size);
-                    Base::push_color_set_ids_to_buffer(rc_colex_ranks, Base::rc_color_set_id_buffer);
+                    Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
                 }
 
                 vector<int64_t> intersection;
