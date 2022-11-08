@@ -124,39 +124,35 @@ vector<int64_t> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bo
     return ans;
 }
 
-TEST(TEST_PSEUDOALIGN, coli3){
-    std::string filename = "example_input/coli3.fna";
+TEST(TEST_PSEUDOALIGN, coli3_parallelism){
+    std::string seqfile = "example_input/coli3.fna";
+    std::string colorfile = "example_input/colors.txt";
+    std::string queryfile = "example_input/coli_reads.fna";
+    std::string indexprefix = get_temp_file_manager().create_filename();
+    int64_t k = 31;
 
-    std::vector<std::string> seqs;
-    SeqIO::Unbuffered_Reader sr(filename);
-    while(!sr.done()){
-        string S = sr.get_next_query_stream().get_all();
-        seqs.push_back(S);
-    }
+    stringstream build_argstring;
+    build_argstring << "build -k"  << k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << seqfile << " -c " << colorfile << " --colorset-pointer-tradeoff 3 " << " -o " << indexprefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
+    Argv build_argv(split(build_argstring.str()));
 
-    const std::size_t k = 31;
+    ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
 
-    plain_matrix_sbwt_t::BuildConfig config;
-    config.input_files = {filename};
-    config.k = k;
-    config.build_streaming_support = true;
-    config.ram_gigas = 2;
-    config.n_threads = 2;
-    config.min_abundance = 1;
-    plain_matrix_sbwt_t matrix(config);
+    // Run with with parallelism
+    string parallel_resultfile = get_temp_file_manager().create_filename();
+    stringstream pseudoalign_parallel_argstring;
+    pseudoalign_parallel_argstring << "pseudoalign --rc -q " << queryfile << " -i " << indexprefix << " -o " << parallel_resultfile << " --n-threads " << 128 << " --temp-dir " << get_temp_file_manager().get_dir()  << " --buffer-size-megas 0.00001 --sort-output"; // 128 threads and a really small buffer to expose race conditions
+    Argv pseudoalign_parallel_argv(split(pseudoalign_parallel_argstring.str()));
+    ASSERT_EQ(pseudoalign_main(pseudoalign_parallel_argv.size, pseudoalign_parallel_argv.array),0);
 
+    // Run without parallelism
+    string sequential_resultfile = get_temp_file_manager().create_filename();
+    stringstream pseudoalign_sequential_argstring;
+    pseudoalign_sequential_argstring << "pseudoalign --rc -q " << queryfile << " -i " << indexprefix << " -o " << sequential_resultfile << " --n-threads " << 1 << " --temp-dir " << get_temp_file_manager().get_dir()  << " --buffer-size-megas 0.00001"; // 128 threads and a really small buffer to expose race conditions
+    Argv pseudoalign_sequential_argv(split(pseudoalign_sequential_argstring.str()));
+    ASSERT_EQ(pseudoalign_main(pseudoalign_sequential_argv.size, pseudoalign_sequential_argv.array),0);
 
-    std::vector<std::int64_t> colors;
-    for(std::int64_t i = 0; i < seqs.size(); ++i){
-        colors.push_back(i);
-    }
+    ASSERT_TRUE(files_are_equal(parallel_resultfile, sequential_resultfile));
 
-    Coloring<color_set_t> c;
-    Coloring_Builder<color_set_t> cb;
-    sbwt::SeqIO::Reader reader(filename);
-    cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
-
-    
 }
 
 TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
