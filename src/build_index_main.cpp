@@ -106,55 +106,6 @@ struct Build_Config{
     }
 };
 
-// A gzipped sequence reader with the possibility to reset the stream (required in color construction)
-// This class exists because seekg(0) function in zstr::ifstream does not seem to work correctly.
-class Gzip_Sequence_Reader_With_Reset{
-
-    public:
-
-        SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>* reader;
-        char* read_buf;
-        int64_t read_buf_len;
-        string filename;
-        bool reverse_complements = false;
-
-        Gzip_Sequence_Reader_With_Reset(string filename) : filename(filename){
-            reader = new SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>(filename);
-            read_buf_len = 256;
-            read_buf = (char*)malloc(read_buf_len);
-        }
-
-        int64_t get_next_read_to_buffer(){
-            int64_t len = reader->get_next_read_to_buffer();
-
-            // Copy the read from the internal buffer of the internal reader to our buffer
-            if(len > read_buf_len){
-                read_buf = (char*)realloc(read_buf, len);
-                read_buf_len = len;
-            }
-            memcpy(read_buf, reader->read_buf, len);
-            return len;
-        }
-
-        void enable_reverse_complements(){
-            reverse_complements = true;
-            reader->enable_reverse_complements();
-        }
-
-        void rewind_to_start(){
-            delete(reader);
-            reader = new SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>(filename);
-            if(reverse_complements) reader->enable_reverse_complements();
-        }
-
-        ~Gzip_Sequence_Reader_With_Reset(){
-            delete reader;
-            free(read_buf);
-        }
-
-
-};
-
 // Returns filename of a new color file that has one color for each sequence
 template<typename sequence_reader_t>
 string generate_default_colorfile(sequence_reader_t& reader, bool reverse_complements){
@@ -179,8 +130,8 @@ template<typename colorset_t>
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
-        Coloring_Builder<colorset_t, Gzip_Sequence_Reader_With_Reset> cb; // Builder with gzipped input
-        Gzip_Sequence_Reader_With_Reset reader(C.inputfile);
+        Coloring_Builder<colorset_t, sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> cb; // Builder with gzipped input
+        sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(C.inputfile);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
