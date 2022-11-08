@@ -30,8 +30,6 @@ public:
         const coloring_t* coloring; // Not owned by this class
         ParallelBaseWriter* out;
         bool reverse_complements;
-        LL output_buffer_capacity;
-        LL output_buffer_size;
         LL k;
 
         // Buffer for reverse-complementing strings
@@ -40,6 +38,7 @@ public:
         // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the
         // parallel writer so often to avoid locking the writer from other threads.
         vector<char> output_buffer;
+        LL output_buffer_flush_threshold;
 
         // Buffer for storing color set ids
         vector<int64_t> color_set_id_buffer;
@@ -50,24 +49,21 @@ public:
             this->coloring = coloring;
             this->out = out;
             this->reverse_complements = reverse_complements;
-            this->output_buffer_capacity = output_buffer_capacity;
+            this->output_buffer_flush_threshold = output_buffer_capacity;
             this->k = SBWT->get_k();
             rc_buffer.resize(1 << 10); // 1 kb. Will be resized if needed
-            output_buffer.resize(output_buffer_capacity);
-            output_buffer_size = 0;
+            output_buffer.reserve(output_buffer_capacity);
         }
 
-
+        // Flushes at the next newline when output_buffer_flush_threshold is exceeded
         void add_to_output(char* data, int64_t data_length){
-            if(data_length > output_buffer_capacity) throw std::runtime_error("Bug: output buffer too small");
-
-            if(output_buffer_size + data_length > output_buffer_capacity){
-                // Flush the buffer
-                out->write(output_buffer.data(), output_buffer_size);
-                output_buffer_size = 0;
+            for(int64_t i = 0; i < data_length; i++){
+                output_buffer.push_back(data[i]);
+                if(output_buffer.size() > output_buffer_flush_threshold && data[i] == '\n'){
+                    out->write(output_buffer.data(), output_buffer.size());
+                    output_buffer.clear(); // Let's hope this keeps the reserved capacity of the vector intact
+                }
             }
-            memcpy(output_buffer.data() + output_buffer_size, data, data_length); // Move data to buffer
-            output_buffer_size += data_length;
         }
 
         // -1 if node is not found at all.
@@ -193,8 +189,7 @@ public:
     }
 
     virtual void finish(){
-        Base::out->write(Base::output_buffer.data(), Base::output_buffer_size);
-        Base::output_buffer_size = 0;
+        Base::out->write(Base::output_buffer.data(), Base::output_buffer.size());
     }
 
     virtual ~ThresholdPseudoaligner() {} 
@@ -321,8 +316,7 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
         }
 
         virtual void finish(){
-            Base::out->write(Base::output_buffer.data(), Base::output_buffer_size);
-            Base::output_buffer_size = 0;
+            Base::out->write(Base::output_buffer.data(), Base::output_buffer.size());
         }
 };
 

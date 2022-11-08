@@ -147,7 +147,7 @@ TEST(TEST_PSEUDOALIGN, coli3_parallelism){
     // Run without parallelism
     string sequential_resultfile = get_temp_file_manager().create_filename();
     stringstream pseudoalign_sequential_argstring;
-    pseudoalign_sequential_argstring << "pseudoalign --rc -q " << queryfile << " -i " << indexprefix << " -o " << sequential_resultfile << " --n-threads " << 1 << " --temp-dir " << get_temp_file_manager().get_dir()  << " --buffer-size-megas 0.00001"; // 128 threads and a really small buffer to expose race conditions
+    pseudoalign_sequential_argstring << "pseudoalign --rc -q " << queryfile << " -i " << indexprefix << " -o " << sequential_resultfile << " --n-threads " << 1 << " --temp-dir " << get_temp_file_manager().get_dir()  << " --buffer-size-megas 0.00001"; // 1 thread
     Argv pseudoalign_sequential_argv(split(pseudoalign_sequential_argstring.str()));
     ASSERT_EQ(pseudoalign_main(pseudoalign_sequential_argv.size, pseudoalign_sequential_argv.array),0);
 
