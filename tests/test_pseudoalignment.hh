@@ -124,6 +124,40 @@ vector<int64_t> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bo
     return ans;
 }
 
+TEST(TEST_PSEUDOALIGN, coli3){
+    std::string filename = "example_input/coli3.fna";
+
+    std::vector<std::string> seqs;
+    SeqIO::Unbuffered_Reader sr(filename);
+    while(!sr.done()){
+        string S = sr.get_next_query_stream().get_all();
+        seqs.push_back(S);
+    }
+
+    const std::size_t k = 31;
+
+    plain_matrix_sbwt_t::BuildConfig config;
+    config.input_files = {filename};
+    config.k = k;
+    config.build_streaming_support = true;
+    config.ram_gigas = 2;
+    config.n_threads = 2;
+    config.min_abundance = 1;
+    plain_matrix_sbwt_t matrix(config);
+
+
+    std::vector<std::int64_t> colors;
+    for(std::int64_t i = 0; i < seqs.size(); ++i){
+        colors.push_back(i);
+    }
+
+    Coloring<color_set_t> c;
+    Coloring_Builder<color_set_t> cb;
+    sbwt::SeqIO::Reader reader(filename);
+    cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
+
+    
+}
 
 TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
     logger << "Testing pseudolign" << endl;
@@ -177,7 +211,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run without rc
         string final_file = sbwt::get_temp_file_manager().create_filename("finalfile-");
         stringstream pseudoalign_argstring;
-        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
+        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " buffer-size-megas 0.00001"; // Really small buffer to expose race conditions
         Argv pseudoalign_argv(split(pseudoalign_argstring.str()));
 
         ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
@@ -187,7 +221,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
         stringstream pseudoalign_rc_argstring;
-        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir();
+        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001"; // Really small buffer to expose race conditions
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 
