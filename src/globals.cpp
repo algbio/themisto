@@ -5,6 +5,7 @@
 #include <iterator>
 #include "sbwt/buffered_streams.hh"
 #include "sbwt/SeqIO.hh"
+#include "sbwt/globals.hh"
 #include <csignal>
 
 void create_directory_if_does_not_exist(string path){
