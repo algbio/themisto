@@ -25,14 +25,20 @@ public:
 
     Colorfile_Stream(string filename) : in(filename), filename(filename) {}
 
-    virtual void* next(){
+    virtual std::array<uint8_t, 8> next(){
         if(!in.getline(line)){
             throw std::runtime_error("Error: could not read next color from file " + filename);
         }
 
         // Read successful
-        x = fast_string_to_int(line.c_str(), line.size());
-        return &x;
+
+        x = fast_string_to_int(line.c_str(), line.size()); // Parse
+
+        // Return as std::array<uint8_t, 8>
+        std::array<uint8_t, 8> ret;
+        int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
+        *ptr = x;
+        return ret;
     }
 
 };

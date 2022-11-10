@@ -33,15 +33,20 @@ private:
 
     vector<int64_t> colors;
     int64_t idx = 0; // Current index
+    std::array<uint8_t, 8> dummy;
 
 public:
 
     In_Memory_Color_Stream(vector<int64_t> colors) : colors(colors) {}
 
-    virtual void* next(){
-        if(idx == colors.size()) return nullptr; // Done
-        void* ptr = (void*)(&(colors[idx++]));
-        return ptr;
+    virtual std::array<uint8_t, 8> next(){
+        if(idx == colors.size()) return dummy; // Done
+
+        std::array<uint8_t, 8> ret;
+        int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
+        *ptr = colors[idx++];
+        
+        return ret;
 
     }
 
@@ -96,10 +101,9 @@ private:
         virtual void callback(const char* S,
                               int64_t S_size,
                               int64_t string_id,
-                              void* metadata) {
+                              std::array<uint8_t, 8> metadata) {
 
-            int64_t color = *reinterpret_cast<int64_t*>(metadata);
-            cout << string(S, S_size) << " " << string_id << " " << color << endl;
+            int64_t color = *reinterpret_cast<int64_t*>(metadata.data()); // Interpret as int64_t
             const std::size_t k = index.get_k();
 
             write_log("Adding colors for sequence " + std::to_string(string_id), LogLevel::MINOR);

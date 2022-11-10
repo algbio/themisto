@@ -126,7 +126,7 @@ public:
         counts.resize(coloring->largest_color() + 1); // Initializes counts to zeroes
     }
 
-    virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id, std::array<uint8_t, 8> metadata){
         (void) metadata; // Ignored
 
         char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
@@ -287,7 +287,7 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
             return result.get_colors_as_vector();
         }
 
-        virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
+        virtual void callback(const char* S, int64_t S_size, int64_t string_id, std::array<uint8_t, 8> metadata){
 
             (void) metadata; // Ignored
 
@@ -366,9 +366,13 @@ void call_sort_parallel_output_file(const string& outfile, bool gzipped);
 // Metadata stream for non-existent metadata
 class Null_Metadata_Stream : public Metadata_Stream{
 
+private:
+
+std::array<uint8_t, 8> dummy;
+
 public:
-    virtual void* next(){
-        return nullptr;
+    virtual std::array<uint8_t, 8> next(){
+        return dummy;
     }
 };
 

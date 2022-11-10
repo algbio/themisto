@@ -114,13 +114,13 @@ struct ReadBatch{
     uint64_t firstReadID; // read id of first read in the batch
     vector<char> data; // concatenation of reads
     vector<uint64_t> readStarts; // indicates starting positions of reads in data array, last item is a dummy
-    vector<void*> metadata; // For each read, a pointer to the metadata of the read.
+    vector<std::array<uint8_t, 8>> metadata; // For each read, 8 bytes of metadata
 
     int64_t byte_size() const{
         return sizeof(firstReadID) * 1 + 
                sizeof(char) * data.size() + 
                sizeof(uint64_t) * readStarts.size() + 
-               sizeof(void*) * metadata.size();
+               sizeof(uint8_t) * 8 * metadata.size();
     }
 };
 
@@ -131,15 +131,16 @@ public:
 
     ReadBatch* batch;
     uint64_t pos; // Index in the readStarts array of the batch
+    std::array<uint8_t, 8> dummy_metadata;
 
     ReadBatchIterator(ReadBatch* batch, int64_t start) : batch(batch), pos(start) {}
 
     // Returns (c-string, length, metadata pointer). If done, return (NULL, 0, NULL)
-    std::tuple<const char*, uint64_t, void*> getNextRead(){
-        if(pos >= (batch->readStarts.size()-1)) return {NULL, 0, NULL}; // End of batch
+    std::tuple<const char*, uint64_t, std::array<uint8_t, 8>> getNextRead(){
+        if(pos >= (batch->readStarts.size()-1)) return {NULL, 0, dummy_metadata}; // End of batch
         uint64_t len = batch->readStarts[pos+1] - batch->readStarts[pos];
         uint64_t start = batch->readStarts[pos];
-        void* metadata = batch->metadata[pos];
+        std::array<uint8_t, 8> metadata = batch->metadata[pos];
         pos++; // Move to next read ready for next call to this function
         return {(batch->data.data()) + start, len, metadata};
     }
@@ -147,7 +148,12 @@ public:
 
 class DispatcherConsumerCallback{
 public:
-    virtual void callback(const char* S, int64_t S_size, int64_t read_id, void* metadata) = 0;
+
+    // Takes a string S (not necessarily null-terminated), the length of S, the read_id of S and 8 bytes of metadata.
+    // It's 8 bytes so that in the future if we want to pass in arbitrary data, it can fit a 8-byte pointer to memory.
+    // The main use case currently is to pass a 64-bit color id. Why not just pass a void pointer to the color id? 
+    // Because then the memory management gets unnecessarily complicated and inefficient in the 64-bit integer use case.
+    virtual void callback(const char* S, int64_t S_size, int64_t read_id, std::array<uint8_t, 8> metadata) = 0;
     virtual void finish() = 0;
     virtual ~DispatcherConsumerCallback() {} 
 };
@@ -156,7 +162,7 @@ class Metadata_Stream{
 
     public:
 
-    virtual void* next() = 0; // Returns nullptr if done
+    virtual std::array<uint8_t, 8> next() = 0; // Returns nullptr if done
 
 };
 
@@ -171,10 +177,11 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t&
 
     int64_t read_id = 0;
     ReadBatch* batch = new ReadBatch(); // Deleted by consumer
+    std::array<uint8_t, 8> dummy_metadata;
 
     auto push_batch = [&](){
         batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
-        batch->metadata.push_back(nullptr); // Append the end sentinel
+        batch->metadata.push_back(dummy_metadata); // Append the end sentinel
         Q.push(batch, batch->byte_size());
         batch = new ReadBatch(); // Clear
     };
@@ -199,7 +206,7 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t&
     }
     
     batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
-    batch->metadata.push_back(nullptr); // Append the end sentinel
+    batch->metadata.push_back(dummy_metadata); // Append the end sentinel
     Q.push(batch,0); // Empty batch in the end signifies end of the queue
 }
 

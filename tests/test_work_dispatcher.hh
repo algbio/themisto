@@ -18,10 +18,10 @@ public:
     vector<int64_t> received_metadata;
     int64_t busywork = 0;
 
-    virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id, std::array<uint8_t, 8> metadata){
         received_strings.push_back(string(S,S_size));
         received_string_ids.push_back(string_id);
-        received_metadata.push_back(*reinterpret_cast<int64_t*>(metadata));
+        received_metadata.push_back(*reinterpret_cast<int64_t*>(metadata.data()));
         for(int64_t i = 0; i < 100000; i++) busywork++; // Do some "work"
     }
 
@@ -39,16 +39,20 @@ private:
 
     vector<int64_t> ints;
     int64_t idx = 0; // Current index
+    std::array<uint8_t, 8> dummy;
 
 public:
 
     In_Memory_Int_Stream(vector<int64_t> ints) : ints(ints) {}
 
-    virtual void* next(){
-        if(idx == ints.size()) return nullptr; // Done
-        void* ptr = (void*)(&(ints[idx++]));
-        return ptr;
+    virtual std::array<uint8_t, 8> next(){
+        if(idx == ints.size()) return dummy; // Done
 
+        std::array<uint8_t, 8> ret;
+        int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
+        *ptr = ints[idx++];
+        
+        return ret;
     }
 
 };

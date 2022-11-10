@@ -19,7 +19,7 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
         }
         ReadBatchIterator rbi(batch, 0);
         int64_t read_id = batch->firstReadID;
-        void* metadata = nullptr;
+        std::array<uint8_t, 8> metadata;
         const char* read;
         int64_t read_len;
         while(true){
