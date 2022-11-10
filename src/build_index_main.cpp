@@ -19,22 +19,31 @@ class Colorfile_Stream : public Metadata_Stream{
 
 public:
 
-    Buffered_ifstream<> in;
+    std::unique_ptr<Buffered_ifstream<>> in;
     string line; // Buffer for reading lines
-    string filename;
+    vector<string> filenames;
+    int64_t current_file_idx = 0;
     int64_t x; // The current color
     bool reverse_complements;
     bool rc_flag = false; // For duplicating colors
 
-    Colorfile_Stream(string filename, bool reverse_complements) : in(filename), filename(filename), reverse_complements(reverse_complements) {}
+    Colorfile_Stream(const vector<string>& filenames, bool reverse_complements) : filenames(filenames), reverse_complements(reverse_complements) {
+        if(filenames.size() == 0){
+            throw std::runtime_error("Error: empty color file list");
+        }
+        in = make_unique<Buffered_ifstream<>>(filenames[0]);
+    }
 
     virtual std::array<uint8_t, 8> next(){
 
         if(reverse_complements && rc_flag){
             // Don't read next color from file but re-use previous
         } else{
-            if(!in.getline(line)){
-                throw std::runtime_error("Error: could not read next color from file " + filename);
+            while(!in->getline(line)){
+                current_file_idx++;
+                if(current_file_idx >= filenames.size())
+                    throw std::runtime_error("Error: more colors than sequences.");
+                in = make_unique<Buffered_ifstream<>>(filenames[current_file_idx]);
             }
             x = fast_string_to_int(line.c_str(), line.size()); // Parse
         }
@@ -80,8 +89,10 @@ public:
 struct Build_Config{
     int64_t k = 0;
     int64_t n_threads = 1;
-    string inputfile;
-    string colorfile;
+    string seqfile_CLI_variable;
+    string colorfile_CLI_variable;
+    vector<string> seqfiles;
+    vector<string> colorfiles;
     string index_dbg_file;
     string index_color_file;
     string temp_dir;
@@ -101,14 +112,15 @@ struct Build_Config{
 
         if(from_index != ""){
             // From existing index
-            sbwt::check_true(colorfile == "", "Must not give both --from-index and --colorfile");
-            sbwt::check_true(inputfile == "", "Must not give both --from-index and input sequences");
+            sbwt::check_true(colorfiles.size() == 0, "Must not give both --from-index and --colorfile");
+            sbwt::check_true(seqfiles.size() == 0, "Must not give both --from-index and input sequences");
             sbwt::check_true(no_colors == false, "Must not give both --from-index and --load-dbg");
             sbwt::check_true(k == 0, "Must not give both --from-index and -k because k is defined in the index");
         } else{
             // From fasta and colorfile
-            sbwt::check_true(inputfile != "", "Input file not set");
-            sbwt::check_readable(inputfile);
+            sbwt::check_true(seqfiles.size() > 0, "Input file not set");
+            for(const string& S : seqfiles)
+                sbwt::check_readable(S);
             if(!load_dbg){
                 sbwt::check_true(k != 0, "Parameter k not set");
                 sbwt::check_true(k <= MAX_KMER_LENGTH, "Maximum allowed k is " + std::to_string(MAX_KMER_LENGTH) + ". To increase the limit, recompile by first running cmake with the option `-DMAX_KMER_LENGTH=n`, where n is a number up to 255, and then running `make` again."); // 255 is max because of KMC
@@ -122,9 +134,10 @@ struct Build_Config{
         sbwt::check_writable(index_dbg_file);
         sbwt::check_writable(index_color_file);
 
-        if(colorfile != ""){
+        if(colorfiles.size() > 0){
             sbwt::check_true(!no_colors, "Must not give both --no-colors and --colorfile");
-            sbwt::check_readable(colorfile);
+            for(const string& S : colorfiles)
+                sbwt::check_readable(S);
         }
 
         if(coloring_structure_type != "sdsl-hybrid" && coloring_structure_type != "roaring"){
@@ -141,13 +154,13 @@ struct Build_Config{
 
     string to_string(){
         stringstream ss;
-        if(inputfile != ""){
-            ss << "Input file = " << inputfile << "\n";
-            ss << "Input format = " << input_format.extension << "\n";
+        if(seqfile_CLI_variable != ""){
+            ss << "Sequence file = " << seqfile_CLI_variable << "\n";
+            //ss << "Input format = " << input_format.extension << "\n";
         } else{
             ss << "Building from index prefix = " << from_index << "\n";
         }
-        if(colorfile != "") ss << "Color name file = " << colorfile << "\n";
+        if(colorfile_CLI_variable != "") ss << "Color name file = " << colorfile_CLI_variable << "\n";
         ss << "Index de Bruijn graph output file = " << index_dbg_file << "\n";
         ss << "Index coloring output file = " << index_color_file << "\n";
         ss << "Temporary directory = " << temp_dir << "\n";
@@ -155,7 +168,7 @@ struct Build_Config{
         ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
-        ss << "User-specified colors = " << (colorfile == "" ? "false" : "true") << "\n";
+        ss << "User-specified colors = " << (colorfile_CLI_variable == "" ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
         ss << "Coloring structure type: " << coloring_structure_type << "\n"; 
@@ -197,13 +210,13 @@ void build_coloring(plain_matrix_sbwt_t& dbg, Metadata_Stream* cfs, const Build_
     if(C.input_format.gzipped){
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped
         Coloring_Builder<colorset_t, reader_t> cb;
-        reader_t reader({C.inputfile});
+        reader_t reader(C.seqfiles);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
         Coloring_Builder<colorset_t, reader_t> cb; // Builder without gzipped input
-        reader_t reader({C.inputfile});
+        reader_t reader(C.seqfiles);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
     }
@@ -245,39 +258,10 @@ void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_colori
     
     throwing_ofstream dbg_out(C.index_dbg_file);
     dbg.serialize(dbg_out.stream);
-
-    
-
 }
 
-// Creates a new file and returns the new filename.
-// Transforms:
-// 1
-// 2
-// 3
-// Into:
-// 1
-// 1
-// 2
-// 2
-// 3
-// 3
-string duplicate_each_color(const string& colorfile){
-    Buffered_ifstream<> in(colorfile);
-
-    string newfile = get_temp_file_manager().create_filename("",".txt");
-    Buffered_ofstream<> out(newfile);
-
-    char newline = '\n';
-    string line;
-    while(in.getline(line)){
-        out.write(line.data(), line.size());
-        out.write(&newline, 1);
-        out.write(line.data(), line.size());
-        out.write(&newline, 1);
-    }
-
-    return newfile;
+bool has_suffix_dot_txt(const string& S){
+    return S.size() >= 4 && S.substr(S.size()-4) == ".txt";
 }
 
 int build_index_main(int argc, char** argv){
@@ -331,11 +315,7 @@ int build_index_main(int argc, char** argv){
 
     Build_Config C;
     C.k = opts["k"].as<int64_t>();
-    C.inputfile = opts["input-file"].as<string>();
-    if(C.inputfile != "")
-        C.input_format = sbwt::SeqIO::figure_out_file_format(C.inputfile);
     C.n_threads = opts["n-threads"].as<int64_t>();
-    C.colorfile = opts["color-file"].as<string>();
     C.index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
@@ -349,6 +329,27 @@ int build_index_main(int argc, char** argv){
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
     C.reverse_complements = opts["reverse-complements"].as<bool>();
     C.from_index = opts["from-index"].as<string>();
+
+    C.colorfile_CLI_variable = opts["color-file"].as<string>();
+    if(has_suffix_dot_txt(C.colorfile_CLI_variable)){
+        // List of filenames
+        C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable); 
+    } else{
+        // Single file
+        C.colorfiles = {C.colorfile_CLI_variable};
+    }
+
+    C.seqfile_CLI_variable = opts["input-file"].as<string>();
+    if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
+        // List of filenames
+        C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable); 
+    } else{
+        // Single file
+        C.seqfiles = {C.seqfile_CLI_variable};
+    }
+
+    if(C.seqfiles.size() > 0)
+        C.input_format = sbwt::SeqIO::figure_out_file_format(C.seqfiles[0]);
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -399,18 +400,21 @@ int build_index_main(int argc, char** argv){
         // KMC takes care of this
     } else {
         write_log("Replacing non-ACGT characters with random nucleotides", LogLevel::MAJOR);
-        C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
+        for(string& S : C.seqfiles){
+            S = fix_alphabet(S); // Turns the file into fasta format also
+            C.input_format = sbwt::SeqIO::figure_out_file_format(S);
+        }
     }
 
     std::unique_ptr<Metadata_Stream> color_stream;
 
     if(!C.no_colors){
-        if(C.colorfile == ""){
+        if(C.colorfiles.size() == 00){
             // Color each sequence separately
             color_stream = make_unique<Unique_For_Each_Sequence_Color_Stream>(C.reverse_complements);
         } else{
             // User-defined colors
-            color_stream = make_unique<Colorfile_Stream>(C.colorfile, C.reverse_complements);
+            color_stream = make_unique<Colorfile_Stream>(C.colorfiles, C.reverse_complements);
         }
     }
 
@@ -423,19 +427,20 @@ int build_index_main(int argc, char** argv){
     } else{
         sbwt::write_log("Building de Bruijn Graph", sbwt::LogLevel::MAJOR);
 
-        vector<string> KMC_input_files = {C.inputfile};
+        vector<string> KMC_input_files = C.seqfiles;
         if(C.reverse_complements){
-            write_log("Creating reverse complemented copy of " + C.inputfile + " to " + sbwt::get_temp_file_manager().get_dir(), LogLevel::MAJOR);
-            sbwt::SeqIO::FileFormat fileformat = sbwt::SeqIO::figure_out_file_format(C.inputfile);;    
-            if(fileformat.gzipped){
-                KMC_input_files.push_back(sbwt::SeqIO::create_reverse_complement_files<
+            write_log("Creating reverse complemented copies of sequence files to " + sbwt::get_temp_file_manager().get_dir(), LogLevel::MAJOR);
+            vector<string> rc_files;
+            if(C.input_format.gzipped){
+                rc_files = sbwt::SeqIO::create_reverse_complement_files<
                     sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<sbwt::zstr::ifstream>>,
-                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<sbwt::zstr::ofstream>>>({C.inputfile})[0]);
+                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<sbwt::zstr::ofstream>>>(C.seqfiles);
             } else{
-                KMC_input_files.push_back(sbwt::SeqIO::create_reverse_complement_files<
+                rc_files = (sbwt::SeqIO::create_reverse_complement_files<
                     sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
-                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>({C.inputfile})[0]);
+                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(C.seqfiles));
             }
+            for(string S : rc_files) KMC_input_files.push_back(S);
         }
         
         sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
