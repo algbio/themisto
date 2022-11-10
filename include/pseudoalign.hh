@@ -116,9 +116,15 @@ private:
 typedef Pseudoaligner_Base<coloring_t> Base;
 double count_threshold; // Fraction of k-mers that need to be found to report pseudoalignment to a color
 
+// State used during callback
+vector<int64_t> counts; // counts[i] = number of occurrences of color i
+vector<int64_t> nonzero_count_indices; // Indices in this->counts that have a non-zero value
+
 public:
 
-    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){}
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){
+        counts.resize(coloring->largest_color() + 1); // Initializes counts to zeroes
+    }
 
     virtual void callback(const char* S, int64_t S_size, int64_t string_id){
         char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
@@ -140,7 +146,6 @@ public:
                 Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
             }
 
-            unordered_map<int64_t, int64_t> counts; // color id -> count of that color id
             typename coloring_t::colorset_type fw_set;
             int64_t n_kmers = S_size - Base::k  + 1;
             int64_t run_length = 0; // Number of consecutive identical color sets 
@@ -166,6 +171,7 @@ public:
 
                     // Add the run length to the counts
                     for(int64_t color : fw_set.get_colors_as_vector()){
+                        if(counts[color] == 0) nonzero_count_indices.push_back(color);
                         counts[color] += run_length;
                     }
 
@@ -176,7 +182,8 @@ public:
             // Print the colors of all counters that are above threshold
             int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
             Base::add_to_output(string_to_int_buffer, len); // String id
-            for(auto [color, count] : counts){
+            for(int64_t color : nonzero_count_indices){
+                int64_t count = counts[color];
                 if(count >= (S_size - Base::k + 1) * count_threshold){
                     // Report color
                     len = fast_int_to_string(color, string_to_int_buffer);
@@ -185,6 +192,12 @@ public:
                 }
             }
             Base::add_to_output(&newline, 1);
+
+            // Reset counts
+            for(int64_t idx : nonzero_count_indices){
+                counts[idx] = 0;
+            }
+            nonzero_count_indices.clear();
         }
     }
 
