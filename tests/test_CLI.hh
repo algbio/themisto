@@ -329,6 +329,60 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
         ASSERT_EQ(true_colors[kmer], parsed_colors); // Check that the colors are correct
         line_idx++;
     }
+}
 
+TEST_F(CLI_TEST, multiple_input_files_user_colors){
+    string gzip_outfile = get_temp_file_manager().create_filename("", ".fna.gz");
 
+    int64_t m = 20; // Number of sequences
+    int64_t k = 6;
+
+    // Generate data
+    vector<string> seqs;
+    vector<int64_t> colors;
+    for(int64_t i = 0; i < m; i++){
+        seqs.push_back(get_random_dna_string(10,4));
+        colors.push_back(rand() % m);
+    }
+
+    // Split to files, 3 sequences per file
+    vector<string> seqfiles;
+    vector<string> colorfiles;
+    for(int64_t i = 0; i < m; i += 3){
+        vector<string> S(seqs.begin() + i, seqs.begin() + min(i + 3, m));
+        vector<int64_t> C(colors.begin() + i, colors.begin() + min(i + 3, m));
+
+        seqfiles.push_back(get_temp_file_manager().create_filename("", ".fna"));
+        colorfiles.push_back(get_temp_file_manager().create_filename("", ".txt"));
+
+        write_as_fasta(S, seqfiles.back());
+        write_vector(C, colorfiles.back());
+    }
+
+    string seqfile_list = get_temp_file_manager().create_filename("", ".txt");
+    string colorfile_list = get_temp_file_manager().create_filename("", ".txt");
+
+    write_vector(seqfiles, seqfile_list);
+    write_vector(colorfiles, colorfile_list);
+
+    string index_prefix = get_temp_file_manager().create_filename();
+
+    // Build index for the multiple files. Check that it is the same as if the index was build from just a single file.
+    vector<string> args = {"build", "-k", to_string(k), "-i", seqfile_list, "-c", colorfile_list, "-o", index_prefix, "--temp-dir", tempdir};
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+
+    string all_seq_file = get_temp_file_manager().create_filename("", ".fna");
+    string all_colors_file = get_temp_file_manager().create_filename("", ".txt");
+    write_as_fasta(seqs, all_seq_file);
+    write_vector(colors, all_colors_file);
+
+    string index_prefix2 = get_temp_file_manager().create_filename();
+
+    vector<string> args2 = {"build", "-k", to_string(k), "-i", all_seq_file, "-c", all_colors_file, "-o", index_prefix2, "--temp-dir", tempdir};
+    sbwt::Argv argv2(args2);
+    build_index_main(argv2.size, argv2.array);
+
+    ASSERT_TRUE(files_are_equal(index_prefix + ".tdbg", index_prefix2 + ".tdbg"));
+    ASSERT_TRUE(files_are_equal(index_prefix + ".tcolors", index_prefix2 + ".tcolors"));
 }
