@@ -92,12 +92,14 @@ private:
             output_buffer_size += 8+8;
         }
 
+        // It is our responsibility to interpret AND DELETE the metadata
         virtual void callback(const char* S,
                               int64_t S_size,
                               int64_t string_id,
                               void* metadata) {
 
             int64_t color = *reinterpret_cast<int64_t*>(metadata);
+            cout << string(S, S_size) << " " << string_id << " " << color << endl;
             const std::size_t k = index.get_k();
 
             write_log("Adding colors for sequence " + std::to_string(string_id), LogLevel::MINOR);

@@ -13,6 +13,30 @@
 
 using namespace std;
 
+// A color stream for the metadata stream in WorkDispatcher
+class Colorfile_Stream : public Metadata_Stream{
+
+public:
+
+    Buffered_ifstream<> in;
+    string line; // Buffer for reading lines
+    string filename;
+    int64_t x; // The current color
+
+    Colorfile_Stream(string filename) : in(filename), filename(filename) {}
+
+    virtual void* next(){
+        if(!in.getline(line)){
+            throw std::runtime_error("Error: could not read next color from file " + filename);
+        }
+
+        // Read successful
+        x = fast_string_to_int(line.c_str(), line.size());
+        return &x;
+    }
+
+};
+
 struct Build_Config{
     int64_t k = 0;
     int64_t n_threads = 1;
@@ -127,7 +151,7 @@ string generate_default_colorfile(sequence_reader_t& reader, bool reverse_comple
 
 // Builds and serializes to disk
 template<typename colorset_t>
-void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
+void build_coloring(plain_matrix_sbwt_t& dbg, Colorfile_Stream& cfs, const Build_Config& C){
 
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
@@ -135,13 +159,13 @@ void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assig
         Coloring_Builder<colorset_t, reader_t> cb;
         reader_t reader({C.inputfile});
         if(C.reverse_complements) reader.enable_reverse_complements();
-        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+        cb.build_coloring(coloring, dbg, reader, &cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
         Coloring_Builder<colorset_t, reader_t> cb; // Builder without gzipped input
         reader_t reader({C.inputfile});
         if(C.reverse_complements) reader.enable_reverse_complements();
-        cb.build_coloring(coloring, dbg, reader, color_assignment, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
+        cb.build_coloring(coloring, dbg, reader, &cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
     }
     sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
     coloring.serialize(out.stream);
@@ -399,18 +423,16 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
-
-        vector<int64_t> color_assignment = read_colorfile(C.colorfile);
+        Colorfile_Stream cfs(C.colorfile);
         if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, color_assignment, C);
+            build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, cfs, C);
         } else if(C.coloring_structure_type == "roaring"){
-            build_coloring<Roaring_Color_Set>(*dbg_ptr, color_assignment, C);
+            build_coloring<Roaring_Color_Set>(*dbg_ptr, cfs, C);
         }
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
 
     sbwt::write_log("Finished", sbwt::LogLevel::MAJOR);
-
     return 0;
 }

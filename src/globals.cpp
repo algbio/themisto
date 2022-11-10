@@ -319,3 +319,13 @@ int64_t fast_int_to_string(int64_t x, char* buffer){
     buffer[i] = '\0';
     return i;
 }
+
+int64_t fast_string_to_int(const char* S, int64_t S_length){
+    int64_t x = 0;
+    int64_t pow10 = 1;
+    for(int64_t i = S_length - 1; i >= 0; i--){
+        x += pow10 * (S[i] - '0');
+        pow10 *= 10;
+    }
+    return x;
+}

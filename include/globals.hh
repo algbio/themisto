@@ -49,3 +49,5 @@ void sigabrt_handler(int sig);
 // Fast manual integer-to-string conversion. ASSUMES x >= -1
 // Returns the length of the string
 int64_t fast_int_to_string(int64_t x, char* buffer);
+
+int64_t fast_string_to_int(const char* S, int64_t S_length);
