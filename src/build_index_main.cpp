@@ -331,21 +331,18 @@ int build_index_main(int argc, char** argv){
     C.from_index = opts["from-index"].as<string>();
 
     C.colorfile_CLI_variable = opts["color-file"].as<string>();
-    if(has_suffix_dot_txt(C.colorfile_CLI_variable)){
-        // List of filenames
-        C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable); 
-    } else{
-        // Single file
-        C.colorfiles = {C.colorfile_CLI_variable};
-    }
-
     C.seqfile_CLI_variable = opts["input-file"].as<string>();
+
     if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
         // List of filenames
         C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable); 
+        C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
     } else{
         // Single file
-        C.seqfiles = {C.seqfile_CLI_variable};
+        if(C.seqfile_CLI_variable != "")
+            C.seqfiles = {C.seqfile_CLI_variable};
+        if(C.colorfile_CLI_variable != "")
+            C.colorfiles = {C.colorfile_CLI_variable};
     }
 
     if(C.seqfiles.size() > 0)
