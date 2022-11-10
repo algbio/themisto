@@ -26,6 +26,28 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 
+// Color stream from an in-memory vector
+class In_Memory_Color_Stream : public Metadata_Stream{
+
+private:
+
+    vector<int64_t> colors;
+    int64_t idx = 0; // Current index
+
+public:
+
+    In_Memory_Color_Stream(vector<int64_t> colors) : colors(colors) {}
+
+    virtual void* next(){
+        if(idx == colors.size()) return nullptr; // Done
+        void* ptr = (void*)(&(colors[idx++]));
+        return ptr;
+
+    }
+
+};
+
+
 template<typename colorset_t = SDSL_Variant_Color_Set,
          typename sequence_reader_t = sbwt::SeqIO::Reader<>> 
 requires Color_Set_Interface<colorset_t>
@@ -34,7 +56,6 @@ class Coloring_Builder{
 private:
 
     class ColorPairAlignerThread : public DispatcherConsumerCallback {
-        const std::vector<std::int64_t>& seq_id_to_color_id;
         ParallelBinaryOutputWriter& out;
         const std::size_t output_buffer_max_size;
         std::size_t output_buffer_size = 0;
@@ -44,12 +65,10 @@ private:
         std::int64_t largest_color_id = 0;
 
     public:
-        ColorPairAlignerThread(const std::vector<std::int64_t>& seq_id_to_color_id,
-                      ParallelBinaryOutputWriter& out,
+        ColorPairAlignerThread(ParallelBinaryOutputWriter& out,
                       const std::size_t output_buffer_max_size,
                       const plain_matrix_sbwt_t& index,
                       const sdsl::bit_vector& cores) :
-            seq_id_to_color_id(seq_id_to_color_id),
             out(out),
             output_buffer_max_size(output_buffer_max_size),
             index(index),
@@ -75,9 +94,10 @@ private:
 
         virtual void callback(const char* S,
                               int64_t S_size,
-                              int64_t string_id) {
+                              int64_t string_id,
+                              void* metadata) {
 
-            const std::int64_t color = seq_id_to_color_id.at(string_id);
+            int64_t color = *reinterpret_cast<int64_t*>(metadata);
             const std::size_t k = index.get_k();
 
             write_log("Adding colors for sequence " + std::to_string(string_id), LogLevel::MINOR);
@@ -109,7 +129,7 @@ private:
     // Return the filename of the generated node-color pairs, and the largest color id
     pair<std::string, int64_t> get_node_color_pairs(const plain_matrix_sbwt_t& index,
                                      sequence_reader_t& reader,
-                                     const std::vector<std::int64_t>& seq_id_to_color_id,
+                                     Metadata_Stream* metadata_stream,
                                      const sdsl::bit_vector& cores,
                                      const std::size_t n_threads) {
         const std::string outfile = get_temp_file_manager().create_filename();
@@ -118,7 +138,7 @@ private:
 
         std::vector<DispatcherConsumerCallback*> threads;
         for (std::size_t i = 0; i < n_threads; ++i) {
-            ColorPairAlignerThread* T = new ColorPairAlignerThread(seq_id_to_color_id,
+            ColorPairAlignerThread* T = new ColorPairAlignerThread(
                                                  writer,
                                                  1024*1024,
                                                  index,
@@ -126,7 +146,7 @@ private:
             threads.push_back(T);
         }
 
-        run_dispatcher(threads, reader, 1024*1024);
+        run_dispatcher(threads, reader, metadata_stream, 1024*1024);
 
         std::vector<std::int64_t> largest_color_ids;
         for (DispatcherConsumerCallback* t : threads) {
@@ -413,8 +433,20 @@ private:
     void build_coloring(
                     Coloring<colorset_t>& coloring,
                     const plain_matrix_sbwt_t& index,
-                    sequence_reader_t& sequence_reader, 
-                    const std::vector<std::int64_t>& colors_assignments,
+                    sequence_reader_t& sequence_reader,
+                    const vector<int64_t>& color_assignment,
+                    const std::int64_t ram_bytes,
+                    const std::int64_t n_threads,
+                    int64_t colorset_sampling_distance) {
+        In_Memory_Color_Stream imcs(color_assignment);
+        build_coloring(coloring, index, sequence_reader, &imcs, ram_bytes, n_threads, colorset_sampling_distance);
+    }
+
+    void build_coloring(
+                    Coloring<colorset_t>& coloring,
+                    const plain_matrix_sbwt_t& index,
+                    sequence_reader_t& sequence_reader,
+                    Metadata_Stream* metadata_stream,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,
                     int64_t colorset_sampling_distance) {
@@ -430,7 +462,7 @@ private:
 
         write_log("Getting node color pairs", LogLevel::MAJOR);
         std::string node_color_pairs; int64_t largest_color_id;
-        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, sequence_reader, colors_assignments, cores, n_threads);
+        std::tie(node_color_pairs, largest_color_id) = get_node_color_pairs(index, sequence_reader, metadata_stream, cores, n_threads);
         coloring.largest_color_id = largest_color_id;
 
         write_log("Sorting node color pairs", LogLevel::MAJOR);

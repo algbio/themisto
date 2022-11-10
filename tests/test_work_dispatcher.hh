@@ -15,11 +15,13 @@ public:
     bool finished_flag = false;
     vector<string> received_strings;
     vector<int64_t> received_string_ids;
+    vector<int64_t> received_metadata;
     int64_t busywork = 0;
 
-    virtual void callback(const char* S, int64_t S_size, int64_t string_id){
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
         received_strings.push_back(string(S,S_size));
         received_string_ids.push_back(string_id);
+        received_metadata.push_back(*reinterpret_cast<int64_t*>(metadata));
         for(int64_t i = 0; i < 100000; i++) busywork++; // Do some "work"
     }
 
@@ -30,13 +32,35 @@ public:
     virtual ~DispatcherConsumerTestCallback() {} 
 };
 
+// Color stream from an in-memory vector
+class In_Memory_Int_Stream : public Metadata_Stream{
+
+private:
+
+    vector<int64_t> ints;
+    int64_t idx = 0; // Current index
+
+public:
+
+    In_Memory_Int_Stream(vector<int64_t> ints) : ints(ints) {}
+
+    virtual void* next(){
+        if(idx == ints.size()) return nullptr; // Done
+        void* ptr = (void*)(&(ints[idx++]));
+        return ptr;
+
+    }
+
+};
+
 TEST(WORK_DISPATCHER, basic_test){
-    // void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, Sequence_Reader_Buffered& sr, int64_t buffer_size);
     vector<string> seqs;
+    vector<int64_t> metadata;
 
     // Create 10MB of sequence data
     for(int64_t i = 0; i < 1e5; i++){
         seqs.push_back(get_random_dna_string(100,4));
+        metadata.push_back(100 + i);
     }
 
     string fastafile = get_temp_file_manager().create_filename("",".fna");
@@ -53,22 +77,24 @@ TEST(WORK_DISPATCHER, basic_test){
         callbacks_no_cast.push_back(cb);
     }
 
-    run_dispatcher(callbacks, sr, buffer_size);
+    In_Memory_Int_Stream metadata_stream(metadata);
+    run_dispatcher(callbacks, sr, &metadata_stream, buffer_size);
 
-    vector<pair<int64_t, string> > pairs; // pairs (string id, string)
+    vector<tuple<int64_t, string, int64_t> > received; // pairs (string id, string, metadata)
     for(int64_t i = 0; i < 4; i++){
         DispatcherConsumerTestCallback* cb = callbacks_no_cast[i];
         ASSERT_EQ(cb->received_string_ids.size(), cb->received_strings.size());
         for(int64_t j = 0; j < cb->received_strings.size(); j++){
-            pairs.push_back({cb->received_string_ids[j], cb->received_strings[j]});
+            received.push_back({cb->received_string_ids[j], cb->received_strings[j], cb->received_metadata[j]});
         }
     }
 
-    ASSERT_EQ(pairs.size(), seqs.size());
-    std::sort(pairs.begin(), pairs.end());
-    for(int64_t i = 0; i < pairs.size(); i++){
-        ASSERT_EQ(pairs[i].first, i);
-        ASSERT_EQ(pairs[i].second, seqs[i]);
+    ASSERT_EQ(received.size(), seqs.size());
+    std::sort(received.begin(), received.end());
+    for(int64_t i = 0; i < received.size(); i++){
+        ASSERT_EQ(get<0>(received[i]), i);
+        ASSERT_EQ(get<1>(received[i]), seqs[i]);
+        ASSERT_EQ(get<2>(received[i]), 100 + i);
     }
 
     for(int64_t i = 0; i < 4; i++)

@@ -19,12 +19,13 @@ void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumer
         }
         ReadBatchIterator rbi(batch, 0);
         int64_t read_id = batch->firstReadID;
+        void* metadata = nullptr;
         const char* read;
         int64_t read_len;
         while(true){
-            std::tie(read, read_len) = rbi.getNextRead();
+            std::tie(read, read_len, metadata) = rbi.getNextRead();
             if(read_len == 0) break; // End of batch
-            cb->callback(read, read_len, read_id);
+            cb->callback(read, read_len, read_id, metadata);
             read_id++;
         }
         delete batch; // Allocated by producer

@@ -126,7 +126,9 @@ public:
         counts.resize(coloring->largest_color() + 1); // Initializes counts to zeroes
     }
 
-    virtual void callback(const char* S, int64_t S_size, int64_t string_id){
+    virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
+        (void) metadata; // Ignored
+
         char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
         char newline = '\n';
         char space = ' ';
@@ -285,7 +287,10 @@ class IntersectionPseudoaligner : public DispatcherConsumerCallback, Pseudoalign
             return result.get_colors_as_vector();
         }
 
-        virtual void callback(const char* S, int64_t S_size, int64_t string_id){
+        virtual void callback(const char* S, int64_t S_size, int64_t string_id, void* metadata){
+
+            (void) metadata; // Ignored
+
             char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
             char newline = '\n';
             char space = ' ';
@@ -358,6 +363,15 @@ std::unique_ptr<ParallelBaseWriter> create_writer(const string& outfile, bool gz
 
 void call_sort_parallel_output_file(const string& outfile, bool gzipped);
 
+// Metadata stream for non-existent metadata
+class Null_Metadata_Stream : public Metadata_Stream{
+
+public:
+    virtual void* next(){
+        return nullptr;
+    }
+};
+
 template<typename coloring_t, typename sequence_reader_t>
 void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output){
 
@@ -369,7 +383,8 @@ void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
         threads.push_back(T);
     }
 
-    run_dispatcher(threads, reader, buffer_size);
+    Null_Metadata_Stream metadata_stream; // No metadata
+    run_dispatcher(threads, reader, &metadata_stream, buffer_size);
 
     // Clean up
     for (DispatcherConsumerCallback* t : threads) delete t;
@@ -391,7 +406,8 @@ void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
         threads.push_back(T);
     }
 
-    run_dispatcher(threads, reader, buffer_size);
+    Null_Metadata_Stream metadata_stream; // No metadata
+    run_dispatcher(threads, reader, &metadata_stream, buffer_size);
 
     // Clean up
     for (DispatcherConsumerCallback* t : threads) delete t;

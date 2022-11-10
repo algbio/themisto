@@ -126,8 +126,9 @@ string generate_default_colorfile(sequence_reader_t& reader, bool reverse_comple
 
 
 // Builds and serializes to disk
-template<typename colorset_t> 
+template<typename colorset_t>
 void build_coloring(plain_matrix_sbwt_t& dbg, const vector<int64_t>& color_assignment, const Build_Config& C){
+
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped

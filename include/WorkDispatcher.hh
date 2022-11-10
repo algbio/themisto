@@ -114,6 +114,14 @@ struct ReadBatch{
     uint64_t firstReadID; // read id of first read in the batch
     vector<char> data; // concatenation of reads
     vector<uint64_t> readStarts; // indicates starting positions of reads in data array, last item is a dummy
+    vector<void*> metadata; // For each read, a pointer to the metadata of the read.
+
+    int64_t byte_size() const{
+        return sizeof(firstReadID) * 1 + 
+               sizeof(char) * data.size() + 
+               sizeof(uint64_t) * readStarts.size() + 
+               sizeof(void*) * metadata.size();
+    }
 };
 
 class ReadBatchIterator{
@@ -126,33 +134,50 @@ public:
 
     ReadBatchIterator(ReadBatch* batch, int64_t start) : batch(batch), pos(start) {}
 
-    // Returns (pointer to start, length). If done, return (NULL, 0)
-    pair<const char*, uint64_t> getNextRead(){
-        if(pos >= (batch->readStarts.size()-1)) return {NULL, 0}; // End of batch
+    // Returns (c-string, length, metadata pointer). If done, return (NULL, 0, NULL)
+    std::tuple<const char*, uint64_t, void*> getNextRead(){
+        if(pos >= (batch->readStarts.size()-1)) return {NULL, 0, NULL}; // End of batch
         uint64_t len = batch->readStarts[pos+1] - batch->readStarts[pos];
         uint64_t start = batch->readStarts[pos];
+        void* metadata = batch->metadata[pos];
         pos++; // Move to next read ready for next call to this function
-        return {(batch->data.data()) + start, len};
+        return {(batch->data.data()) + start, len, metadata};
     }
 };
 
 class DispatcherConsumerCallback{
 public:
-    virtual void callback(const char* S, int64_t S_size, int64_t string_id) = 0;
+    virtual void callback(const char* S, int64_t S_size, int64_t read_id, void* metadata) = 0;
     virtual void finish() = 0;
     virtual ~DispatcherConsumerCallback() {} 
 };
+
+class Metadata_Stream{
+
+    public:
+
+    virtual void* next() = 0; // Returns nullptr if done
+
+};
+
 
 void dispatcher_consumer(ParallelBoundedQueue<ReadBatch*>& Q, DispatcherConsumerCallback* cb, int64_t thread_id);
 
 // Will run characters through fix_char, which at the moment of writing this comment
 // upper-cases the character and further the result is not A, C, G or T, changes it to A.
 template<typename sequence_reader_t>
-void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t& sr, int64_t batch_size){
+void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t& sr, Metadata_Stream* metadata_stream, int64_t batch_size){
     // Push work in batches of approximately buffer_size base pairs
 
     int64_t read_id = 0;
     ReadBatch* batch = new ReadBatch(); // Deleted by consumer
+
+    auto push_batch = [&](){
+        batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
+        batch->metadata.push_back(nullptr); // Append the end sentinel
+        Q.push(batch, batch->byte_size());
+        batch = new ReadBatch(); // Clear
+    };
 
     while(true){
         // Create a new read batch and push it to the work queue
@@ -160,32 +185,26 @@ void dispatcher_producer(ParallelBoundedQueue<ReadBatch*>& Q, sequence_reader_t&
         int64_t len = sr.get_next_read_to_buffer();
         if(len == 0){
             // All reads read. Push the current batch if it's non-empty and quit
-            if(batch->data.size() > 0) {
-                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
-                Q.push(batch, batch->data.size());
-                batch = new ReadBatch(); // Clear
-            }
+            if(batch->data.size() > 0) push_batch();
             break; // quit
         } else{
             // Add read to batch
             if(batch->data.size() == 0) batch->firstReadID = read_id;
-            batch->readStarts.push_back(batch->data.size());   
+            batch->readStarts.push_back(batch->data.size());
+            batch->metadata.push_back(metadata_stream->next());
             for(int64_t i = 0; i < len; i++) batch->data.push_back(sr.read_buf[i]);
-            if(batch->data.size() >= batch_size){
-                batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
-                Q.push(batch, batch->data.size());
-                batch = new ReadBatch(); // Clear
-            }
+            if(batch->data.size() >= batch_size) push_batch();
             read_id++;
         }
     }
     
     batch->readStarts.push_back(batch->data.size()); // Append the end sentinel
+    batch->metadata.push_back(nullptr); // Append the end sentinel
     Q.push(batch,0); // Empty batch in the end signifies end of the queue
 }
 
 template<typename sequence_reader_t>
-void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_reader_t& sr, int64_t buffer_size){
+void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_reader_t& sr, Metadata_Stream* metadata_stream, int64_t buffer_size){
     vector<std::thread> threads;
     ParallelBoundedQueue<ReadBatch*> Q(buffer_size);
 
@@ -195,7 +214,7 @@ void run_dispatcher(vector<DispatcherConsumerCallback*>& callbacks, sequence_rea
     }
 
     // Create producer
-    threads.push_back(std::thread(dispatcher_producer<sequence_reader_t>,std::ref(Q),std::ref(sr),buffer_size));
+    threads.push_back(std::thread(dispatcher_producer<sequence_reader_t>,std::ref(Q),std::ref(sr),metadata_stream,buffer_size));
 
     for(std::thread& t : threads) t.join();
 
