@@ -135,7 +135,7 @@ public:
 
     ReadBatchIterator(ReadBatch* batch, int64_t start) : batch(batch), pos(start) {}
 
-    // Returns (c-string, length, metadata pointer). If done, return (NULL, 0, NULL)
+    // Returns (c-string, length, metadata). If done, return (NULL, 0, NULL)
     std::tuple<const char*, uint64_t, std::array<uint8_t, 8>> getNextRead(){
         if(pos >= (batch->readStarts.size()-1)) return {NULL, 0, dummy_metadata}; // End of batch
         uint64_t len = batch->readStarts[pos+1] - batch->readStarts[pos];
@@ -162,7 +162,7 @@ class Metadata_Stream{
 
     public:
 
-    virtual std::array<uint8_t, 8> next() = 0; // Returns nullptr if done
+    virtual std::array<uint8_t, 8> next() = 0; // Undefined behavior if called after all the metadata has been read
 
 };
 
