@@ -14,6 +14,7 @@
 using namespace std;
 
 // A color stream for the metadata stream in WorkDispatcher
+// If reverse complements, then duplicates colors like: 0,1,2... -> 0,0,1,1,2,2...
 class Colorfile_Stream : public Metadata_Stream{
 
 public:
@@ -22,22 +23,55 @@ public:
     string line; // Buffer for reading lines
     string filename;
     int64_t x; // The current color
+    bool reverse_complements;
+    bool rc_flag = false; // For duplicating colors
 
-    Colorfile_Stream(string filename) : in(filename), filename(filename) {}
+    Colorfile_Stream(string filename, bool reverse_complements) : in(filename), filename(filename), reverse_complements(reverse_complements) {}
 
     virtual std::array<uint8_t, 8> next(){
-        if(!in.getline(line)){
-            throw std::runtime_error("Error: could not read next color from file " + filename);
+
+        if(reverse_complements && rc_flag){
+            // Don't read next color from file but re-use previous
+        } else{
+            if(!in.getline(line)){
+                throw std::runtime_error("Error: could not read next color from file " + filename);
+            }
+            x = fast_string_to_int(line.c_str(), line.size()); // Parse
         }
-
-        // Read successful
-
-        x = fast_string_to_int(line.c_str(), line.size()); // Parse
 
         // Return as std::array<uint8_t, 8>
         std::array<uint8_t, 8> ret;
         int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
         *ptr = x;
+
+        rc_flag = !rc_flag;
+        return ret;
+    }
+
+};
+
+
+// A color stream that generates colors 0,1,2... if no reverse complements,
+// otherwise 0,0,1,1,2,2,..
+class Unique_For_Each_Sequence_Color_Stream : public Metadata_Stream{
+
+public:
+
+    int64_t x; // The current color
+    bool reverse_complements;
+    bool increment_flag;
+
+    Unique_For_Each_Sequence_Color_Stream(bool reverse_complements) : x(0), reverse_complements(reverse_complements), increment_flag(false){}
+
+    virtual std::array<uint8_t, 8> next(){
+        // Return as std::array<uint8_t, 8>
+        std::array<uint8_t, 8> ret;
+        int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
+        *ptr = x;
+
+        if(!reverse_complements || increment_flag) x++;
+        increment_flag = !increment_flag;
+
         return ret;
     }
 
@@ -157,7 +191,7 @@ string generate_default_colorfile(sequence_reader_t& reader, bool reverse_comple
 
 // Builds and serializes to disk
 template<typename colorset_t>
-void build_coloring(plain_matrix_sbwt_t& dbg, Colorfile_Stream& cfs, const Build_Config& C){
+void build_coloring(plain_matrix_sbwt_t& dbg, Metadata_Stream* cfs, const Build_Config& C){
 
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
@@ -165,13 +199,13 @@ void build_coloring(plain_matrix_sbwt_t& dbg, Colorfile_Stream& cfs, const Build
         Coloring_Builder<colorset_t, reader_t> cb;
         reader_t reader({C.inputfile});
         if(C.reverse_complements) reader.enable_reverse_complements();
-        cb.build_coloring(coloring, dbg, reader, &cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
+        cb.build_coloring(coloring, dbg, reader, cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
         Coloring_Builder<colorset_t, reader_t> cb; // Builder without gzipped input
         reader_t reader({C.inputfile});
         if(C.reverse_complements) reader.enable_reverse_complements();
-        cb.build_coloring(coloring, dbg, reader, &cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
+        cb.build_coloring(coloring, dbg, reader, cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);        
     }
     sbwt::throwing_ofstream out(C.index_color_file, ios::binary);
     coloring.serialize(out.stream);
@@ -368,23 +402,15 @@ int build_index_main(int argc, char** argv){
         C.inputfile = fix_alphabet(C.inputfile); // Turns the file into fasta format also
     }
 
+    std::unique_ptr<Metadata_Stream> color_stream;
+
     if(!C.no_colors){
         if(C.colorfile == ""){
-            // Automatic colors
-            sbwt::write_log("Assigning colors", sbwt::LogLevel::MAJOR);
-            if(C.input_format.gzipped){
-                sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(C.inputfile);
-                C.colorfile = generate_default_colorfile(reader, C.reverse_complements);
-            } else{
-                sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(C.inputfile);
-                C.colorfile = generate_default_colorfile(reader, C.reverse_complements);
-            }
+            // Color each sequence separately
+            color_stream = make_unique<Unique_For_Each_Sequence_Color_Stream>(C.reverse_complements);
         } else{
             // User-defined colors
-            if(C.reverse_complements){
-                sbwt::write_log("Duplicating colors for reverse complements", sbwt::LogLevel::MAJOR);
-                C.colorfile = duplicate_each_color(C.colorfile);
-            }
+            color_stream = make_unique<Colorfile_Stream>(C.colorfile, C.reverse_complements);
         }
     }
 
@@ -429,16 +455,16 @@ int build_index_main(int argc, char** argv){
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
-        Colorfile_Stream cfs(C.colorfile);
         if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, cfs, C);
+            build_coloring<SDSL_Variant_Color_Set>(*dbg_ptr, color_stream.get(), C);
         } else if(C.coloring_structure_type == "roaring"){
-            build_coloring<Roaring_Color_Set>(*dbg_ptr, cfs, C);
+            build_coloring<Roaring_Color_Set>(*dbg_ptr, color_stream.get(), C);
         }
     } else{
         std::filesystem::remove(C.index_color_file); // There is an empty file so let's remove it
     }
 
     sbwt::write_log("Finished", sbwt::LogLevel::MAJOR);
+
     return 0;
 }
