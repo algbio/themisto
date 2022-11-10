@@ -342,7 +342,7 @@ TEST_F(CLI_TEST, multiple_input_files_user_colors){
     vector<int64_t> colors;
     for(int64_t i = 0; i < m; i++){
         seqs.push_back(get_random_dna_string(10,4));
-        colors.push_back(rand() % m);
+        colors.push_back(i / 3); // Will be equal to file colors
     }
 
     // Split to files, 3 sequences per file
@@ -367,22 +367,32 @@ TEST_F(CLI_TEST, multiple_input_files_user_colors){
 
     string index_prefix = get_temp_file_manager().create_filename();
 
-    // Build index for the multiple files. Check that it is the same as if the index was build from just a single file.
+    // Build from multiple files
     vector<string> args = {"build", "-k", to_string(k), "-i", seqfile_list, "-c", colorfile_list, "-o", index_prefix, "--temp-dir", tempdir};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
 
+    // Build concatenated file
     string all_seq_file = get_temp_file_manager().create_filename("", ".fna");
     string all_colors_file = get_temp_file_manager().create_filename("", ".txt");
     write_as_fasta(seqs, all_seq_file);
     write_vector(colors, all_colors_file);
 
     string index_prefix2 = get_temp_file_manager().create_filename();
-
     vector<string> args2 = {"build", "-k", to_string(k), "-i", all_seq_file, "-c", all_colors_file, "-o", index_prefix2, "--temp-dir", tempdir};
     sbwt::Argv argv2(args2);
     build_index_main(argv2.size, argv2.array);
 
+    // Build with file colors
+
+    string index_prefix3 = get_temp_file_manager().create_filename();
+    vector<string> args3 = {"build", "-k", to_string(k), "-i", seqfile_list, "--file-colors", "-o", index_prefix3, "--temp-dir", tempdir};
+    sbwt::Argv argv3(args3);
+    build_index_main(argv3.size, argv3.array);
+
     ASSERT_TRUE(files_are_equal(index_prefix + ".tdbg", index_prefix2 + ".tdbg"));
     ASSERT_TRUE(files_are_equal(index_prefix + ".tcolors", index_prefix2 + ".tcolors"));
+    ASSERT_TRUE(files_are_equal(index_prefix2 + ".tcolors", index_prefix3 + ".tcolors"));
+
+    // Check that file colors gives the same answer
 }
