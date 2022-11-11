@@ -61,7 +61,6 @@ public:
 
 
 // A colors stream with a unique color for each file
-template<typename reader_t>
 class Unique_For_Each_File_Color_Stream : public Metadata_Stream{
 
 public:
@@ -319,7 +318,7 @@ int build_index_main(int argc, char** argv){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
-        ("f,file-colors", "TODO DOCUMENT THIS", cxxopts::value<string>()->default_value(""))
+        ("f,file-colors", "TODO DOCUMENT THIS", cxxopts::value<bool>()->default_value("false"))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
@@ -374,8 +373,9 @@ int build_index_main(int argc, char** argv){
 
     if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
         // List of filenames
-        C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable); 
-        C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
+        C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable);
+        if(C.colorfile_CLI_variable != "")
+            C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
     } else{
         // Single file
         if(C.seqfile_CLI_variable != "")
