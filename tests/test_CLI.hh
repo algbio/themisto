@@ -150,7 +150,7 @@ TEST_F(CLI_TEST, no_colors){
         build_index_main(argv_bad.size, argv_bad.array);
         FAIL(); // Did not throw
     } catch(const std::exception &e){
-        ASSERT_EQ(string(e.what()), "Must not give both --no-colors and --colorfile");
+        ASSERT_EQ(string(e.what()), "Must not give both --no-colors and --manual-colors");
     }
 }
 

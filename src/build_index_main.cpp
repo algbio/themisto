@@ -314,6 +314,7 @@ int build_index_main(int argc, char** argv_given){
     char legacy_support_fix[] = "-k";
     char legacy_support_fix2[] = "--manual-colors";
     char legacy_support_fix3[] = "--sequence-colors";
+    argv[0] = argv_given[0];
     for(int64_t i = 1; i < argc; i++){
         if(string(argv_given[i]) == "--k") argv[i] = legacy_support_fix;
         else if(string(argv_given[i]) == "--color-file") argv[i] = legacy_support_fix2;
