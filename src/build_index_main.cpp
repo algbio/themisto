@@ -142,18 +142,21 @@ struct Build_Config{
     bool verbose = false;
     bool silent = false;
     bool reverse_complements = false;
+
+    bool manual_colors = false;
     bool file_colors = false;
+    bool sequence_colors = false;
     
     void check_valid(){
 
         if(from_index != ""){
             // From existing index
-            sbwt::check_true(colorfiles.size() == 0, "Must not give both --from-index and --colorfile");
+            sbwt::check_true(!manual_colors, "Must not give both --from-index and manual colors");
             sbwt::check_true(seqfiles.size() == 0, "Must not give both --from-index and input sequences");
             sbwt::check_true(no_colors == false, "Must not give both --from-index and --load-dbg");
             sbwt::check_true(k == 0, "Must not give both --from-index and -k because k is defined in the index");
         } else{
-            // From fasta and colorfile
+            // From fasta
             sbwt::check_true(seqfiles.size() > 0, "Input file not set");
             for(const string& S : seqfiles)
                 sbwt::check_readable(S);
@@ -171,7 +174,9 @@ struct Build_Config{
         sbwt::check_writable(index_color_file);
 
         if(colorfiles.size() > 0){
-            sbwt::check_true(!no_colors, "Must not give both --no-colors and --colorfile");
+            sbwt::check_true(!no_colors, "Must not give both --no-colors and --manual-colors");
+            sbwt::check_true(!file_colors, "Must not give both --no-colors and --file-colors");
+            sbwt::check_true(!sequence_colors, "Must not give both --no-colors and --sequence-colors");
             for(const string& S : colorfiles)
                 sbwt::check_readable(S);
         }
@@ -204,7 +209,9 @@ struct Build_Config{
         ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
-        ss << "User-specified colors = " << (colorfile_CLI_variable == "" ? "false" : "true") << "\n";
+        ss << "Manual colors = " << (manual_colors ? "false" : "true") << "\n";
+        ss << "Sequence colors = " << (sequence_colors ? "false" : "true") << "\n";
+        ss << "File colors = " << (file_colors ? "false" : "true") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
         ss << "Coloring structure type: " << coloring_structure_type << "\n"; 
@@ -302,14 +309,14 @@ bool has_suffix_dot_txt(const string& S){
 
 int build_index_main(int argc, char** argv){
 
-    // Legacy support: transform old option format --k to -k
+    // Legacy support: transform old option names to new ones
     string legacy_support_fix = "-k";
+    string legacy_support_fix2 = "--manual-colors";
+    string legacy_support_fix3 = "--sequence-colors";
     for(int64_t i = 1; i < argc; i++){
-        if(string(argv[i]) == "--auto-colors"){
-            cerr << "Flag --auto-colors is now redundant as it is the default behavior starting from Themisto 2.0.0. There are also other changes to the CLI in Themisto 2.0.0. Please read the release notes and update your scripts accordingly." << endl;
-            return 1;
-        }
         if(string(argv[i]) == "--k") argv[i] = &(legacy_support_fix[0]);
+        if(string(argv[i]) == "--color-file") argv[i] = &(legacy_support_fix2[0]);
+        if(string(argv[i]) == "--auto-colors") argv[i] = &(legacy_support_fix3[0]);
     }
 
     cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the Wheeler graph data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
@@ -317,8 +324,9 @@ int build_index_main(int argc, char** argv){
     options.add_options()
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
-        ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
+        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
         ("f,file-colors", "TODO DOCUMENT THIS", cxxopts::value<bool>()->default_value("false"))
+        ("e,sequence-colors", "TODO DOCUMENT THIS. This is the default behavior.", cxxopts::value<bool>()->default_value("false"))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
@@ -366,21 +374,27 @@ int build_index_main(int argc, char** argv){
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
     C.reverse_complements = opts["reverse-complements"].as<bool>();
     C.file_colors = opts["file-colors"].as<bool>();
+    C.sequence_colors = opts["sequence-colors"].as<bool>();
     C.from_index = opts["from-index"].as<string>();
 
-    C.colorfile_CLI_variable = opts["color-file"].as<string>();
+    C.colorfile_CLI_variable = opts["manual-colors"].as<string>();
     C.seqfile_CLI_variable = opts["input-file"].as<string>();
+
+    if(C.colorfile_CLI_variable == "" && !C.file_colors && !C.sequence_colors)
+        C.sequence_colors = true; // Default behavior if no color options are set
+
+    C.manual_colors = !C.file_colors && !C.sequence_colors;
 
     if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
         // List of filenames
         C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable);
-        if(C.colorfile_CLI_variable != "")
+        if(C.manual_colors)
             C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
     } else{
         // Single file
         if(C.seqfile_CLI_variable != "")
             C.seqfiles = {C.seqfile_CLI_variable};
-        if(C.colorfile_CLI_variable != "")
+        if(C.manual_colors)
             C.colorfiles = {C.colorfile_CLI_variable};
     }
 
