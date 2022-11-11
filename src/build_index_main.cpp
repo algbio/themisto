@@ -307,16 +307,18 @@ bool has_suffix_dot_txt(const string& S){
     return S.size() >= 4 && S.substr(S.size()-4) == ".txt";
 }
 
-int build_index_main(int argc, char** argv){
+int build_index_main(int argc, char** argv_given){
 
     // Legacy support: transform old option names to new ones
-    string legacy_support_fix = "-k";
-    string legacy_support_fix2 = "--manual-colors";
-    string legacy_support_fix3 = "--sequence-colors";
+    char** argv = (char**)malloc(sizeof(char*) * argc); // Freed and the and of the function
+    char legacy_support_fix[] = "-k";
+    char legacy_support_fix2[] = "--manual-colors";
+    char legacy_support_fix3[] = "--sequence-colors";
     for(int64_t i = 1; i < argc; i++){
-        if(string(argv[i]) == "--k") argv[i] = &(legacy_support_fix[0]);
-        if(string(argv[i]) == "--color-file") argv[i] = &(legacy_support_fix2[0]);
-        if(string(argv[i]) == "--auto-colors") argv[i] = &(legacy_support_fix3[0]);
+        if(string(argv[i]) == "--k") argv[i] = legacy_support_fix;
+        else if(string(argv[i]) == "--color-file") argv[i] = legacy_support_fix2;
+        else if(string(argv[i]) == "--auto-colors") argv[i] = legacy_support_fix3;
+        else argv[i] = argv_given[i];
     }
 
     cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the Wheeler graph data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
@@ -522,6 +524,8 @@ int build_index_main(int argc, char** argv){
     }
 
     sbwt::write_log("Finished", sbwt::LogLevel::MAJOR);
+
+    free(argv);
 
     return 0;
 }
