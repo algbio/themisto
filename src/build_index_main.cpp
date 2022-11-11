@@ -315,9 +315,9 @@ int build_index_main(int argc, char** argv_given){
     char legacy_support_fix2[] = "--manual-colors";
     char legacy_support_fix3[] = "--sequence-colors";
     for(int64_t i = 1; i < argc; i++){
-        if(string(argv[i]) == "--k") argv[i] = legacy_support_fix;
-        else if(string(argv[i]) == "--color-file") argv[i] = legacy_support_fix2;
-        else if(string(argv[i]) == "--auto-colors") argv[i] = legacy_support_fix3;
+        if(string(argv_given[i]) == "--k") argv[i] = legacy_support_fix;
+        else if(string(argv_given[i]) == "--color-file") argv[i] = legacy_support_fix2;
+        else if(string(argv_given[i]) == "--auto-colors") argv[i] = legacy_support_fix3;
         else argv[i] = argv_given[i];
     }
 
