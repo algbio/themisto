@@ -384,7 +384,6 @@ TEST_F(CLI_TEST, multiple_input_files_user_colors){
     build_index_main(argv2.size, argv2.array);
 
     // Build with file colors
-
     string index_prefix3 = get_temp_file_manager().create_filename();
     vector<string> args3 = {"build", "-k", to_string(k), "-i", seqfile_list, "--file-colors", "-o", index_prefix3, "--temp-dir", tempdir};
     sbwt::Argv argv3(args3);

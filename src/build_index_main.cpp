@@ -60,6 +60,42 @@ public:
 };
 
 
+// A colors stream with a unique color for each file
+template<typename reader_t>
+class Unique_For_Each_File_Color_Stream : public Metadata_Stream{
+
+public:
+
+    vector<int64_t> seq_count_in_file;
+    int64_t cur_file_idx = 0;
+    int64_t cur_file_seq_idx = 0;
+    int64_t x = 0; // Current color
+
+    Unique_For_Each_File_Color_Stream(const vector<string>& filenames){
+        write_log("Counting sequences in input files", sbwt::LogLevel::MAJOR);
+        for(const string& filename : filenames){
+            seq_count_in_file.push_back(sbwt::SeqIO::count_sequences(filename));
+        }
+    }
+
+    virtual std::array<uint8_t, 8> next(){
+        
+        while(cur_file_seq_idx >= seq_count_in_file[cur_file_idx]){
+            cur_file_idx++;
+            cur_file_seq_idx = 0;
+        }
+
+        // Return as std::array<uint8_t, 8>
+        std::array<uint8_t, 8> ret;
+        int64_t* ptr = (int64_t*)ret.data(); // Interpret as int64_t
+        *ptr = cur_file_idx;
+
+        cur_file_seq_idx++;
+
+        return ret;
+    }
+};
+
 // A color stream that generates colors 0,1,2... if no reverse complements,
 // otherwise 0,0,1,1,2,2,..
 class Unique_For_Each_Sequence_Color_Stream : public Metadata_Stream{
@@ -107,6 +143,7 @@ struct Build_Config{
     bool verbose = false;
     bool silent = false;
     bool reverse_complements = false;
+    bool file_colors = false;
     
     void check_valid(){
 
@@ -282,6 +319,7 @@ int build_index_main(int argc, char** argv){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
         ("c,color-file", "One color per sequence in the fasta file, one color per line. If not given, the sequences are given colors 0,1,2... in the order they appear in the input file.", cxxopts::value<string>()->default_value(""))
+        ("f,file-colors", "TODO DOCUMENT THIS", cxxopts::value<string>()->default_value(""))
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
@@ -328,6 +366,7 @@ int build_index_main(int argc, char** argv){
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
     C.reverse_complements = opts["reverse-complements"].as<bool>();
+    C.file_colors = opts["file-colors"].as<bool>();
     C.from_index = opts["from-index"].as<string>();
 
     C.colorfile_CLI_variable = opts["color-file"].as<string>();
@@ -406,7 +445,9 @@ int build_index_main(int argc, char** argv){
     std::unique_ptr<Metadata_Stream> color_stream;
 
     if(!C.no_colors){
-        if(C.colorfiles.size() == 00){
+        if(C.file_colors){
+            color_stream = make_unique<Unique_For_Each_File_Color_Stream>(C.seqfiles);
+        } else if(C.colorfiles.size() == 0){
             // Color each sequence separately
             color_stream = make_unique<Unique_For_Each_Sequence_Color_Stream>(C.reverse_complements);
         } else{
