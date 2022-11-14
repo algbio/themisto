@@ -209,9 +209,9 @@ struct Build_Config{
         ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Number of threads = " << n_threads << "\n";
         ss << "Memory megabytes = " << memory_megas << "\n";
-        ss << "Manual colors = " << (manual_colors ? "false" : "true") << "\n";
-        ss << "Sequence colors = " << (sequence_colors ? "false" : "true") << "\n";
-        ss << "File colors = " << (file_colors ? "false" : "true") << "\n";
+        ss << "Manual colors = " << (manual_colors ? "true" : "false") << "\n";
+        ss << "Sequence colors = " << (sequence_colors ? "true" : "false") << "\n";
+        ss << "File colors = " << (file_colors ? "true" : "false") << "\n";
         ss << "Load DBG = " << (load_dbg ? "true" : "false") << "\n";
         ss << "Handling of non-ACGT characters = " << (del_non_ACGT ? "delete" : "randomize") << "\n";
         ss << "Coloring structure type: " << coloring_structure_type << "\n"; 
