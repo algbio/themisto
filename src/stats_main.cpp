@@ -68,10 +68,14 @@ int stats_main(int argc, char** argv){
 
     if(do_unitigs) get_temp_file_manager().set_dir(opts["temp-dir"].as<string>());
 
-    write_log("Loading the index", LogLevel::MAJOR);
+    write_log("Loading the SBWT", LogLevel::MAJOR);
 
     plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
+
+    cout << "Node length k: " << SBWT.get_k() << endl;
+    cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
+    cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
 
     std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> coloring;
     load_coloring(index_color_file, SBWT, coloring);
@@ -89,10 +93,6 @@ int stats_main(int argc, char** argv){
     auto call_sum_of_all_distinct_color_set_lengths = [](auto& obj) { return obj.sum_of_all_distinct_color_set_lengths(); };
     auto call_space_breakdown = [](auto& obj) { return obj.space_breakdown(); };
 
-
-    cout << "Node length k: " << SBWT.get_k() << endl;
-    cout << "Number of k-mers: " << SBWT.number_of_kmers() << endl;
-    cout << "Number of subsets in the SBWT data structure: " << SBWT.number_of_subsets() << endl;
     cout << "Color id range: 0.." << std::visit(call_largest_color, coloring) << endl;
     cout << "Number of distinct color sets: " << std::visit(call_number_of_distinct_color_sets, coloring) << endl;
     cout << "Sum of sizes of all distinct color sets: " << std::visit(call_sum_of_all_distinct_color_set_lengths, coloring) << endl;
