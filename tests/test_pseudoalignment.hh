@@ -223,6 +223,15 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
 
         vector<vector<int64_t> > our_results_rc = parse_pseudoalignment_output_format_from_disk(final_file_rc);
 
+        // Run with threshold method with threshold 1.0 ignoring unknown k-mers. Should be the same as intersection with rc
+        string final_file_rc_threshold_ignore_unknown = get_temp_file_manager().create_filename("final_file_rc_threshold_ignore_unknown-");
+        stringstream pseudoalign_rc_threshold_ignore_unknown_argstring;
+        pseudoalign_rc_threshold_ignore_unknown_argstring << "pseudoalign --threshold 1 --ignore-unknown-kmers --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc_threshold_ignore_unknown << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001 --sort-output"; // Really small buffer to expose race conditions
+        Argv pseudoalign_rc_threshold_ignore_unknown_argv(split(pseudoalign_rc_threshold_ignore_unknown_argstring.str()));
+        ASSERT_EQ(pseudoalign_main(pseudoalign_rc_threshold_ignore_unknown_argv.size, pseudoalign_rc_threshold_ignore_unknown_argv.array),0);
+
+        vector<vector<int64_t> > our_rc_threshold_ignore_unknown = parse_pseudoalignment_output_format_from_disk(final_file_rc_threshold_ignore_unknown);
+
         // Run with gzipped input
         string final_file_gzip = get_temp_file_manager().create_filename("finalfile_gzip-");
         stringstream pseudoalign_gzip_argstring;
@@ -243,6 +252,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
             ASSERT_EQ(brute, our_results[i]);
             ASSERT_EQ(brute, our_results_gzip[i]);
             ASSERT_EQ(brute_rc, our_results_rc[i]);
+            ASSERT_EQ(brute_rc, our_rc_threshold_ignore_unknown[i]);
         }
     }
 }

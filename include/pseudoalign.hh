@@ -115,7 +115,7 @@ private:
 
 typedef Pseudoaligner_Base<coloring_t> Base;
 double count_threshold; // Fraction of k-mers that need to be found to report pseudoalignment to a color
-bool ignore_unknown_kmers = false; // Ignore k-mers that do not exists in the de Bruijn graph or have no colors
+bool ignore_unknown_kmers = false; // Ignore k-mers that do not exist in the de Bruijn graph or have no colors
 
 // State used during callback
 vector<int64_t> counts; // counts[i] = number of occurrences of color i
