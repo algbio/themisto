@@ -115,6 +115,7 @@ private:
 
 typedef Pseudoaligner_Base<coloring_t> Base;
 double count_threshold; // Fraction of k-mers that need to be found to report pseudoalignment to a color
+bool ignore_unknown_kmers = false; // Ignore k-mers that do not exists in the de Bruijn graph or have no colors
 
 // State used during callback
 vector<int64_t> counts; // counts[i] = number of occurrences of color i
@@ -122,7 +123,7 @@ vector<int64_t> nonzero_count_indices; // Indices in this->counts that have a no
 
 public:
 
-    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, double count_threshold) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold){
+    ThresholdPseudoaligner(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, double count_threshold, bool ignore_unknown) : Pseudoaligner_Base<coloring_t>(SBWT, coloring, out, reverse_complements, output_buffer_capacity), count_threshold(count_threshold), ignore_unknown_kmers(ignore_unknown){
         counts.resize(coloring->largest_color() + 1); // Initializes counts to zeroes
     }
 
@@ -150,6 +151,7 @@ public:
 
             typename coloring_t::colorset_type fw_set;
             int64_t n_kmers = S_size - Base::k  + 1;
+            int64_t n_kmers_with_at_least_1_color = 0;
             int64_t run_length = 0; // Number of consecutive identical color sets 
             for(int64_t kmer_idx = 0; kmer_idx < n_kmers; kmer_idx++){
                 run_length++;
@@ -171,11 +173,15 @@ public:
                         fw_set.do_union(rc_set_view);
                     }
 
+                    bool has_at_least_one_color =false;
                     // Add the run length to the counts
                     for(int64_t color : fw_set.get_colors_as_vector()){
+                        has_at_least_one_color = true;
                         if(counts[color] == 0) nonzero_count_indices.push_back(color);
                         counts[color] += run_length;
                     }
+
+                    n_kmers_with_at_least_1_color += has_at_least_one_color * run_length;
 
                     run_length = 0; // Reset the run
                 }
@@ -186,7 +192,8 @@ public:
             Base::add_to_output(string_to_int_buffer, len); // String id
             for(int64_t color : nonzero_count_indices){
                 int64_t count = counts[color];
-                if(count >= (S_size - Base::k + 1) * count_threshold){
+                int64_t effective_kmers = ignore_unknown_kmers ? n_kmers_with_at_least_1_color : n_kmers;
+                if(count >= effective_kmers * count_threshold){
                     // Report color
                     len = fast_int_to_string(color, string_to_int_buffer);
                     Base::add_to_output(&space, 1);
@@ -400,13 +407,13 @@ void pseudoalign_intersected(const plain_matrix_sbwt_t& SBWT, const coloring_t& 
 }
 
 template<typename coloring_t, typename sequence_reader_t>
-void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold){
+void pseudoalign_thresholded(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown){
 
     std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
 
     vector<DispatcherConsumerCallback*> threads;
     for (int64_t i = 0; i < n_threads; i++) {
-        ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size, threshold);
+        ThresholdPseudoaligner<coloring_t>* T = new ThresholdPseudoaligner<coloring_t>(&SBWT, &coloring, out.get(), reverse_complements, buffer_size, threshold, ignore_unknown);
         threads.push_back(T);
     }
 

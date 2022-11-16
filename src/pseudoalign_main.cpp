@@ -29,6 +29,7 @@ struct Pseudoalign_Config{
     bool verbose = false;
     bool silent = false;
     double threshold = -1;
+    bool ignore_unknown = false;
 
     void check_valid(){
         for(string query_file : query_files){
@@ -80,13 +81,13 @@ void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pse
         if(C.threshold == -1)
             pseudoalign_intersected(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
         else
-            pseudoalign_thresholded(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C. gzipped_output, C.sort_output, C.threshold); // Buffer size 8 MB
+            pseudoalign_thresholded(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C. gzipped_output, C.sort_output, C.threshold, C.ignore_unknown); // Buffer size 8 MB
     } else{
         SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
         if(C.threshold == -1)
             pseudoalign_intersected(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output); // Buffer size 8 MB
         else
-            pseudoalign_thresholded(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold); // Buffer size 8 MB
+            pseudoalign_thresholded(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown); // Buffer size 8 MB
     }
 }
 
@@ -108,7 +109,8 @@ int pseudoalign_main(int argc, char** argv){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
-        ("rc", "Whether to to consider the reverse complement k-mers in the pseudoalignment.", cxxopts::value<bool>()->default_value("false"))
+        ("ignore-unknown-kmers", "Ignore in thresholded pseudoalignment all k-mers that are not found in the de Bruijn graph, or that have no colors. The intersection pseudoalignment always ignores unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
+        ("rc", "Also pseudoalign against the reverse complement of the query. Note: If the reverse complements were added to the index with the option --reverse complements in themisto build, then this option has no effect on the pseudoalignment and the program does unnecessary work. ", cxxopts::value<bool>()->default_value("false"))
         ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
@@ -153,6 +155,7 @@ int pseudoalign_main(int argc, char** argv){
     C.silent = opts["silent"].as<bool>();
     C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
     C.threshold = opts["threshold"].as<double>();
+    C.ignore_unknown = opts["ignore-unknown-kmers"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
