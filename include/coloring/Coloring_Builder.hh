@@ -548,11 +548,11 @@ private:
                     int64_t n_colors,
                     Colored_Unitig_Stream colored_unitig_stream){
         
-        coloring.index_ptr = &index;
+        coloring.index_ptr = &SBWT;
 
         write_log("Marking core kmers", LogLevel::MAJOR);
         core_kmer_marker<sequence_reader_t> ckm;
-        ckm.mark_core_kmers(sequence_reader, index);
+        ckm.mark_core_kmers(sequence_reader, SBWT);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
         sdsl::rank_support_v5 cores_rs(&cores);
 
@@ -580,7 +580,6 @@ private:
             coloring.total_color_set_length += colors.size();
 
             // Store pointers to the color set
-            int64_t distance_to_next_sample = colorset_sampling_distance;
             for(int64_t colex_rank : SBWT.streaming_search(unitig)){
                 if(colex_rank != -1 && cores[colex_rank]){
                     add_color_set_pointer(colex_rank);

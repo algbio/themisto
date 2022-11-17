@@ -176,7 +176,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
     DBG dbg(&SBWT);
 
-    string unitigs_outfile = get_temp_file_manager().create_filename("unitigs-",".txt");
+    string unitigs_outfile = get_temp_file_manager().create_filename("unitigs-",".fna");
     string unitig_colors_outfile = get_temp_file_manager().create_filename("unitigs-colors-",".txt");
 
     sbwt::throwing_ofstream unitigs_out(unitigs_outfile);
@@ -184,6 +184,36 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     sbwt::SeqIO::NullStream gfa_null_stream;
     UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
+
+    // Parse unitigs and colors from disk
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    SeqIO::Reader<> unitigs_in(unitigs_outfile);
+    while(true){ // Read unitigs
+        string S = unitigs_in.get_next_read();
+        if(S == "") break;
+        else unitigs.push_back(S);
+        cout << S << endl;
+    }
+
+    // Parse unitig colors
+    sbwt::throwing_ifstream color_sets_in(unitig_colors_outfile);
+    string line;
+    while(getline(color_sets_in.stream, line)){ // Read colors
+        vector<string> tokens = split(line);
+        vector<int64_t> colors;
+        for(int64_t i = 1; i < tokens.size(); i++){ // i == 0 is the unitig id, which we ignore here
+            colors.push_back(fast_string_to_int(tokens[i].c_str(), tokens[i].size()));
+        }
+    }
+
+    // Build from unitigs and colors
+    Colored_Unitig_Stream US(unitigs, color_sets);
+    Coloring<SDSL_Variant_Color_Set> coloring2;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb2;
+    sbwt::SeqIO::Reader reader2(filename);
+    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 3, 3, US);
+
 }
 
 TEST(COLORING_TESTS, coli3) {
@@ -207,12 +237,11 @@ TEST(COLORING_TESTS, coli3) {
     config.min_abundance = 1;
     plain_matrix_sbwt_t matrix(config);
 
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(matrix, seqs, filename);
+
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
-
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(matrix, seqs, filename);
-
 }
