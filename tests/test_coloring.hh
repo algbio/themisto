@@ -118,6 +118,15 @@ TEST(COLORING_TESTS, random_testcases){
     }
 }
 
+bool is_valid_kmer(const char* S, int64_t k){
+    for(int64_t i = 0; i < k; i++){
+        char c = S[i];
+        if(c != 'A' && c != 'C' && c != 'G' && c != 'T') return false;
+    }
+    return true;
+}
+
+
 bool is_valid_kmer(const string& S){
     for(char c : S) if(c != 'A' && c != 'C' && c != 'G' && c != 'T') return false;
     return true;
@@ -134,8 +143,10 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     for(std::int64_t i = 0; i < seqs.size(); ++i){
         colors.push_back(i);
         for(int64_t j = 0; j < (int64_t)seqs[i].size() - k + 1; j++){
-            Kmer<32> x(seqs[i].c_str() + j, k);
-            true_colors[x].push_back(i);
+            if(is_valid_kmer(seqs[i].c_str() + j, k)){
+                Kmer<32> x(seqs[i].c_str() + j, k);
+                true_colors[x].push_back(i);
+            }
         }
     }
 
@@ -159,6 +170,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 
         Kmer<32> kmer(dbg.get_node_label(v));
         const vector<int64_t>& ref = true_colors[kmer];
+
+        logger << kmer.to_string() << " " << vec_to_string(colorset) << " " << vec_to_string(ref) << endl;
 
         ASSERT_EQ(colorset, ref);
         
@@ -218,7 +231,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Coloring<SDSL_Variant_Color_Set> coloring2;
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
     sbwt::SeqIO::Reader reader2(filename);
-    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 2048, 3, 3, US);
+    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
     // Compare
 
@@ -261,11 +274,12 @@ TEST(COLORING_TESTS, coli3) {
     config.min_abundance = 1;
     plain_matrix_sbwt_t matrix(config);
 
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(matrix, seqs, filename);
+
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
 
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(matrix, seqs, filename);
 }

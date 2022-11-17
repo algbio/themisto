@@ -39,6 +39,16 @@ void write_vector(vector<T>& v, string outfilename){
     for(T& t : v) out << t << "\n";
 }
 
+template<typename T>
+string vec_to_string(const vector<T>& v){
+    stringstream ss;
+    ss << "[";
+    for(int64_t i = 0; i < v.size(); i++)
+        ss << (i == 0 ? "" : " ") << v[i];
+    ss << "]";
+    return ss.str();
+}
+
 set<char> get_alphabet(string S);
 
 set<string> get_all_distinct_kmers(string S, int64_t k);
