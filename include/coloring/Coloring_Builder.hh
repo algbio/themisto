@@ -584,6 +584,7 @@ private:
             color_sets_read++;
         }
 
+        coloring.largest_color_id = color_sets_read-1;
         coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        
     }
