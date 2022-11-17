@@ -193,7 +193,6 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         string S = unitigs_in.get_next_read();
         if(S == "") break;
         else unitigs.push_back(S);
-        cout << S << endl;
     }
 
     // Parse unitig colors
@@ -205,6 +204,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         for(int64_t i = 1; i < tokens.size(); i++){ // i == 0 is the unitig id, which we ignore here
             colors.push_back(fast_string_to_int(tokens[i].c_str(), tokens[i].size()));
         }
+        color_sets.push_back(colors);
     }
 
     // Build from unitigs and colors

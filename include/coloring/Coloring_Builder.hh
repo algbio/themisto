@@ -572,8 +572,8 @@ private:
         };
 
         while(!colored_unitig_stream.done()){
-            const string& unitig = colored_unitig_stream.next_unitig();
-            const vector<int64_t>& colors = colored_unitig_stream.next_colors();
+            string unitig = colored_unitig_stream.next_unitig();
+            vector<int64_t> colors = colored_unitig_stream.next_colors();
 
             // Store color set
             coloring.sets.add_set(colors);
