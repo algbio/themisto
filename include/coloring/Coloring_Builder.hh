@@ -566,10 +566,14 @@ private:
             builder.add(node_id, color_sets_read);
         };
 
+        coloring.largest_color_id = 0;
         while(!colored_unitig_stream.done()){
             string unitig = colored_unitig_stream.next_unitig();
             vector<int64_t> colors = colored_unitig_stream.next_colors();
-
+            for(int64_t x : colors){
+                coloring.largest_color_id = max(x, coloring.largest_color_id);
+            }
+            
             // Store color set
             coloring.sets.add_set(colors);
             coloring.total_color_set_length += colors.size();
@@ -584,7 +588,6 @@ private:
             color_sets_read++;
         }
 
-        coloring.largest_color_id = color_sets_read-1;
         coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        
     }
