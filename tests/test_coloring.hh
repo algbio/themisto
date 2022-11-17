@@ -195,6 +195,9 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         else unitigs.push_back(S);
     }
 
+    unitigs_out.close();
+    unitig_colors_out.close();
+
     // Parse unitig colors
     sbwt::throwing_ifstream color_sets_in(unitig_colors_outfile);
     string line;
