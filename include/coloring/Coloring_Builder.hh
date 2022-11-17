@@ -515,7 +515,24 @@ private:
         write_log("Representation built", LogLevel::MAJOR);
     }
 
-/*
+    class Colored_Unitig_Stream{
+
+        public:
+
+            bool done(){
+                return true; // TODO
+            }
+
+            string next_unitig(){
+                return ""; // TODO
+            }
+
+            vector<int64_t> next_colors(){
+                return {}; // TODO
+            }
+
+    };
+
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
                     const plain_matrix_sbwt_t& SBWT,
@@ -547,12 +564,12 @@ private:
         };
 
         while(!colored_unitig_stream.done()){
-            const string& unitig;
-            const vector<int64_t>& colors;
+            const string& unitig = colored_unitig_stream.next_unitig();
+            const vector<int64_t>& colors = colored_unitig_stream.next_colors();
 
             // Store color set
-            coloring.sets.add_set(colors_set);
-            coloring.total_color_set_length += colors_set.size();
+            coloring.sets.add_set(colors);
+            coloring.total_color_set_length += colors.size();
 
             // Store pointers to the color set
             int64_t distance_to_next_sample = colorset_sampling_distance;
@@ -567,5 +584,4 @@ private:
 
         coloring.sets.prepare_for_queries();        
     }
-    */
 };
