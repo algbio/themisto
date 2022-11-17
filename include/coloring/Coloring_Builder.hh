@@ -362,8 +362,12 @@ private:
         vector<std::int64_t> colors_set; // Reusable space
 
         std::size_t set_id = 0;
-
         Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
+
+        auto callback = [&](int64_t node){
+            builder.add(node, set_id);;
+        };
+
         while (true) {
             node_set.clear();
             colors_set.clear();
@@ -392,9 +396,9 @@ private:
             coloring.sets.add_set(colors_set);
             coloring.total_color_set_length += colors_set.size();
 
-            for (const auto node : node_set) {
+            for (int64_t node : node_set) {
                 builder.add(node, set_id);
-                store_samples_in_unitig(cores, builder, backward_support, node, set_id, colorset_sampling_distance);
+                iterate_unitig_node_samples(cores, backward_support, node, colorset_sampling_distance, callback);
             }
 
             ++set_id;
@@ -406,8 +410,9 @@ private:
     }
 
     // Walks backward from from_node and marks every colorset_sampling_distance node on the way
-    void store_samples_in_unitig(const sdsl::bit_vector& cores, Sparse_Uint_Array_Builder& builder, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_id, int64_t colorset_sampling_distance){
-
+    // Calls the given callback at every sampled node. The callback takes the node id of the sampled node.
+    template<typename callback_t>
+    void iterate_unitig_node_samples(const sdsl::bit_vector& cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_sampling_distance, callback_t&& callback){
         assert(cores[from_node] == 1);
         int64_t in_neighbors[4];
         int64_t indegree;
@@ -418,7 +423,7 @@ private:
             while(cores[u] == 0){
                 counter++;
                 if(counter == colorset_sampling_distance){
-                    builder.add(u, colorset_id);
+                    callback(u);
                     counter = 0;
                 }
                 backward_support.list_DBG_in_neighbors(u, in_neighbors, indegree);
@@ -509,4 +514,58 @@ private:
 
         write_log("Representation built", LogLevel::MAJOR);
     }
+
+/*
+    void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
+                    sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
+                    const plain_matrix_sbwt_t& SBWT,
+                    int64_t colorset_sampling_distance,
+                    int64_t n_colors,
+                    Colored_Unitig_Stream colored_unitig_stream){
+        
+        coloring.index_ptr = &index;
+
+        write_log("Marking core kmers", LogLevel::MAJOR);
+        core_kmer_marker<sequence_reader_t> ckm;
+        ckm.mark_core_kmers(sequence_reader, index);
+        sdsl::bit_vector cores = ckm.core_kmer_marks;
+        sdsl::rank_support_v5 cores_rs(&cores);
+
+        SBWT_backward_traversal_support backward_support(coloring.index_ptr);
+
+        int64_t n_cores = 0;
+        for(bool b : cores) n_cores += b;
+
+        sdsl::int_vector<> color_set_ids(n_cores, 0, ceil(log2(n_colors)));
+
+        int64_t color_sets_read = 0;
+
+        auto add_color_set_pointer = [&](int64_t node_id){
+            assert(cores[node_id]);
+            int64_t idx = cores_rs.rank(node_id+1); // Index in color_set_ids
+            color_set_ids[idx] = color_sets_read; // Store the color set identifier
+        };
+
+        while(!colored_unitig_stream.done()){
+            const string& unitig;
+            const vector<int64_t>& colors;
+
+            // Store color set
+            coloring.sets.add_set(colors_set);
+            coloring.total_color_set_length += colors_set.size();
+
+            // Store pointers to the color set
+            int64_t distance_to_next_sample = colorset_sampling_distance;
+            for(int64_t colex_rank : SBWT.streaming_search(unitig)){
+                if(colex_rank != -1 && cores[colex_rank]){
+                    add_color_set_pointer(colex_rank);
+                    iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
+                }
+            }
+            color_sets_read++;
+        }
+
+        coloring.sets.prepare_for_queries();        
+    }
+    */
 };
