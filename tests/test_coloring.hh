@@ -212,7 +212,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Coloring<SDSL_Variant_Color_Set> coloring2;
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
     sbwt::SeqIO::Reader reader2(filename);
-    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 3, 3, US);
+    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 2048, 3, 3, US);
 
 }
 

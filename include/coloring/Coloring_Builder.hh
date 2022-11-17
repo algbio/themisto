@@ -544,8 +544,9 @@ private:
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
                     const plain_matrix_sbwt_t& SBWT,
+                    const std::int64_t ram_bytes,
+                    const std::int64_t n_threads,
                     int64_t colorset_sampling_distance,
-                    int64_t n_colors,
                     Colored_Unitig_Stream colored_unitig_stream){
         
         coloring.index_ptr = &SBWT;
@@ -554,20 +555,15 @@ private:
         core_kmer_marker<sequence_reader_t> ckm;
         ckm.mark_core_kmers(sequence_reader, SBWT);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
-        sdsl::rank_support_v5 cores_rs(&cores);
 
         SBWT_backward_traversal_support backward_support(coloring.index_ptr);
 
-        int64_t n_cores = 0;
-        for(bool b : cores) n_cores += b;
-
-        sdsl::int_vector<> color_set_ids(n_cores, 0, ceil(log2(n_colors)));
+        Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
 
         int64_t color_sets_read = 0;
 
         auto add_color_set_pointer = [&](int64_t node_id){
-            int64_t idx = cores_rs.rank(node_id+1); // Index in color_set_ids
-            color_set_ids[idx] = color_sets_read; // Store the color set identifier
+            builder.add(node_id, color_sets_read);
         };
 
         while(!colored_unitig_stream.done()){
@@ -588,6 +584,7 @@ private:
             color_sets_read++;
         }
 
+        coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        
     }
 };
