@@ -4,3 +4,6 @@
 [submodule "SBWT"]
 	path = SBWT
 	url = https://github.com/algbio/SBWT
+[submodule "ggcat"]
+	path = ggcat
+	url = https://github.com/jnalanko/ggcat
