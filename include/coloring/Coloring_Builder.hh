@@ -566,7 +566,6 @@ private:
         int64_t color_sets_read = 0;
 
         auto add_color_set_pointer = [&](int64_t node_id){
-            assert(cores[node_id]);
             int64_t idx = cores_rs.rank(node_id+1); // Index in color_set_ids
             color_set_ids[idx] = color_sets_read; // Store the color set identifier
         };
