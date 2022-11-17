@@ -126,9 +126,23 @@ bool is_valid_kmer(const string& S){
 template<typename color_set_t, typename color_set_view_t> requires Color_Set_Interface<color_set_t>
 void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, int64_t k){
 
-    std::vector<std::int64_t> colors;
+    std::unordered_map<Kmer<32>, vector<int64_t>> true_colors; // True color sets of k-mers
+
+    std::vector<std::int64_t> colors; // colors[i] = color of sequence i
+
+    write_log("Hashing true color sets", LogLevel::MAJOR);
     for(std::int64_t i = 0; i < seqs.size(); ++i){
         colors.push_back(i);
+        for(int64_t j = 0; j < (int64_t)seqs[i].size() - k + 1; j++){
+            Kmer<32> x(seqs[i].c_str() + j, k);
+            true_colors[x].push_back(i);
+        }
+    }
+
+    // Deduplicate colors in color sets
+    for(auto& [kmer, colorset] : true_colors){
+        std::sort(colorset.begin(), colorset.end());
+        colorset.erase( std::unique( colorset.begin(), colorset.end() ), colorset.end() );
     }
 
     Coloring<color_set_t> c;
@@ -136,30 +150,19 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     sbwt::SeqIO::Reader reader(filename);
     cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
 
-    std::size_t seq_id = 0;
     write_log("Checking colors", LogLevel::MAJOR);
-    for (const auto& seq : seqs) {
+    DBG dbg(&matrix);
+    for(DBG::Node v : dbg.all_nodes()){
+        
+        vector<int64_t> colorset = c.get_color_set_of_node_as_vector(v.id);
+        std::sort(colorset.begin(), colorset.end());
 
-        std::cout << "Checking sequence: " << seq_id << "\n";
-        //cout << seq << endl;
+        Kmer<32> kmer(dbg.get_node_label(v));
+        const vector<int64_t>& ref = true_colors[kmer];
 
-        const auto nodes = matrix.streaming_search(seq);
-
-        for(int64_t i = 0; i < (int64_t)seq.size()-k+1; i++){
-            int64_t node = nodes[i];
-            if (node <= 0) {
-                // This can happen if the input file has a non-ACGT character, as it does in this case
-                ASSERT_FALSE(is_valid_kmer(seq.substr(i,k)));
-            } else {
-                auto vec = c.get_color_set_of_node_as_vector(node);
-                const auto res = std::find(vec.begin(), vec.end(), seq_id);
-                ASSERT_TRUE(res != vec.end());
-            }
-        }
-        ++seq_id;
+        ASSERT_EQ(colorset, ref);
+        
     }
-
-    //TODO: also test that there are no extra colors in the color sets.
 }
 
 void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, string filename){
@@ -225,9 +228,12 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     // ASSERT_EQ(coloring.number_of_distinct_color_sets(), coloring2.number_of_distinct_color_sets());
     // ASSERT_EQ(coloring.sum_of_all_distinct_color_set_lengths(), coloring2.sum_of_all_distinct_color_set_lengths());
 
-    for(int64_t node = 0; node < SBWT.number_of_subsets(); node++){
-        vector<int64_t> c1 = coloring.get_color_set_of_node(node).get_colors_as_vector();
-        vector<int64_t> c2 = coloring2.get_color_set_of_node(node).get_colors_as_vector();
+    for(DBG::Node v : dbg.all_nodes()){
+        vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
+        vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
+        cout << dbg.get_node_label(v) << endl;
+        for(auto x : c1) cout << x << " "; cout << endl;
+        for(auto x : c2) cout << x << " "; cout << endl;
         ASSERT_EQ(c1, c2);
     }
 
@@ -255,11 +261,11 @@ TEST(COLORING_TESTS, coli3) {
     config.min_abundance = 1;
     plain_matrix_sbwt_t matrix(config);
 
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(matrix, seqs, filename);
-
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
+
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(matrix, seqs, filename);
 }
