@@ -8,6 +8,9 @@
 #include "test_tools.hh"
 #include "sbwt/SBWT.hh"
 #include "sbwt/globals.hh"
+#include "sbwt/throwing_streams.hh"
+#include "extract_unitigs.hh"
+#include "DBG.hh"
 #include "coloring/Coloring.hh"
 #include "coloring/Coloring_Builder.hh"
 
@@ -159,6 +162,30 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     //TODO: also test that there are no extra colors in the color sets.
 }
 
+void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, string filename){
+    std::vector<std::int64_t> colors;
+    for(std::int64_t i = 0; i < seqs.size(); ++i){
+        colors.push_back(i);
+    }
+
+    Coloring<SDSL_Variant_Color_Set> coloring;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb;
+    sbwt::SeqIO::Reader reader(filename);
+    cb.build_coloring(coloring, SBWT, reader, colors, 1<<30, 3, 3);
+
+    UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
+    DBG dbg(&SBWT);
+
+    string unitigs_outfile = get_temp_file_manager().create_filename("unitigs-",".txt");
+    string unitig_colors_outfile = get_temp_file_manager().create_filename("unitigs-colors-",".txt");
+
+    sbwt::throwing_ofstream unitigs_out(unitigs_outfile);
+    sbwt::throwing_ofstream unitig_colors_out(unitig_colors_outfile);
+
+    sbwt::SeqIO::NullStream gfa_null_stream;
+    UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
+}
+
 TEST(COLORING_TESTS, coli3) {
     std::string filename = "example_input/coli3.fna";
 
@@ -184,5 +211,8 @@ TEST(COLORING_TESTS, coli3) {
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
+
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(matrix, seqs, filename);
 
 }

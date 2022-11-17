@@ -26,6 +26,32 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 
+class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streaming from a ggcat database
+
+    public:
+
+        vector<string> unitigs;
+        vector<vector<int64_t> > color_sets;
+        int64_t unitig_idx;
+        int64_t color_set_idx;
+
+        Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
+            unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {}
+
+        bool done(){
+            return unitig_idx >= unitigs.size();
+        }
+
+        string next_unitig(){
+            return unitigs[unitig_idx++];
+        }
+
+        vector<int64_t> next_colors(){
+            return color_sets[color_set_idx++];
+        }
+
+};
+
 // Color stream from an in-memory vector
 class In_Memory_Color_Stream : public Metadata_Stream{
 
@@ -514,24 +540,6 @@ private:
 
         write_log("Representation built", LogLevel::MAJOR);
     }
-
-    class Colored_Unitig_Stream{
-
-        public:
-
-            bool done(){
-                return true; // TODO
-            }
-
-            string next_unitig(){
-                return ""; // TODO
-            }
-
-            vector<int64_t> next_colors(){
-                return {}; // TODO
-            }
-
-    };
 
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
