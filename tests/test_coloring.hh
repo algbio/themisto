@@ -201,6 +201,9 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     sbwt::SeqIO::NullStream gfa_null_stream;
     UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
 
+    unitigs_out.close();
+    unitig_colors_out.close();
+
     // Parse unitigs and colors from disk
     vector<string> unitigs;
     vector<vector<int64_t> > color_sets;
@@ -210,9 +213,6 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         if(S == "") break;
         else unitigs.push_back(S);
     }
-
-    unitigs_out.close();
-    unitig_colors_out.close();
 
     // Parse unitig colors
     sbwt::throwing_ifstream color_sets_in(unitig_colors_outfile);
@@ -244,9 +244,9 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     for(DBG::Node v : dbg.all_nodes()){
         vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
-        cout << dbg.get_node_label(v) << endl;
-        for(auto x : c1) cout << x << " "; cout << endl;
-        for(auto x : c2) cout << x << " "; cout << endl;
+        //cout << dbg.get_node_label(v) << endl;
+        //for(auto x : c1) cout << x << " "; cout << endl;
+        //for(auto x : c2) cout << x << " "; cout << endl;
         ASSERT_EQ(c1, c2);
     }
 

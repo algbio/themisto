@@ -36,7 +36,9 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
         int64_t color_set_idx;
 
         Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
-            unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {}
+            unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {
+                assert(unitigs.size() == color_sets.size())
+            }
 
         bool done(){
             return unitig_idx >= unitigs.size();
