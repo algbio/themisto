@@ -130,15 +130,15 @@ class Colored_Unitig_Stream_GGCAT{
         }
 
         bool done(){
-            return true;
+            return unitig_idx >= unitigs.size();
         }
 
         string next_unitig(){
-            return "";
+            return unitigs[unitig_idx++];
         }
 
         vector<int64_t> next_colors(){
-            return {};
+            return color_sets[color_set_idx++];
         }
 
 };
@@ -632,13 +632,14 @@ private:
         write_log("Representation built", LogLevel::MAJOR);
     }
 
+    template<typename colored_unitig_stream_t>
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
                     const plain_matrix_sbwt_t& SBWT,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,
                     int64_t colorset_sampling_distance,
-                    Colored_Unitig_Stream colored_unitig_stream){
+                    colored_unitig_stream_t& colored_unitig_stream){
         
         coloring.index_ptr = &SBWT;
 
