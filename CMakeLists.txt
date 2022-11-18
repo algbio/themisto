@@ -23,7 +23,7 @@ message(STATUS "(n can be up to 255)")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release) ## Build Release by default
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy -flto") # -Wno-deprecated-copy is for warnings in Roaring.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy") # -Wno-deprecated-copy is for warnings in Roaring.
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
@@ -31,22 +31,22 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Our sources, excluding the file with the main function
-set(THEMISTO_SOURCES 
-  src/coloring/Roaring_Color_Set.cpp 
-  src/coloring/coloring.cpp 
-  src/coloring/color_set.cpp 
-  src/coloring/color_set_diagnostics.cpp 
-  src/dump_color_matrix_main.cpp 
-  src/pseudoalign_main.cpp 
-  src/pseudoalign.cpp 
-  src/globals.cpp 
-  src/test_tools.cpp 
-  src/WorkDispatcher.cpp 
-  src/zpipe.cpp 
-  src/build_index_main.cpp 
-  src/extract_unitigs_main.cpp 
-  src/DBG.cpp 
-  src/stats_main.cpp 
+set(THEMISTO_SOURCES
+  src/coloring/Roaring_Color_Set.cpp
+  src/coloring/coloring.cpp
+  src/coloring/color_set.cpp
+  src/coloring/color_set_diagnostics.cpp
+  src/dump_color_matrix_main.cpp
+  src/pseudoalign_main.cpp
+  src/pseudoalign.cpp
+  src/globals.cpp
+  src/test_tools.cpp
+  src/WorkDispatcher.cpp
+  src/zpipe.cpp
+  src/build_index_main.cpp
+  src/extract_unitigs_main.cpp
+  src/DBG.cpp
+  src/stats_main.cpp
   )
 
 ## Check if we should compile zlib or bzip2
@@ -144,10 +144,9 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/vers
 
 ## Add local dependencies as targets
 add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
-                 ${CMAKE_BINARY_DIR}/external/SBWT/build)
+		 ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
 set(LIBSBWT ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a)
-set(GGCAT ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cpp_bindings.a ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cxx_interop.a ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_api.a)
 
 include(FetchContent)
 
@@ -168,20 +167,20 @@ file(COPY  ${CPP_ROARING_HEADERS} DESTINATION ${roaring_SOURCE_DIR}/include/roar
 
 ## Set includes
 include_directories(
-  ${CMAKE_SOURCE_DIR} 
-  ${CMAKE_SOURCE_DIR}/include 
-  ${CMAKE_SOURCE_DIR}/include/libwheeler 
-  ${CMAKE_SOURCE_DIR}/zstr 
-  ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include 
-  ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include 
-  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter 
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include/libwheeler
+  ${CMAKE_SOURCE_DIR}/zstr
+  ${CMAKE_SOURCE_DIR}/SBWT/sdsl-lite/include
+  ${CMAKE_SOURCE_DIR}/build/external/SBWT/build/external/sdsl-lite/build/external/libdivsufsort/include
+  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmer_counter
   ${CMAKE_SOURCE_DIR}/SBWT
-  ${CMAKE_SOURCE_DIR}/SBWT/KMC 
-  ${CMAKE_SOURCE_DIR}/SBWT/include 
+  ${CMAKE_SOURCE_DIR}/SBWT/KMC
+  ${CMAKE_SOURCE_DIR}/SBWT/include
   ${CMAKE_SOURCE_DIR}/SBWT/include/sbwt
-  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api 
-  ${CMAKE_BINARY_DIR}/include 
-  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core 
+  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api
+  ${CMAKE_BINARY_DIR}/include
+  ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core
   ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/
   ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/include
   )
@@ -189,12 +188,16 @@ include_directories(
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)
   add_subdirectory(${CMAKE_BINARY_DIR}/external/zlib
-                   ${CMAKE_BINARY_DIR}/external/zlib)
+		   ${CMAKE_BINARY_DIR}/external/zlib)
   set_target_properties(example PROPERTIES EXCLUDE_FROM_ALL 1)
   set_target_properties(minigzip PROPERTIES EXCLUDE_FROM_ALL 1)
 endif()
 if(CMAKE_BUILD_BZIP2)
 endif()
+
+set(GGCAT_CPP_BINDINGS ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cpp_bindings.a)
+set(GGCAT_CXX_INTEROP ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cxx_interop.a)
+set(GGCAT_API ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_api.a)
 
 # Build main executable if not building for tests
 if(NOT BUILD_THEMISTO_TESTS)
@@ -203,7 +206,7 @@ if(NOT BUILD_THEMISTO_TESTS)
   # Fix compilation order
   add_dependencies(sdsl divsufsort64)
   ## Link
-  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)
+  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
 
 # Build tests if requested
@@ -214,11 +217,11 @@ if (BUILD_THEMISTO_TESTS)
   target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
   add_dependencies(sdsl divsufsort64)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)  
+  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
 
 if(BUILD_IO_BENCHMARK)
   message("Setting up IO benchmark.")
   add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
-  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)
+  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
 endif()
