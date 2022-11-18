@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 #include <variant>
+#include <mutex>
 
 #include <sdsl/bit_vectors.hpp>
 
@@ -104,6 +105,7 @@ class Colored_Unitig_Stream_GGCAT{
 
 
             auto file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
+            std::mutex print_kmer_lock;
 
             instance->dump_unitigs(
                 graph_file,
@@ -113,6 +115,7 @@ class Colored_Unitig_Stream_GGCAT{
                 // Also the same_colors boolean is referred to the previous call of this function from the current thread.
                 // Number of threads is set to 1 just above, so no lock needed at the moment.
                 [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
+                    std::lock_guard<std::mutex> _lock(print_kmer_lock);
                     try{
                         this->unitigs.push_back(string(read.data, read.data + read.size));
                         this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
