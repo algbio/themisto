@@ -137,11 +137,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 
     std::unordered_map<Kmer<32>, vector<int64_t>> true_colors; // True color sets of k-mers
 
-    std::vector<std::int64_t> colors; // colors[i] = color of sequence i
-
     write_log("Hashing true color sets", LogLevel::MAJOR);
-    for(std::int64_t i = 0; i < seqs.size(); ++i){
-        colors.push_back(i);
+    for(int64_t i = 0; i < seqs.size(); ++i){
         for(int64_t j = 0; j < (int64_t)seqs[i].size() - k + 1; j++){
             if(is_valid_kmer(seqs[i].c_str() + j, k)){
                 Kmer<32> x(seqs[i].c_str() + j, k);
@@ -159,7 +156,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     Coloring<color_set_t> c;
     Coloring_Builder<color_set_t> cb;
     sbwt::SeqIO::Reader reader(filename);
-    cb.build_coloring(c, matrix, reader, colors, 1<<30, 3, 3);
+    reader.enable_reverse_complements();
+    cb.build_coloring(c, matrix, reader, seq_to_color, 1<<30, 3, 3);
 
     write_log("Checking colors", LogLevel::MAJOR);
     DBG dbg(&matrix);
@@ -282,12 +280,12 @@ TEST(COLORING_TESTS, coli3) {
         seq_idx++;
     }
 
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename);
-
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(SBWT, filename, seqs, seq_to_color, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(SBWT, filename, seqs, seq_to_color, k);
+
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename);
 
 }
