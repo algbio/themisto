@@ -28,6 +28,8 @@
 
 #include "ggcat.hh"
 
+using namespace ggcat;
+
 class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streaming from a ggcat database
 
     public:
@@ -60,7 +62,7 @@ class Colored_Unitig_Stream_GGCAT{
 
     public:
 
-        Colored_Unitig_Stream_GGCAT(const vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
+        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
 
             GGCATConfig config;
 
@@ -79,12 +81,12 @@ class Colored_Unitig_Stream_GGCAT{
             std::string graph_file = get_temp_file_manager().create_filename("",".fa");
 
             std::vector<std::string> color_names;
-            for(int64_t i = 0; i < filenames.sizes(); i++){
+            for(int64_t i = 0; i < filenames.size(); i++){
                 color_names.push_back(to_string(i));
             }
 
             std::string output_file = instance->build_graph_from_files(
-                Slice<std::string>(input_files.data(), input_files.size()),
+                Slice<std::string>(filenames.data(), filenames.size()),
                 graph_file,
                 k,
                 n_threads,
