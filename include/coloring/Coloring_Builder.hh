@@ -67,7 +67,7 @@ class Colored_Unitig_Stream_GGCAT{
 
     public:
 
-        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
+        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k, bool add_rc) {
 
             GGCATConfig config;
 
@@ -95,7 +95,7 @@ class Colored_Unitig_Stream_GGCAT{
                 graph_file,
                 k,
                 n_threads,
-                false,
+                !add_rc,
                 1,
                 ExtraElaborationStep_UnitigLinks,
                 true,

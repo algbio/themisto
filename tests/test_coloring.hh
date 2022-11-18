@@ -176,16 +176,13 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
-void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename){
-    std::vector<std::int64_t> colors;
-    for(std::int64_t i = 0; i < seqs.size(); ++i){
-        colors.push_back(i);
-    }
+void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
 
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
     sbwt::SeqIO::Reader reader(filename);
-    cb.build_coloring(coloring, SBWT, reader, colors, 1<<30, 3, 3);
+    reader.enable_reverse_complements();
+    cb.build_coloring(coloring, SBWT, reader, seq_to_color, 1<<30, 3, 3);
 
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
     DBG dbg(&SBWT);
@@ -231,6 +228,13 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     sbwt::SeqIO::Reader reader2(filename);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
+    // Using ggcat
+/*    Colored_Unitig_Stream_GGCAT US(filename, 2, 3, k);
+    Coloring<SDSL_Variant_Color_Set> coloring2;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb2;
+    sbwt::SeqIO::Reader reader2(filename);
+    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
+*/
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
@@ -259,7 +263,7 @@ TEST(COLORING_TESTS, coli3) {
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     string indexprefix = get_temp_file_manager().create_filename();
     string tempdir = get_temp_file_manager().get_dir();
-    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--sequence-colors", "--no-colors"};
+    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
@@ -273,19 +277,19 @@ TEST(COLORING_TESTS, coli3) {
     int64_t seq_idx = 0;
     while(!sr.done()){
         string S = sr.get_next_query_stream().get_all();
-        seqs.push_back(S);
-        seqs.push_back(sbwt::get_rc(S));
+        seqs.push_back(S); // Forward
+        seqs.push_back(sbwt::get_rc(S)); // Reverse complement
         seq_to_color.push_back(seq_idx); // Forward
         seq_to_color.push_back(seq_idx); // Reverse complement
         seq_idx++;
     }
 
+    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
+    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename, k);
+
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(SBWT, filename, seqs, seq_to_color, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
     test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(SBWT, filename, seqs, seq_to_color, k);
-
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename);
 
 }
