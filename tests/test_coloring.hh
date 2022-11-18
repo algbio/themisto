@@ -181,7 +181,7 @@ vector<string> split_seqs_to_separate_files(string infile){
     while(true){ // Read unitigs
         string S = in.get_next_read();
         if(S == "") break;
-        string outfile = get_temp_file_manager().create_filename();
+        string outfile = get_temp_file_manager().create_filename("", ".fna");
         throwing_ofstream out(outfile);
         out.stream << ">\n" << S << "\n";
 

@@ -113,17 +113,21 @@ class Colored_Unitig_Stream_GGCAT{
                 // Also the same_colors boolean is referred to the previous call of this function from the current thread.
                 // Number of threads is set to 1 just above, so no lock needed at the moment.
                 [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
-                    this->unitigs.push_back(string(read.data, read.data + read.size));
-                    this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
+                    try{
+                        this->unitigs.push_back(string(read.data, read.data + read.size));
+                        this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
 
-                    vector<int64_t> colorset;
-                    for (size_t i = 0; i < colors.size; i++){
-                        colorset.push_back(colors.data[i]);
+                        vector<int64_t> colorset;
+                        for (size_t i = 0; i < colors.size; i++){
+                            colorset.push_back(colors.data[i]);
+                        }
+
+                        this->color_sets.push_back(colorset);
+                        this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
+                    } catch(const std::exception& e){
+                        std::cerr << "Caught Error: " << e.what() << '\n';
+                        return 1;
                     }
-
-                    this->color_sets.push_back(colorset);
-                    this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
-
                     //std::cout << "] same_colors: " << same_colors << std::endl; // TODO
                 },
                 true);
