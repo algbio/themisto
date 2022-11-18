@@ -175,6 +175,21 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
+vector<string> split_seqs_to_separate_files(string infile){
+    SeqIO::Reader<> in(infile);
+    vector<string> outfiles;
+    while(true){ // Read unitigs
+        string S = in.get_next_read();
+        if(S == "") break;
+        string outfile = get_temp_file_manager().create_filename();
+        throwing_ofstream out(outfile);
+        out.stream << ">\n" << S << "\n";
+
+        outfiles.push_back(outfile);
+    }
+    return outfiles;
+}
+
 void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
 
     Coloring<SDSL_Variant_Color_Set> coloring;
@@ -226,16 +241,18 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     sbwt::SeqIO::Reader reader2(filename);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
-    // Using ggcat
-/*    Colored_Unitig_Stream_GGCAT US(filename, 2, 3, k);
-    Coloring<SDSL_Variant_Color_Set> coloring2;
-    Coloring_Builder<SDSL_Variant_Color_Set> cb2;
-    sbwt::SeqIO::Reader reader2(filename);
-    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
-*/
+    // Using ggcat. To get sequence colors, we split each sequence in the file to a separate file.
+    vector<string> ggcat_input_files = split_seqs_to_separate_files(filename);
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
+    Coloring<SDSL_Variant_Color_Set> coloring3;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb3;
+    sbwt::SeqIO::Reader reader3(filename);
+    cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
+
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
+    ASSERT_EQ(coloring2.largest_color(), coloring3.largest_color());
 
     // These might not match because the color sets are not deduplicated but that is ok
     // ASSERT_EQ(coloring.number_of_distinct_color_sets(), coloring2.number_of_distinct_color_sets());
@@ -244,10 +261,12 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     for(DBG::Node v : dbg.all_nodes()){
         vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
+        vector<int64_t> c3 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
         //cout << dbg.get_node_label(v) << endl;
         //for(auto x : c1) cout << x << " "; cout << endl;
         //for(auto x : c2) cout << x << " "; cout << endl;
         ASSERT_EQ(c1, c2);
+        ASSERT_EQ(c2, c3);
     }
 
 
