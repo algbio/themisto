@@ -292,7 +292,7 @@ cd build
 cmake ..
 make
 cd ../../build
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=1
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_THEMISTO_TESTS=1
 make
 ```
 
