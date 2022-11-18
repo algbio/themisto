@@ -23,7 +23,7 @@ message(STATUS "(n can be up to 255)")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release) ## Build Release by default
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy") # -Wno-deprecated-copy is for warnings in Roaring.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy -flto") # -Wno-deprecated-copy is for warnings in Roaring.
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
@@ -147,7 +147,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
                  ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
 set(LIBSBWT ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a)
-
+set(GGCAT ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cpp_bindings.a ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cxx_interop.a ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_api.a)
 
 include(FetchContent)
 
@@ -203,7 +203,7 @@ if(NOT BUILD_THEMISTO_TESTS)
   # Fix compilation order
   add_dependencies(sdsl divsufsort64)
   ## Link
-  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)
 endif()
 
 # Build tests if requested
@@ -214,11 +214,11 @@ if (BUILD_THEMISTO_TESTS)
   target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
   add_dependencies(sdsl divsufsort64)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)  
+  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)  
 endif()
 
 if(BUILD_IO_BENCHMARK)
   message("Setting up IO benchmark.")
   add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
-  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ggcat_api ggcat_cpp_bindings ggcat_cxx_interop)
 endif()
