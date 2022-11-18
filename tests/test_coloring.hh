@@ -133,7 +133,7 @@ bool is_valid_kmer(const string& S){
 }
 
 template<typename color_set_t, typename color_set_view_t> requires Color_Set_Interface<color_set_t>
-void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, int64_t k){
+void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, vector<int64_t>& seq_to_color, int64_t k){
 
     std::unordered_map<Kmer<32>, vector<int64_t>> true_colors; // True color sets of k-mers
 
@@ -145,7 +145,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
         for(int64_t j = 0; j < (int64_t)seqs[i].size() - k + 1; j++){
             if(is_valid_kmer(seqs[i].c_str() + j, k)){
                 Kmer<32> x(seqs[i].c_str() + j, k);
-                true_colors[x].push_back(i);
+                true_colors[x].push_back(seq_to_color[i]);
             }
         }
     }
@@ -178,7 +178,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
-void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, string filename){
+void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename){
     std::vector<std::int64_t> colors;
     for(std::int64_t i = 0; i < seqs.size(); ++i){
         colors.push_back(i);
@@ -255,31 +255,39 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
 TEST(COLORING_TESTS, coli3) {
     std::string filename = "example_input/coli3.fna";
+    int64_t k = 31;
 
-    std::vector<std::string> seqs;
+    // Build the SBWT with sequence colors, including reverse complements
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
+    string indexprefix = get_temp_file_manager().create_filename();
+    string tempdir = get_temp_file_manager().get_dir();
+    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements", "--sequence-colors", "--no-colors"};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT;
+    SBWT.load(indexprefix + ".tdbg");
+
+    // Read the sequences
     SeqIO::Unbuffered_Reader sr(filename);
+    vector<string> seqs;
+    vector<int64_t> seq_to_color;
+    int64_t seq_idx = 0;
     while(!sr.done()){
         string S = sr.get_next_query_stream().get_all();
         seqs.push_back(S);
+        seqs.push_back(sbwt::get_rc(S));
+        seq_to_color.push_back(seq_idx); // Forward
+        seq_to_color.push_back(seq_idx); // Reverse complement
+        seq_idx++;
     }
 
-    const std::size_t k = 31;
-
-    plain_matrix_sbwt_t::BuildConfig config;
-    config.input_files = {filename};
-    config.k = k;
-    config.build_streaming_support = true;
-    config.ram_gigas = 2;
-    config.n_threads = 2;
-    config.min_abundance = 1;
-    plain_matrix_sbwt_t matrix(config);
-
     write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(matrix, seqs, filename);
+    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename);
 
     write_log("Testing Standard color set", LogLevel::MAJOR);
-    test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(SBWT, filename, seqs, seq_to_color, k);
     write_log("Testing Roaring_Color_Set", LogLevel::MAJOR);
-    test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(matrix, filename, seqs, k);
+    test_coloring_on_coli3<Roaring_Color_Set, Roaring_Color_Set>(SBWT, filename, seqs, seq_to_color, k);
 
 }
