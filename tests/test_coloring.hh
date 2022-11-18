@@ -156,7 +156,6 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     Coloring<color_set_t> c;
     Coloring_Builder<color_set_t> cb;
     sbwt::SeqIO::Reader reader(filename);
-    reader.enable_reverse_complements();
     cb.build_coloring(c, matrix, reader, seq_to_color, 1<<30, 3, 3);
 
     write_log("Checking colors", LogLevel::MAJOR);
@@ -181,7 +180,6 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
     sbwt::SeqIO::Reader reader(filename);
-    reader.enable_reverse_complements();
     cb.build_coloring(coloring, SBWT, reader, seq_to_color, 1<<30, 3, 3);
 
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
@@ -259,11 +257,11 @@ TEST(COLORING_TESTS, coli3) {
     std::string filename = "example_input/coli3.fna";
     int64_t k = 31;
 
-    // Build the SBWT with sequence colors, including reverse complements
+    // Build the SBWT
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     string indexprefix = get_temp_file_manager().create_filename();
     string tempdir = get_temp_file_manager().get_dir();
-    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements"};
+    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
@@ -278,9 +276,9 @@ TEST(COLORING_TESTS, coli3) {
     while(!sr.done()){
         string S = sr.get_next_query_stream().get_all();
         seqs.push_back(S); // Forward
-        seqs.push_back(sbwt::get_rc(S)); // Reverse complement
+        //seqs.push_back(sbwt::get_rc(S)); // Reverse complement
         seq_to_color.push_back(seq_idx); // Forward
-        seq_to_color.push_back(seq_idx); // Reverse complement
+        //seq_to_color.push_back(seq_idx); // Reverse complement
         seq_idx++;
     }
 
