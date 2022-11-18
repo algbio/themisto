@@ -192,6 +192,15 @@ vector<string> split_seqs_to_separate_files(string infile){
 
 void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
 
+    // Using ggcat. To get sequence colors, we split each sequence in the file to a separate file.
+    vector<string> ggcat_input_files = split_seqs_to_separate_files(filename);
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
+    Coloring<SDSL_Variant_Color_Set> coloring3;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb3;
+    sbwt::SeqIO::Reader reader3(filename);
+    cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
+    // End of ggcat
+
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
     sbwt::SeqIO::Reader reader(filename);
@@ -240,14 +249,6 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
     sbwt::SeqIO::Reader reader2(filename);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
-
-    // Using ggcat. To get sequence colors, we split each sequence in the file to a separate file.
-    vector<string> ggcat_input_files = split_seqs_to_separate_files(filename);
-    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
-    Coloring<SDSL_Variant_Color_Set> coloring3;
-    Coloring_Builder<SDSL_Variant_Color_Set> cb3;
-    sbwt::SeqIO::Reader reader3(filename);
-    cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
 
     // Compare
 

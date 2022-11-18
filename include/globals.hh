@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -51,3 +52,13 @@ void sigabrt_handler(int sig);
 int64_t fast_int_to_string(int64_t x, char* buffer);
 
 int64_t fast_string_to_int(const char* S, int64_t S_length);
+
+template<typename T>
+string vec_to_string(const vector<T>& v){
+    stringstream ss;
+    ss << "[";
+    for(int64_t i = 0; i < v.size(); i++)
+        ss << (i == 0 ? "" : ", ") << v[i];
+    ss << "]";
+    return ss.str();
+}

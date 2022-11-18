@@ -43,7 +43,7 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
         Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
             unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {
                 assert(unitigs.size() == color_sets.size());
-            }
+        }
 
         bool done(){
             return unitig_idx >= unitigs.size();
@@ -51,6 +51,10 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
 
         string next_unitig(){
             return unitigs[unitig_idx++];
+        }
+
+        bool next_colors_are_different(){
+            return true;
         }
 
         vector<int64_t> next_colors(){
@@ -127,9 +131,12 @@ class Colored_Unitig_Stream_GGCAT{
 
                         this->color_sets.push_back(colorset);
                         this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
+
+                        cout << this->unitigs.back() << endl;
+                        cout << vec_to_string(color_sets.back()) << endl;
                     } catch(const std::exception& e){
                         std::cerr << "Caught Error: " << e.what() << '\n';
-                        return 1;
+                        exit(1);
                     }
                     //std::cout << "] same_colors: " << same_colors << std::endl; // TODO
                 },
@@ -138,6 +145,10 @@ class Colored_Unitig_Stream_GGCAT{
 
         bool done(){
             return unitig_idx >= unitigs.size();
+        }
+
+        bool next_colors_are_different(){
+            return true;
         }
 
         string next_unitig(){
@@ -659,19 +670,25 @@ private:
 
         Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
 
-        int64_t color_sets_read = 0;
+        int64_t color_set_id = -1;
 
         auto add_color_set_pointer = [&](int64_t node_id){
-            builder.add(node_id, color_sets_read);
+            builder.add(node_id, color_set_id);
         };
 
-        coloring.largest_color_id = 0;
+        coloring.largest_color_id = -1;
+        vector<int64_t> colors = colored_unitig_stream.next_colors();
         while(!colored_unitig_stream.done()){
             string unitig = colored_unitig_stream.next_unitig();
-            vector<int64_t> colors = colored_unitig_stream.next_colors();
-            for(int64_t x : colors){
-                coloring.largest_color_id = max(x, coloring.largest_color_id);
+            if(colored_unitig_stream.next_colors_are_different()){
+                // Read new color set
+                colors = colored_unitig_stream.next_colors();
+                for(int64_t x : colors)
+                    coloring.largest_color_id = max(x, coloring.largest_color_id);
+                
+                color_set_id++;
             }
+
             
             // Store color set
             coloring.sets.add_set(colors);
@@ -684,7 +701,6 @@ private:
                     iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
                 }
             }
-            color_sets_read++;
         }
 
         coloring.node_id_to_color_set_id = builder.finish();

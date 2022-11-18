@@ -6,14 +6,6 @@
 using namespace std;
 using namespace sbwt;
 
-
-template <typename T>
-string vec_to_string(const vector<T>& v){
-    stringstream ss;
-    for(T x : v) ss << x << " ";
-    return ss.str();
-}
-
 vector<vector<int64_t> > parse_pseudoalignment_output_format_from_disk(string filename){
     vector<pair<int64_t, vector<int64_t>>> results; // Pairs (query id, color set)
     check_readable(filename);
