@@ -182,7 +182,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_api 
   ${CMAKE_BINARY_DIR}/include 
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core 
-  ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/)
+  ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/
+  ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/include
+  )
 
 ## Handle compiling zlib or bzip2 from source
 if(CMAKE_BUILD_ZLIB)

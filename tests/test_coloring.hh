@@ -171,7 +171,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
         Kmer<32> kmer(dbg.get_node_label(v));
         const vector<int64_t>& ref = true_colors[kmer];
 
-        logger << kmer.to_string() << " " << vec_to_string(colorset) << " " << vec_to_string(ref) << endl;
+        //logger << kmer.to_string() << " " << vec_to_string(colorset) << " " << vec_to_string(ref) << endl;
 
         ASSERT_EQ(colorset, ref);
         

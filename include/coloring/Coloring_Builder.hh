@@ -26,6 +26,8 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 
+#include "ggcat.hh"
+
 class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streaming from a ggcat database
 
     public:
@@ -37,7 +39,7 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
 
         Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
             unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {
-                assert(unitigs.size() == color_sets.size())
+                assert(unitigs.size() == color_sets.size());
             }
 
         bool done(){
@@ -50,6 +52,86 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
 
         vector<int64_t> next_colors(){
             return color_sets[color_set_idx++];
+        }
+
+};
+
+class Colored_Unitig_Stream_GGCAT{
+
+    public:
+
+        Colored_Unitig_Stream_GGCAT(const vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
+
+            GGCATConfig config;
+
+            config.use_temp_dir = true;
+            config.temp_dir = get_temp_file_manager().get_dir();
+            config.memory = mem_gigas;
+            config.prefer_memory = true;
+            config.total_threads_count = n_threads;
+            config.intermediate_compression_level = -1;
+
+            config.use_stats_file = false;
+            config.stats_file = "";
+
+            GGCATInstance *instance = GGCATInstance::create(config);
+
+            std::string graph_file = get_temp_file_manager().create_filename("",".fa");
+
+            std::vector<std::string> color_names;
+            for(int64_t i = 0; i < filenames.sizes(); i++){
+                color_names.push_back(to_string(i));
+            }
+
+            std::string output_file = instance->build_graph_from_files(
+                Slice<std::string>(input_files.data(), input_files.size()),
+                graph_file,
+                k,
+                n_threads,
+                false,
+                1,
+                ExtraElaborationStep_UnitigLinks,
+                true,
+                Slice<std::string>(color_names.data(), color_names.size()),
+                -1);
+
+
+            auto file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
+
+            vector<string> unitigs;
+            vector<vector<int64_t> > color_sets;
+
+            instance->dump_unitigs(
+                graph_file,
+                k,
+                1,
+                // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
+                // Also the same_colors boolean is referred to the previous call of this function from the current thread.
+                // Number of threads is set to 1 just above, so no lock needed at the moment.
+                [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
+                    unitigs.push_back(string(read.data, read.data + read.size));
+
+                    vector<int64_t> colorset;
+                    for (size_t i = 0; i < colors.size; i++){
+                        colorset.push_back(colors.data[i]);
+                    }
+                    //std::cout << "] same_colors: " << same_colors << std::endl;
+                },
+                true);
+
+            // TODO: store unitigs and color sets, and iterate
+        }
+
+        bool done(){
+            return true;
+        }
+
+        string next_unitig(){
+            return "";
+        }
+
+        vector<int64_t> next_colors(){
+            return {};
         }
 
 };
