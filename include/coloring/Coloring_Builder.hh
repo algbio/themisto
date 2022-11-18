@@ -60,6 +60,11 @@ class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streamin
 
 class Colored_Unitig_Stream_GGCAT{
 
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    int64_t unitig_idx = 0;
+    int64_t color_set_idx = 0;
+
     public:
 
         Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
@@ -100,9 +105,6 @@ class Colored_Unitig_Stream_GGCAT{
 
             auto file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
 
-            vector<string> unitigs;
-            vector<vector<int64_t> > color_sets;
-
             instance->dump_unitigs(
                 graph_file,
                 k,
@@ -111,17 +113,20 @@ class Colored_Unitig_Stream_GGCAT{
                 // Also the same_colors boolean is referred to the previous call of this function from the current thread.
                 // Number of threads is set to 1 just above, so no lock needed at the moment.
                 [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
-                    unitigs.push_back(string(read.data, read.data + read.size));
+                    this->unitigs.push_back(string(read.data, read.data + read.size));
+                    this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
 
                     vector<int64_t> colorset;
                     for (size_t i = 0; i < colors.size; i++){
                         colorset.push_back(colors.data[i]);
                     }
-                    //std::cout << "] same_colors: " << same_colors << std::endl;
+
+                    this->color_sets.push_back(colorset);
+                    this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
+
+                    //std::cout << "] same_colors: " << same_colors << std::endl; // TODO
                 },
                 true);
-
-            // TODO: store unitigs and color sets, and iterate
         }
 
         bool done(){
