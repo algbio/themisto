@@ -262,7 +262,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     for(DBG::Node v : dbg.all_nodes()){
         vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
-        vector<int64_t> c3 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
+        vector<int64_t> c3 = coloring3.get_color_set_of_node(v.id).get_colors_as_vector();
         //cout << dbg.get_node_label(v) << endl;
         //for(auto x : c1) cout << x << " "; cout << endl;
         //for(auto x : c2) cout << x << " "; cout << endl;
