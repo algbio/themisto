@@ -61,6 +61,7 @@ public:
 
 
 // A colors stream with a unique color for each file
+// If reverse complements, then generates each color twice like: 0,0,1,1,2,2... -> 0,0,0,0,1,1,1,1,2,2,2,2...
 class Unique_For_Each_File_Color_Stream : public Metadata_Stream{
 
 public:
@@ -69,11 +70,13 @@ public:
     int64_t cur_file_idx = 0;
     int64_t cur_file_seq_idx = 0;
     int64_t x = 0; // Current color
+    bool reverse_complements = false;
 
-    Unique_For_Each_File_Color_Stream(const vector<string>& filenames){
+    Unique_For_Each_File_Color_Stream(const vector<string>& filenames, bool reverse_complements) : reverse_complements(reverse_complements){
         write_log("Counting sequences in input files", sbwt::LogLevel::MAJOR);
         for(const string& filename : filenames){
             seq_count_in_file.push_back(sbwt::SeqIO::count_sequences(filename));
+            if(reverse_complements) seq_count_in_file.back() *= 2;
         }
     }
 
@@ -463,7 +466,7 @@ int build_index_main(int argc, char** argv_given){
 
     if(!C.no_colors){
         if(C.file_colors){
-            color_stream = make_unique<Unique_For_Each_File_Color_Stream>(C.seqfiles);
+            color_stream = make_unique<Unique_For_Each_File_Color_Stream>(C.seqfiles, C.reverse_complements);
         } else if(C.colorfiles.size() == 0){
             // Color each sequence separately
             color_stream = make_unique<Unique_For_Each_Sequence_Color_Stream>(C.reverse_complements);
