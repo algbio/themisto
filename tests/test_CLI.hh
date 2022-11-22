@@ -331,7 +331,7 @@ TEST_F(CLI_TEST, test_color_matrix_dump){
     }
 }
 
-TEST_F(CLI_TEST, multiple_input_files_user_colors){
+TEST_F(CLI_TEST, multiple_input_files){
     string gzip_outfile = get_temp_file_manager().create_filename("", ".fna.gz");
 
     int64_t m = 20; // Number of sequences
@@ -368,7 +368,7 @@ TEST_F(CLI_TEST, multiple_input_files_user_colors){
     string index_prefix = get_temp_file_manager().create_filename();
 
     // Build from multiple files
-    vector<string> args = {"build", "-k", to_string(k), "-i", seqfile_list, "-c", colorfile_list, "-o", index_prefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "-k", to_string(k), "-i", seqfile_list, "-c", colorfile_list, "-o", index_prefix, "--temp-dir", tempdir, "--reverse-complements"};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
 
@@ -379,13 +379,13 @@ TEST_F(CLI_TEST, multiple_input_files_user_colors){
     write_vector(colors, all_colors_file);
 
     string index_prefix2 = get_temp_file_manager().create_filename();
-    vector<string> args2 = {"build", "-k", to_string(k), "-i", all_seq_file, "-c", all_colors_file, "-o", index_prefix2, "--temp-dir", tempdir};
+    vector<string> args2 = {"build", "-k", to_string(k), "-i", all_seq_file, "-c", all_colors_file, "-o", index_prefix2, "--temp-dir", tempdir, "--reverse-complements"};
     sbwt::Argv argv2(args2);
     build_index_main(argv2.size, argv2.array);
 
     // Build with file colors
     string index_prefix3 = get_temp_file_manager().create_filename();
-    vector<string> args3 = {"build", "-k", to_string(k), "-i", seqfile_list, "--file-colors", "-o", index_prefix3, "--temp-dir", tempdir};
+    vector<string> args3 = {"build", "-k", to_string(k), "-i", seqfile_list, "--file-colors", "-o", index_prefix3, "--temp-dir", tempdir,  "--reverse-complements"};
     sbwt::Argv argv3(args3);
     build_index_main(argv3.size, argv3.array);
 

@@ -346,7 +346,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
 pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(string input_file_listfile, int64_t k){
     // Build Themisto with file colors
     string indexprefix = get_temp_file_manager().create_filename();
-    vector<string> args = {"build", "-k", to_string(k), "-i", input_file_listfile, "-o", indexprefix, "--temp-dir", get_temp_file_manager().get_dir(), "--file-colors"};
+    vector<string> args = {"build", "-k", to_string(k), "-i", input_file_listfile, "-o", indexprefix, "--temp-dir", get_temp_file_manager().get_dir(), "--file-colors", "--reverse-complements"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
@@ -412,15 +412,24 @@ TEST(TEST_GGCAT, check_vs_themisto){
         themisto_pairs.push_back({themisto_unitigs[i], themisto_color_sets[i]});
 
     // Run ggcat
-    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, true);
 
     vector<pair<string, vector<int64_t>>> ggcat_pairs; // (Unitig, color) set pairs
     while(!US_GGCAT.done()){
-        ggcat_pairs.push_back({US_GGCAT.next_unitig(), US_GGCAT.next_colors()});
+        string unitig = US_GGCAT.next_unitig();
+        vector<int64_t> colors = US_GGCAT.next_colors();
+        ggcat_pairs.push_back({unitig, colors});
+        ggcat_pairs.push_back({get_rc(unitig), colors});
     }
 
     std::sort(themisto_pairs.begin(), themisto_pairs.end());
     std::sort(ggcat_pairs.begin(), ggcat_pairs.end());
+
+    for(int64_t i = 0; i < themisto_pairs.size(); i++){
+        cout << themisto_pairs[i] << endl;
+        cout << ggcat_pairs[i] << endl;
+        cout << "--" << endl;
+    }
 
     ASSERT_EQ(themisto_pairs, ggcat_pairs);
 
