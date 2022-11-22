@@ -20,6 +20,7 @@
 #include "DBG.hh"
 #include "sbwt/SBWT.hh"
 #include "coloring/Coloring.hh"
+#include "coloring/Coloring_Builder.hh"
 
 using namespace sbwt;
 
@@ -339,4 +340,88 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
     for(int64_t i = 0; i < found.size(); i++){
         ASSERT_EQ(found[i], 1);
     }
+}
+
+// Returns pair (unitigs, color sets)
+pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(string input_file_listfile, int64_t k){
+    // Build Themisto with file colors
+    string indexprefix = get_temp_file_manager().create_filename();
+    vector<string> args = {"build", "-k", to_string(k), "-i", input_file_listfile, "-o", indexprefix, "--temp-dir", get_temp_file_manager().get_dir(), "--file-colors"};
+    cout << args << endl;
+    sbwt::Argv argv(args);
+    build_index_main(argv.size, argv.array);
+    plain_matrix_sbwt_t SBWT;
+    SBWT.load(indexprefix + ".tdbg");
+    Coloring<> coloring;
+    coloring.load(indexprefix + ".tcolors", SBWT);
+
+    UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
+    DBG dbg(&SBWT);
+
+    string unitigs_outfile = get_temp_file_manager().create_filename("unitigs-",".fna");
+    string unitig_colors_outfile = get_temp_file_manager().create_filename("unitigs-colors-",".txt");
+
+    sbwt::throwing_ofstream unitigs_out(unitigs_outfile);
+    sbwt::throwing_ofstream unitig_colors_out(unitig_colors_outfile);
+
+    sbwt::SeqIO::NullStream gfa_null_stream;
+    UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
+
+    unitigs_out.close();
+    unitig_colors_out.close();
+
+    // Parse unitigs and colors from disk
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    SeqIO::Reader<> unitigs_in(unitigs_outfile);
+    while(true){ // Read unitigs
+        string S = unitigs_in.get_next_read();
+        if(S == "") break;
+        else unitigs.push_back(S);
+    }
+    sbwt::throwing_ifstream color_sets_in(unitig_colors_outfile);
+    string line;
+    while(getline(color_sets_in.stream, line)){ // Read colors
+        vector<string> tokens = split(line);
+        vector<int64_t> colors;
+        for(int64_t i = 1; i < tokens.size(); i++){ // i == 0 is the unitig id, which we ignore here
+            colors.push_back(fast_string_to_int(tokens[i].c_str(), tokens[i].size()));
+        }
+        color_sets.push_back(colors);
+    }
+
+    return {unitigs, color_sets};
+}
+
+TEST(TEST_GGCAT, check_vs_themisto){
+    string fastafile = get_temp_file_manager().create_filename("",".fna");
+    string unused_colorfile = get_temp_file_manager().create_filename("",".txt");
+    construct_unitig_extraction_test_input(fastafile, unused_colorfile); int64_t k = 30; // Putting k on the same line here because the test inputs are designed for k = 30
+
+    // Split the unitigs into one unitig per file for ggcat
+    vector<string> ggcat_input_files = split_seqs_to_separate_files(fastafile);
+    string input_file_listfile = get_temp_file_manager().create_filename("", ".txt");
+    write_lines(ggcat_input_files, input_file_listfile);
+
+    // Run Themisto
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    std::tie(unitigs, color_sets) = get_colored_unitigs_with_themisto(input_file_listfile, k);
+
+    // Run ggcat
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
+
+    int64_t unitig_idx = 0;
+    while(!US_GGCAT.done()){
+        string unitig = US_GGCAT.next_unitig();
+        vector<int64_t> colors = US_GGCAT.next_colors();
+        ASSERT_EQ(unitig, unitigs[unitig_idx]);
+        ASSERT_EQ(colors, color_sets[unitig_idx]);
+
+        unitig_idx++;
+    }
+
+    ASSERT_EQ(unitig_idx, unitigs.size());
+
+
 }

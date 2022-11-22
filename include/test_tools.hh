@@ -62,6 +62,10 @@ void write_as_fastq(vector<string>& seqs, string fastq_filename);
 
 vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT);
 
+vector<string> split_seqs_to_separate_files(string infile);
+
+void write_lines(const vector<string>& lines, const string& filename);
+
 template<typename T>
 T to_disk_and_back(T& c){
     string f = sbwt::get_temp_file_manager().create_filename();

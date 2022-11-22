@@ -9,6 +9,7 @@
 #include <map>
 #include "globals.hh"
 #include "stdlib_printing.hh"
+#include "throwing_streams.hh"
 #include "test_tools.hh"
 #include <cassert>
 
@@ -159,4 +160,24 @@ vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT){
         labels.push_back(label);
     }
     return labels;
+}
+
+vector<string> split_seqs_to_separate_files(string infile){
+    sbwt::SeqIO::Reader<> in(infile);
+    vector<string> outfiles;
+    while(true){ // Read unitigs
+        string S = in.get_next_read();
+        if(S == "") break;
+        string outfile = sbwt::get_temp_file_manager().create_filename("", ".fna");
+        sbwt::throwing_ofstream out(outfile);
+        out.stream << ">\n" << S << "\n";
+
+        outfiles.push_back(outfile);
+    }
+    return outfiles;
+}
+
+void write_lines(const vector<string>& lines, const string& filename){
+    sbwt::throwing_ofstream out(filename);
+    for(const string& line : lines) out.stream << line << "\n";
 }
