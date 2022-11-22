@@ -124,6 +124,10 @@ class Colored_Unitig_Stream_GGCAT{
                         this->unitigs.push_back(string(read.data, read.data + read.size));
                         this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
 
+                        if(colors.size == 0){
+                            cerr << "BUG: ggcat unitig has empty color set" << endl;
+                        }
+
                         vector<int64_t> colorset;
                         for (size_t i = 0; i < colors.size; i++){
                             colorset.push_back(colors.data[i]);
@@ -132,8 +136,6 @@ class Colored_Unitig_Stream_GGCAT{
                         this->color_sets.push_back(colorset);
                         this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
 
-                        cout << this->unitigs.back() << endl;
-                        cout << vec_to_string(color_sets.back()) << endl;
                     } catch(const std::exception& e){
                         std::cerr << "Caught Error: " << e.what() << '\n';
                         exit(1);
@@ -677,7 +679,7 @@ private:
         };
 
         coloring.largest_color_id = -1;
-        vector<int64_t> colors = colored_unitig_stream.next_colors();
+        vector<int64_t> colors;
         while(!colored_unitig_stream.done()){
             string unitig = colored_unitig_stream.next_unitig();
             if(colored_unitig_stream.next_colors_are_different()){
