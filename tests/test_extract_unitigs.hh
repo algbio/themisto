@@ -407,19 +407,21 @@ TEST(TEST_GGCAT, check_vs_themisto){
     vector<string> themisto_unitigs;
     vector<vector<int64_t> > themisto_color_sets;
     std::tie(themisto_unitigs, themisto_color_sets) = get_colored_unitigs_with_themisto(input_file_listfile, k);
+    vector<pair<string, vector<int64_t>>> themisto_pairs; // (Unitig, color) set pairs
+    for(int64_t i = 0; i < themisto_unitigs.size(); i++)
+        themisto_pairs.push_back({themisto_unitigs[i], themisto_color_sets[i]});
 
     // Run ggcat
     Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, false); // No reverse complements
 
-    vector<string> ggcat_unitigs;
-    vector<vector<int64_t>> ggcat_color_sets;
+    vector<pair<string, vector<int64_t>>> ggcat_pairs; // (Unitig, color) set pairs
     while(!US_GGCAT.done()){
-        ggcat_unitigs.push_back(US_GGCAT.next_unitig());
-        ggcat_color_sets.push_back(US_GGCAT.next_colors());
+        ggcat_pairs.push_back({US_GGCAT.next_unitig(), US_GGCAT.next_colors()});
     }
 
-    ASSERT_EQ(ggcat_unitigs, themisto_unitigs);
-    ASSERT_EQ(ggcat_color_sets, themisto_color_sets);
+    std::sort(themisto_pairs.begin(), themisto_pairs.end());
+    std::sort(ggcat_pairs.begin(), ggcat_pairs.end());
 
+    ASSERT_EQ(themisto_pairs, ggcat_pairs);
 
 }
