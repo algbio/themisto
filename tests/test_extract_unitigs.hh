@@ -395,13 +395,19 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
 
 // Returns true if the first and last (k-1)-mers of S are the same
 bool is_cyclic_unitig(const string& S, int64_t k){
-    return S.substr(0,k-1) == S.substr(S.size()-(k-1));
+    return S.substr(0,k-1) == S.substr((int64_t)S.size()-(k-1));
 }
 
-string smallest_rotation(const string& S){
-    vector<string> rots;
-    for(int64_t i = 0; i < S.size(); i++){
-        rots.push_back(S.substr(i) + S.substr(0,i));
+// NOT the same thing as plain string rotation.
+// For example for k = 3, we have 
+//  ACGTAC ->
+//   CGTACG
+// That is, a rotation drops the first character and appends the k-th character.
+string smallest_unitig_rotation(const string& S, int64_t k){
+    vector<string> rots = {S};
+    for(int64_t i = 0; i < S.size()-1; i++){
+        string prev = rots.back();
+        rots.push_back(prev.substr(1) + prev[k-1]);
     }
     std::sort(rots.begin(), rots.end());
     return rots[0];
@@ -424,8 +430,9 @@ TEST(TEST_GGCAT, check_vs_themisto){
 
     // Canonicalize cylic unitigs
     for(int64_t i = 0; i < themisto_unitigs.size(); i++){
-        if(is_cyclic_unitig(themisto_unitigs[i], k))
-            themisto_unitigs[i] = smallest_rotation(themisto_unitigs[i]);
+        if(is_cyclic_unitig(themisto_unitigs[i], k)){
+            themisto_unitigs[i] = smallest_unitig_rotation(themisto_unitigs[i], k);
+        }
     }
 
     vector<pair<string, vector<int64_t>>> themisto_pairs; // (Unitig, color) set pairs
@@ -438,9 +445,14 @@ TEST(TEST_GGCAT, check_vs_themisto){
     vector<pair<string, vector<int64_t>>> ggcat_pairs; // (Unitig, color) set pairs
     while(!US_GGCAT.done()){
         string unitig = US_GGCAT.next_unitig();
-        if(is_cyclic_unitig(unitig,k)) unitig = smallest_rotation(unitig); // Canonicalize
+        if(is_cyclic_unitig(unitig,k)){
+            unitig = smallest_unitig_rotation(unitig, k); // Canonicalize
+        }
+
         string unitig_rc = get_rc(unitig);
-        if(is_cyclic_unitig(unitig_rc,k)) unitig_rc = smallest_rotation(unitig_rc); // Canonicalize
+        if(is_cyclic_unitig(unitig_rc,k)){
+            unitig_rc = smallest_unitig_rotation(unitig_rc, k); // Canonicalize
+        }
 
         vector<int64_t> colors = US_GGCAT.next_colors();
         ggcat_pairs.push_back({unitig, colors});
@@ -450,14 +462,10 @@ TEST(TEST_GGCAT, check_vs_themisto){
     std::sort(themisto_pairs.begin(), themisto_pairs.end());
     std::sort(ggcat_pairs.begin(), ggcat_pairs.end());
 
-    //for(string S : ggcat_input_files) cout << S << endl;
-    //cout << input_file_listfile << endl;
-    //while(true); // DEBUG BUSY LOOP
-
     for(int64_t i = 0; i < themisto_pairs.size(); i++){
-        cout << themisto_pairs[i] << endl;
-        cout << ggcat_pairs[i] << endl;
-        cout << "--" << endl;
+        logger << themisto_pairs[i] << endl;
+        logger << ggcat_pairs[i] << endl;
+        logger << "--" << endl;
     }
 
     ASSERT_EQ(themisto_pairs, ggcat_pairs);
