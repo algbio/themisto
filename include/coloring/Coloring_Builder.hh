@@ -31,7 +31,9 @@
 
 using namespace ggcat;
 
-class Colored_Unitig_Stream{ // In-memory implementation for now. Todo: streaming from a ggcat database
+class Colored_Unitig_Stream{
+
+    private:
 
     public:
 
@@ -658,7 +660,7 @@ private:
     // Colored unitig stream should produce canonical bidirected unitigs
     template<typename colored_unitig_stream_t>
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
-                    sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
+                    sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers. Should also produce reverse complements
                     const plain_matrix_sbwt_t& SBWT,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,

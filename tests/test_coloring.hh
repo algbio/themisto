@@ -181,7 +181,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
-    sbwt::SeqIO::Reader reader(filename);
+    sbwt::SeqIO::Reader reader(filename); reader.enable_reverse_complements();
     cb.build_coloring(coloring, SBWT, reader, seq_to_color, 1<<30, 3, 3);
 
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
@@ -225,7 +225,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Colored_Unitig_Stream US(unitigs, color_sets);
     Coloring<SDSL_Variant_Color_Set> coloring2;
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
-    sbwt::SeqIO::Reader reader2(filename);
+    sbwt::SeqIO::Reader reader2(filename); reader2.enable_reverse_complements();
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
     // Build from GGCAT
@@ -236,7 +236,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k);
     Coloring<SDSL_Variant_Color_Set> coloring3;
     Coloring_Builder<SDSL_Variant_Color_Set> cb3;
-    sbwt::SeqIO::Reader reader3(filename);
+    sbwt::SeqIO::Reader reader3(filename);  reader3.enable_reverse_complements();
     cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
 
     // Compare
