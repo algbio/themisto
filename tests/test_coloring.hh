@@ -175,8 +175,9 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
-// Bidirected unitigs
-// Seqs do not need to contain reverse complements
+// Seqs need to contain reverse complements
+// Colors should contain added reverse complements
+// The sequences in the fasta filename should *not* contain added reverse complements (it's for ggcat)
 void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
 
     Coloring<SDSL_Variant_Color_Set> coloring;
@@ -230,9 +231,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     // Build from GGCAT
     // Split the unitigs into one unitig per file for ggcat
-    string seqfile = get_temp_file_manager().create_filename("",".fna");
-    write_as_fasta(seqs, seqfile);
-    vector<string> ggcat_input_files = split_seqs_to_separate_files(seqfile);
+    vector<string> ggcat_input_files = split_seqs_to_separate_files(filename);
     Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k);
     Coloring<SDSL_Variant_Color_Set> coloring3;
     Coloring_Builder<SDSL_Variant_Color_Set> cb3;
