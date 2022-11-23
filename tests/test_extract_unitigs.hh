@@ -425,6 +425,10 @@ TEST(TEST_GGCAT, check_vs_themisto){
     std::sort(themisto_pairs.begin(), themisto_pairs.end());
     std::sort(ggcat_pairs.begin(), ggcat_pairs.end());
 
+    //for(string S : ggcat_input_files) cout << S << endl;
+    //cout << input_file_listfile << endl;
+    //while(true); // DEBUG BUSY LOOP
+
     for(int64_t i = 0; i < themisto_pairs.size(); i++){
         cout << themisto_pairs[i] << endl;
         cout << ggcat_pairs[i] << endl;

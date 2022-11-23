@@ -142,7 +142,8 @@ class Colored_Unitig_Stream_GGCAT{
                     }
                     //std::cout << "] same_colors: " << same_colors << std::endl; // TODO
                 },
-                true);
+                true,
+                -1);
         }
 
         bool done(){
