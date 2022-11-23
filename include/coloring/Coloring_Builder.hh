@@ -115,6 +115,7 @@ class Colored_Unitig_Stream_GGCAT{
                 graph_file,
                 k,
                 1,
+                true,
                 // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
                 // Also the same_colors boolean is referred to the previous call of this function from the current thread.
                 // Number of threads is set to 1 just above, so no lock needed at the moment.
