@@ -132,6 +132,8 @@ bool is_valid_kmer(const string& S){
     return true;
 }
 
+// filename should not have added reverse complements
+// seqs and seq_to_color chould have added reverse complements
 template<typename color_set_t, typename color_set_view_t> requires Color_Set_Interface<color_set_t>
 void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::vector<std::string>& seqs, vector<int64_t>& seq_to_color, int64_t k){
 
@@ -155,7 +157,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 
     Coloring<color_set_t> c;
     Coloring_Builder<color_set_t> cb;
-    sbwt::SeqIO::Reader reader(filename);
+    sbwt::SeqIO::Reader reader(filename); reader.enable_reverse_complements();
     cb.build_coloring(c, matrix, reader, seq_to_color, 1<<30, 3, 3);
 
     write_log("Checking colors", LogLevel::MAJOR);
