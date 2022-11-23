@@ -72,7 +72,8 @@ class Colored_Unitig_Stream_GGCAT{
 
     public:
 
-        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k, bool add_rc) {
+        // Always reports canonical bidirected unitigs
+        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
 
             GGCATConfig config;
 
@@ -100,7 +101,7 @@ class Colored_Unitig_Stream_GGCAT{
                 graph_file,
                 k,
                 n_threads,
-                !add_rc,
+                false,
                 1,
                 ExtraElaborationStep_UnitigLinks,
                 true,
@@ -654,6 +655,7 @@ private:
         write_log("Representation built", LogLevel::MAJOR);
     }
 
+    // Colored unitig stream should produce canonical bidirected unitigs
     template<typename colored_unitig_stream_t>
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers
@@ -689,7 +691,6 @@ private:
                 colors = colored_unitig_stream.next_colors();
                 for(int64_t x : colors)
                     coloring.largest_color_id = max(x, coloring.largest_color_id);
-                
                 color_set_id++;
             }
 
@@ -699,6 +700,15 @@ private:
             coloring.total_color_set_length += colors.size();
 
             // Store pointers to the color set
+            for(int64_t colex_rank : SBWT.streaming_search(unitig)){
+                if(colex_rank != -1 && cores[colex_rank]){
+                    add_color_set_pointer(colex_rank);
+                    iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
+                }
+            }
+
+            // Same for reverse complement
+            unitig = get_rc(unitig);
             for(int64_t colex_rank : SBWT.streaming_search(unitig)){
                 if(colex_rank != -1 && cores[colex_rank]){
                     add_color_set_pointer(colex_rank);

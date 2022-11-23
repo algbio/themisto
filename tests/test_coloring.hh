@@ -175,6 +175,8 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
+// Bidirected unitigs
+// Seqs do not need to contain reverse complements
 void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
 
     Coloring<SDSL_Variant_Color_Set> coloring;
@@ -228,14 +230,19 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     // Build from GGCAT
     // Split the unitigs into one unitig per file for ggcat
-    string seqfile = get_temp_file_manager().create_fliename("",".fna");
-    write_as_fasta(seqs);
+    string seqfile = get_temp_file_manager().create_filename("",".fna");
+    write_as_fasta(seqs, seqfile);
     vector<string> ggcat_input_files = split_seqs_to_separate_files(seqfile);
-    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, true);
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k);
+    Coloring<SDSL_Variant_Color_Set> coloring3;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb3;
+    sbwt::SeqIO::Reader reader3(filename);
+    cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
 
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
+    ASSERT_EQ(coloring2.largest_color(), coloring3.largest_color());
 
     // These might not match because the color sets are not deduplicated but that is ok
     // ASSERT_EQ(coloring.number_of_distinct_color_sets(), coloring2.number_of_distinct_color_sets());
@@ -244,7 +251,9 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     for(DBG::Node v : dbg.all_nodes()){
         vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
+        vector<int64_t> c3 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
         ASSERT_EQ(c1, c2);
+        ASSERT_EQ(c2, c3);
     }
 
 }
@@ -271,10 +280,8 @@ TEST(COLORING_TESTS, coli3) {
     int64_t seq_idx = 0;
     while(!sr.done()){
         string S = sr.get_next_query_stream().get_all();
-        seqs.push_back(S); // Forward
-        //seqs.push_back(sbwt::get_rc(S)); // Reverse complement
-        seq_to_color.push_back(seq_idx); // Forward
-        //seq_to_color.push_back(seq_idx); // Reverse complement
+        seqs.push_back(S);
+        seq_to_color.push_back(seq_idx);
         seq_idx++;
     }
 

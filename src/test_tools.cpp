@@ -107,14 +107,14 @@ vector<string> get_sorted_suffixes(string S){
     return suffixes;
 }
 
-void write_as_fasta(vector<string>& seqs, string fasta_filename){
+void write_as_fasta(const vector<string>& seqs, string fasta_filename){
     sbwt::throwing_ofstream out(fasta_filename);
-    for(string& S : seqs) out << ">\n" << S << "\n";
+    for(const string& S : seqs) out << ">\n" << S << "\n";
 }
 
-void write_as_fastq(vector<string>& seqs, string fastq_filename){
+void write_as_fastq(const vector<string>& seqs, string fastq_filename){
     sbwt::throwing_ofstream out(fastq_filename);
-    for(string& S : seqs){
+    for(const string& S : seqs){
         out << "@\n" << S << "\n+\n" << string(S.size(), 'I') << "\n";
     }
 }

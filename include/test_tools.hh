@@ -57,8 +57,8 @@ string get_random_string(int64_t length, int64_t alphabet_size);
 
 vector<string> get_sorted_suffixes(string S);
 
-void write_as_fasta(vector<string>& seqs, string fasta_filename);
-void write_as_fastq(vector<string>& seqs, string fastq_filename);
+void write_as_fasta(const vector<string>& seqs, string fasta_filename);
+void write_as_fastq(const vector<string>& seqs, string fastq_filename);
 
 vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT);
 
