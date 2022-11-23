@@ -181,7 +181,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
-    sbwt::SeqIO::Reader reader(filename); reader.enable_reverse_complements();
+    sbwt::SeqIO::Reader reader(filename);
     cb.build_coloring(coloring, SBWT, reader, seq_to_color, 1<<30, 3, 3);
 
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
@@ -225,7 +225,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Colored_Unitig_Stream US(unitigs, color_sets);
     Coloring<SDSL_Variant_Color_Set> coloring2;
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
-    sbwt::SeqIO::Reader reader2(filename); reader2.enable_reverse_complements();
+    sbwt::SeqIO::Reader reader2(filename);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
     // Build from GGCAT
@@ -236,13 +236,13 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k);
     Coloring<SDSL_Variant_Color_Set> coloring3;
     Coloring_Builder<SDSL_Variant_Color_Set> cb3;
-    sbwt::SeqIO::Reader reader3(filename);  reader3.enable_reverse_complements();
+    sbwt::SeqIO::Reader reader3(filename);
     cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
 
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
-    //ASSERT_EQ(coloring2.largest_color(), coloring3.largest_color());
+    ASSERT_EQ(coloring2.largest_color(), coloring3.largest_color());
 
     // These might not match because the color sets are not deduplicated but that is ok
     // ASSERT_EQ(coloring.number_of_distinct_color_sets(), coloring2.number_of_distinct_color_sets());
@@ -253,7 +253,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c3 = coloring3.get_color_set_of_node(v.id).get_colors_as_vector();
         ASSERT_EQ(c1, c2);
-        //ASSERT_EQ(c2, c3);
+        ASSERT_EQ(c2, c3);
     }
 
 }
@@ -281,6 +281,7 @@ TEST(COLORING_TESTS, coli3) {
     while(!sr.done()){
         string S = sr.get_next_query_stream().get_all();
         seqs.push_back(S);
+        seqs.push_back(get_rc(S));
         seq_to_color.push_back(seq_idx);
         seq_to_color.push_back(seq_idx); // For reverse complements. Yeah this is getting real hacky.
         seq_idx++;
