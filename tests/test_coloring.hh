@@ -282,10 +282,8 @@ TEST(COLORING_TESTS, coli3) {
         string S = sr.get_next_query_stream().get_all();
         seqs.push_back(S);
         seq_to_color.push_back(seq_idx);
+        seq_to_color.push_back(seq_idx); // For reverse complements. Yeah this is getting real hacky.
         seq_idx++;
-    }
-    for(int64_t i = 0; i < seq_idx; i++){
-        seq_to_color.push_back(i); // For reverse complements. Yeah this is getting real hacky.
     }
 
     write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
