@@ -393,6 +393,20 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
     return {unitigs, color_sets};
 }
 
+// Returns true if the first and last (k-1)-mers of S are the same
+bool is_cyclic_unitig(const string& S, int64_t k){
+    return S.substr(0,k-1) == S.substr(S.size()-(k-1));
+}
+
+string smallest_rotation(const string& S){
+    vector<string> rots;
+    for(int64_t i = 0; i < S.size(); i++){
+        rots.push_back(S.substr(i) + S.substr(0,i));
+    }
+    std::sort(rots.begin(), rots.end());
+    return rots[0];
+}
+
 TEST(TEST_GGCAT, check_vs_themisto){
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     string unused_colorfile = get_temp_file_manager().create_filename("",".txt");
@@ -407,6 +421,13 @@ TEST(TEST_GGCAT, check_vs_themisto){
     vector<string> themisto_unitigs;
     vector<vector<int64_t> > themisto_color_sets;
     std::tie(themisto_unitigs, themisto_color_sets) = get_colored_unitigs_with_themisto(input_file_listfile, k);
+
+    // Canonicalize cylic unitigs
+    for(int64_t i = 0; i < themisto_unitigs.size(); i++){
+        if(is_cyclic_unitig(themisto_unitigs[i], k))
+            themisto_unitigs[i] = smallest_rotation(themisto_unitigs[i]);
+    }
+
     vector<pair<string, vector<int64_t>>> themisto_pairs; // (Unitig, color) set pairs
     for(int64_t i = 0; i < themisto_unitigs.size(); i++)
         themisto_pairs.push_back({themisto_unitigs[i], themisto_color_sets[i]});
@@ -417,9 +438,13 @@ TEST(TEST_GGCAT, check_vs_themisto){
     vector<pair<string, vector<int64_t>>> ggcat_pairs; // (Unitig, color) set pairs
     while(!US_GGCAT.done()){
         string unitig = US_GGCAT.next_unitig();
+        if(is_cyclic_unitig(unitig,k)) unitig = smallest_rotation(unitig); // Canonicalize
+        string unitig_rc = get_rc(unitig);
+        if(is_cyclic_unitig(unitig_rc,k)) unitig_rc = smallest_rotation(unitig_rc); // Canonicalize
+
         vector<int64_t> colors = US_GGCAT.next_colors();
         ggcat_pairs.push_back({unitig, colors});
-        ggcat_pairs.push_back({get_rc(unitig), colors});
+        ggcat_pairs.push_back({unitig_rc, colors});
     }
 
     std::sort(themisto_pairs.begin(), themisto_pairs.end());
