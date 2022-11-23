@@ -114,6 +114,8 @@ class Colored_Unitig_Stream_GGCAT{
             auto file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
             std::mutex print_kmer_lock;
 
+            vector<int64_t> prev_colorset;
+
             instance->dump_unitigs(
                 graph_file,
                 k,
@@ -126,20 +128,21 @@ class Colored_Unitig_Stream_GGCAT{
                     std::lock_guard<std::mutex> _lock(print_kmer_lock);
                     try{
                         this->unitigs.push_back(string(read.data, read.data + read.size));
-                        //this->unitigs.push_back(sbwt::get_rc(unitigs.back())); // Add also the reverse complement
 
                         if(colors.size == 0){
                             cerr << "BUG: ggcat unitig has empty color set" << endl;
                         }
 
-                        vector<int64_t> colorset;
-                        for (size_t i = 0; i < colors.size; i++){
-                            colorset.push_back(colors.data[i]);
+                        if(same_colors){
+                            this->color_sets.push_back(prev_colorset);
+                        } else{
+                            vector<int64_t> colorset;
+                            for (size_t i = 0; i < colors.size; i++){
+                                colorset.push_back(colors.data[i]);
+                            }
+                            this->color_sets.push_back(colorset);
+                            prev_colorset = colorset;
                         }
-
-                        this->color_sets.push_back(colorset);
-                        //this->color_sets.push_back(colorset); // Add the same colors for the reverse complement
-
                     } catch(const std::exception& e){
                         std::cerr << "Caught Error: " << e.what() << '\n';
                         exit(1);
