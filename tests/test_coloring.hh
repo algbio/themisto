@@ -284,6 +284,9 @@ TEST(COLORING_TESTS, coli3) {
         seq_to_color.push_back(seq_idx);
         seq_idx++;
     }
+    for(int64_t i = 0; i < seq_idx; i++){
+        seq_to_color.push_back(i); // For reverse complements. Yeah this is getting real hacky.
+    }
 
     write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
     test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename, k);
