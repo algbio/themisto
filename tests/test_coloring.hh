@@ -226,6 +226,13 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     sbwt::SeqIO::Reader reader2(filename);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
+    // Build from GGCAT
+    // Split the unitigs into one unitig per file for ggcat
+    string seqfile = get_temp_file_manager().create_fliename("",".fna");
+    write_as_fasta(seqs);
+    vector<string> ggcat_input_files = split_seqs_to_separate_files(seqfile);
+    Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k, true);
+
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
@@ -250,7 +257,7 @@ TEST(COLORING_TESTS, coli3) {
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     string indexprefix = get_temp_file_manager().create_filename();
     string tempdir = get_temp_file_manager().get_dir();
-    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
