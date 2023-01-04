@@ -697,12 +697,11 @@ private:
                 for(int64_t x : colors)
                     coloring.largest_color_id = max(x, coloring.largest_color_id);
                 color_set_id++;
-            }
 
-            
-            // Store color set
-            coloring.sets.add_set(colors);
-            coloring.total_color_set_length += colors.size();
+                // Store color set
+                coloring.sets.add_set(colors);
+                coloring.total_color_set_length += colors.size();
+            }
 
             // Store pointers to the color set
             for(int64_t colex_rank : SBWT.streaming_search(unitig)){
