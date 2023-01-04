@@ -65,17 +65,20 @@ class Colored_Unitig_Stream{
 
 };
 
-class Colored_Unitig_Stream_GGCAT{
+class GGCAT_unitig_database{
 
-    vector<string> unitigs;
-    vector<vector<int64_t> > color_sets;
-    int64_t unitig_idx = 0;
-    int64_t color_set_idx = 0;
+private:
+    // No copying
+    GGCAT_unitig_database(GGCAT_unitig_database const& other) = delete;
+    GGCAT_unitig_database& operator=(GGCAT_unitig_database const& other) = delete;
 
-    public:
+public:
 
-        // Always reports canonical bidirected unitigs
-        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
+    GGCATInstance* instance;
+    string graph_file;
+    vector<string> color_names;
+
+    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads){
 
             GGCATConfig config;
 
@@ -89,11 +92,11 @@ class Colored_Unitig_Stream_GGCAT{
             config.use_stats_file = false;
             config.stats_file = "";
 
-            GGCATInstance *instance = GGCATInstance::create(config);
+            GGCATInstance *instance = GGCATInstance::create(config); // TODO: Who is supposed to free this pointer?
 
-            std::string graph_file = get_temp_file_manager().create_filename("",".fa");
+            graph_file = get_temp_file_manager().create_filename("",".fa");
 
-            std::vector<std::string> color_names;
+            color_names.clear();
             for(int64_t i = 0; i < filenames.size(); i++){
                 color_names.push_back(to_string(i));
             }
@@ -110,47 +113,58 @@ class Colored_Unitig_Stream_GGCAT{
                 Slice<std::string>(color_names.data(), color_names.size()),
                 -1);
 
+            vector<string> file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
+            
+    }
 
-            auto file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
-            std::mutex print_kmer_lock;
+    // The callback takes a unitig, the color set, and the is_same flag
+    void iterate(std::function<void(const std::string&, const vector<int64_t>&, bool)> callback, int64_t k){
 
-            vector<int64_t> prev_colorset;
+        vector<int64_t> prev_colors;
+        std::mutex callback_mutex;
 
-            instance->dump_unitigs(
-                graph_file,
-                k,
-                1,
-                true,
-                // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
-                // Also the same_colors boolean is referred to the previous call of this function from the current thread.
-                // Number of threads is set to 1 just above, so no lock needed at the moment.
-                [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
-                    std::lock_guard<std::mutex> _lock(print_kmer_lock);
-                    try{
-                        this->unitigs.push_back(string(read.data, read.data + read.size));
+        auto outer_callback = [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
+            // Calls in callback provided by the caller of iterate.
+            // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
+            // Also the same_colors boolean is referred to the previous call of this function from the current thread.
+            // Number of threads is set to 1 just above, so no lock needed at the moment.
+            try{
+                std::lock_guard<std::mutex> _lock(callback_mutex);
+                string unitig = string(read.data, read.data + read.size);
 
-                        if(colors.size == 0){
-                            cerr << "BUG: ggcat unitig has empty color set" << endl;
-                        }
-
-                        if(same_colors){
-                            this->color_sets.push_back(prev_colorset);
-                        } else{
-                            vector<int64_t> colorset;
-                            for (size_t i = 0; i < colors.size; i++){
-                                colorset.push_back(colors.data[i]);
-                            }
-                            this->color_sets.push_back(colorset);
-                            prev_colorset = colorset;
-                        }
-                    } catch(const std::exception& e){
-                        std::cerr << "Caught Error: " << e.what() << '\n';
-                        exit(1);
+                if(same_colors){
+                    callback(unitig, prev_colors, true);
+                } else{
+                    prev_colors.clear();
+                    for (size_t i = 0; i < colors.size; i++){
+                        prev_colors.push_back(colors.data[i]);
                     }
-                    //std::cout << "] same_colors: " << same_colors << std::endl; // TODO
-                },
-                true,
-                -1);
+                    callback(unitig, prev_colors, false);
+                }
+            } catch(const std::exception& e){
+                std::cerr << "Caught Error: " << e.what() << '\n';
+                exit(1);
+            }
+        };
+
+        this->instance->dump_unitigs(graph_file,k,1,true,outer_callback);
+    }
+
+};
+
+class Colored_Unitig_Stream_GGCAT{
+
+
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    int64_t unitig_idx = 0;
+    int64_t color_set_idx = 0;
+
+    public:
+
+        // Always reports canonical bidirected unitigs
+        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
+            // TODO rewrite with iterate
         }
 
         bool done(){
@@ -660,17 +674,17 @@ private:
         write_log("Representation built", LogLevel::MAJOR);
     }
 
-    // Colored unitig stream should produce canonical bidirected unitigs
-    template<typename colored_unitig_stream_t>
+    // Colored unitig stream database produce canonical bidirected unitigs
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
                     sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers. Should also produce reverse complements
                     const plain_matrix_sbwt_t& SBWT,
                     const std::int64_t ram_bytes,
                     const std::int64_t n_threads,
                     int64_t colorset_sampling_distance,
-                    colored_unitig_stream_t& colored_unitig_stream){
+                    GGCAT_unitig_database& unitig_database){
         
         coloring.index_ptr = &SBWT;
+        coloring.largest_color_id = -1;
 
         write_log("Marking core kmers", LogLevel::MAJOR);
         core_kmer_marker<sequence_reader_t> ckm;
@@ -687,16 +701,13 @@ private:
             builder.add(node_id, color_set_id);
         };
 
-        coloring.largest_color_id = -1;
-        vector<int64_t> colors;
-        while(!colored_unitig_stream.done()){
-            string unitig = colored_unitig_stream.next_unitig();
-            if(colored_unitig_stream.next_colors_are_different()){
-                // Read new color set
-                colors = colored_unitig_stream.next_colors();
-                for(int64_t x : colors)
-                    coloring.largest_color_id = max(x, coloring.largest_color_id);
+        auto process_unitig_and_colors = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
+            // same_colors means that the color set of the current unitig is the same as the color set of
+            // the previous.
+            if(!same_colors){
                 color_set_id++;
+                // Keep track of maximum color
+                for(int64_t x : colors) coloring.largest_color_id = max(x, coloring.largest_color_id);
 
                 // Store color set
                 coloring.sets.add_set(colors);
@@ -706,20 +717,22 @@ private:
             // Store pointers to the color set
             for(int64_t colex_rank : SBWT.streaming_search(unitig)){
                 if(colex_rank != -1 && cores[colex_rank]){
-                    add_color_set_pointer(colex_rank);
+                    builder.add(colex_rank, color_set_id);
                     iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
                 }
             }
 
             // Same for reverse complement
-            unitig = get_rc(unitig);
-            for(int64_t colex_rank : SBWT.streaming_search(unitig)){
+            string unitig_rc = get_rc(unitig);
+            for(int64_t colex_rank : SBWT.streaming_search(unitig_rc)){
                 if(colex_rank != -1 && cores[colex_rank]){
-                    add_color_set_pointer(colex_rank);
+                    builder.add(colex_rank, color_set_id);
                     iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
                 }
             }
-        }
+        };
+
+        unitig_database.iterate(process_unitig_and_colors, SBWT.get_k());
 
         coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        

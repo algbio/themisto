@@ -224,37 +224,25 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
         color_sets.push_back(colors);
     }
 
-    // Build from unitigs and colors
-    Colored_Unitig_Stream US(unitigs, color_sets);
-    Coloring<SDSL_Variant_Color_Set> coloring2;
-    Coloring_Builder<SDSL_Variant_Color_Set> cb2;
-    sbwt::SeqIO::Reader reader2(filename); reader2.enable_reverse_complements();
-    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, US);
 
     // Build from GGCAT
     // Split the unitigs into one unitig per file for ggcat
     vector<string> ggcat_input_files = split_seqs_to_separate_files(filename);
     Colored_Unitig_Stream_GGCAT US_GGCAT(ggcat_input_files, 2, 3, k);
-    Coloring<SDSL_Variant_Color_Set> coloring3;
-    Coloring_Builder<SDSL_Variant_Color_Set> cb3;
-    sbwt::SeqIO::Reader reader3(filename); reader3.enable_reverse_complements();
-    cb3.build_from_colored_unitigs(coloring3, reader3, SBWT, 1<<30, 3, 3, US_GGCAT);
+    Coloring<SDSL_Variant_Color_Set> coloring2;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb2;
+    sbwt::SeqIO::Reader reader2(filename); reader2.enable_reverse_complements();
+    GGCAT_unitig_database db(ggcat_input_files, 1<<30, k, 3);
+    cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, db);
 
     // Compare
 
     ASSERT_EQ(coloring.largest_color(), coloring2.largest_color());
-    ASSERT_EQ(coloring2.largest_color(), coloring3.largest_color());
-
-    // These might not match because the color sets are not deduplicated but that is ok
-    // ASSERT_EQ(coloring.number_of_distinct_color_sets(), coloring2.number_of_distinct_color_sets());
-    // ASSERT_EQ(coloring.sum_of_all_distinct_color_set_lengths(), coloring2.sum_of_all_distinct_color_set_lengths());
 
     for(DBG::Node v : dbg.all_nodes()){
         vector<int64_t> c1 = coloring.get_color_set_of_node(v.id).get_colors_as_vector();
         vector<int64_t> c2 = coloring2.get_color_set_of_node(v.id).get_colors_as_vector();
-        vector<int64_t> c3 = coloring3.get_color_set_of_node(v.id).get_colors_as_vector();
         ASSERT_EQ(c1, c2);
-        ASSERT_EQ(c2, c3);
     }
 
 }
