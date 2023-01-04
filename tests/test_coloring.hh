@@ -231,7 +231,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     Coloring<SDSL_Variant_Color_Set> coloring2;
     Coloring_Builder<SDSL_Variant_Color_Set> cb2;
     sbwt::SeqIO::Reader reader2(filename); reader2.enable_reverse_complements();
-    GGCAT_unitig_database db(ggcat_input_files, 1, k, 3);
+    GGCAT_unitig_database db(ggcat_input_files, 1, k, 3, true);
     cb2.build_from_colored_unitigs(coloring2, reader2, SBWT, 1<<30, 3, 3, db);
 
     // Compare

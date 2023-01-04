@@ -339,7 +339,7 @@ int build_index_main(int argc, char** argv_given){
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
-        ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, (k+1)-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
+        ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, k-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
@@ -532,4 +532,72 @@ int build_index_main(int argc, char** argv_given){
     free(argv);
 
     return 0;
+}
+
+int build_index_main_ggcat(int argc, char** argv){
+    cxxopts::Options options(argv[0], "Build the Themisto index using GGCAT. Only file-colors are supported. Reverse complements are always added to the index. Only takes in lists of filenames.");
+
+    options.add_options()
+        ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
+        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
+        ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
+        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
+        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
+        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
+        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
+        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
+        ("h,help", "Print usage")
+    ;
+
+    int64_t old_argc = argc; // Must store this because the parser modifies it
+    auto opts = options.parse(argc, argv);
+
+    if (old_argc == 1 || opts.count("help")){
+        std::cerr << options.help() << std::endl;
+        exit(1);
+    }    
+
+    int64_t k = opts["k"].as<int64_t>();
+    int64_t n_threads = opts["n-threads"].as<int64_t>();
+    string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
+    string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
+    string temp_dir = opts["temp-dir"].as<string>();
+    int64_t memory_megas = opts["mem-megas"].as<int64_t>();
+    int64_t colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<int64_t>();
+    bool verbose = opts["verbose"].as<bool>();
+    bool silent = opts["silent"].as<bool>();
+    string coloring_structure_type = opts["coloring-structure-type"].as<string>();
+
+
+    // List of filenames
+    string seqfile_CLI_variable = opts["input-file"].as<string>();
+    vector<string> seqfiles = sbwt::readlines(seqfile_CLI_variable);
+
+    // Run GGCAT
+    GGCAT_unitig_database db(seqfiles, max(1LL, memory_megas / (1LL << 10)), k, n_threads, true); // Canonical unitigs
+
+    string unitigfile = db.get_unitig_filename();
+    string rev_unitigfile = sbwt::SeqIO::create_reverse_complement_file<
+            sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
+            sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(unitigfile);
+
+    // Build SBWT
+    /*
+    sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
+    sbwt_config.build_streaming_support = true;
+    sbwt_config.input_files = KMC_input_files;
+    sbwt_config.k = C.k;
+    sbwt_config.max_abundance = 1e9;
+    sbwt_config.min_abundance = 1;
+    sbwt_config.n_threads = C.n_threads;
+    sbwt_config.ram_gigas = min((int64_t)2, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
+    sbwt_config.temp_dir = C.temp_dir;
+    dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
+    dbg_ptr->serialize(C.index_dbg_file);
+    sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
+    */
+
+   return 0;
 }

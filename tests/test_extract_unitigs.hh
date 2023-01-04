@@ -440,7 +440,7 @@ TEST(TEST_GGCAT, check_vs_themisto){
         themisto_pairs.push_back({themisto_unitigs[i], themisto_color_sets[i]});
 
     // Run ggcat
-    GGCAT_unitig_database db(ggcat_input_files, 2, k, 3);
+    GGCAT_unitig_database db(ggcat_input_files, 2, k, 3, true);
     Colored_Unitig_Stream_GGCAT US_GGCAT(db);
 
     vector<pair<string, vector<int64_t>>> ggcat_pairs; // (Unitig, color) set pairs

@@ -79,7 +79,7 @@ public:
     vector<string> color_names;
     int64_t k;
 
-    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads) : k(k) {
+    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads, bool canonical) : k(k) {
 
         GGCATConfig config;
 
@@ -110,7 +110,7 @@ public:
             graph_file,
             k,
             n_threads,
-            false,
+            !canonical,
             1,
             ExtraElaborationStep_UnitigLinks,
             true,
@@ -151,6 +151,10 @@ public:
         };
 
         this->instance->dump_unitigs(graph_file,k,1,true,outer_callback,true,-1);
+    }
+
+    string get_unitig_filename(){
+        return graph_file;
     }
 
 };
