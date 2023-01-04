@@ -79,52 +79,46 @@ public:
     vector<string> color_names;
     int64_t k;
 
-    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads) : k(k){
+    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads) : k(k) {
 
-            GGCATConfig config;
+        GGCATConfig config;
 
-            config.use_temp_dir = true;
-            config.temp_dir = get_temp_file_manager().get_dir();
-            config.memory = mem_gigas;
-            config.prefer_memory = true;
-            config.total_threads_count = n_threads;
-            config.intermediate_compression_level = -1;
+        config.use_temp_dir = true;
+        config.temp_dir = get_temp_file_manager().get_dir();
+        config.memory = mem_gigas;
+        config.prefer_memory = true;
+        config.total_threads_count = n_threads;
+        config.intermediate_compression_level = -1;
 
-            config.use_stats_file = false;
-            config.stats_file = "";
+        config.use_stats_file = false;
+        config.stats_file = "";
 
-            // This leaks memory but it's only a few bytes. It can't be easily fixed because
-            // this memory is allocated in the Rust API of GGCAT and freed only at the
-            // end of the program.
-            instance = GGCATInstance::create(config);
-            
+        // This leaks memory but it's only a few bytes. It can't be easily fixed because
+        // this memory is allocated in the Rust API of GGCAT and freed only at the
+        // end of the program.
+        instance = GGCATInstance::create(config);
+        
+        graph_file = get_temp_file_manager().create_filename("",".fa");
 
-            graph_file = get_temp_file_manager().create_filename("",".fa");
+        color_names.clear();
+        for(int64_t i = 0; i < filenames.size(); i++){
+            color_names.push_back(to_string(i));
+        }
 
-            color_names.clear();
-            for(int64_t i = 0; i < filenames.size(); i++){
-                color_names.push_back(to_string(i));
-            }
+        std::string output_file = instance->build_graph_from_files(
+            Slice<std::string>(filenames.data(), filenames.size()),
+            graph_file,
+            k,
+            n_threads,
+            false,
+            1,
+            ExtraElaborationStep_UnitigLinks,
+            true,
+            Slice<std::string>(color_names.data(), color_names.size()),
+            -1);
 
-            std::string output_file = instance->build_graph_from_files(
-                Slice<std::string>(filenames.data(), filenames.size()),
-                graph_file,
-                k,
-                n_threads,
-                false,
-                1,
-                ExtraElaborationStep_UnitigLinks,
-                true,
-                Slice<std::string>(color_names.data(), color_names.size()),
-                -1);
+        vector<string> file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
 
-            vector<string> file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
-
-            auto debug = [](const std::string&, const vector<int64_t>&, bool){
-                // Nothing
-            };
-            iterate(debug); // DEBUG
-            
     }
 
     // The callback takes a unitig, the color set, and the is_same flag
@@ -163,7 +157,7 @@ public:
         };
 
         cout << "Graph file " << graph_file << endl;
-        this->instance->dump_unitigs(graph_file,k,1,true,outer_callback);
+        this->instance->dump_unitigs(graph_file,k,1,true,outer_callback,true,-1);
     }
 
 };
