@@ -77,8 +77,9 @@ public:
     GGCATInstance* instance;
     string graph_file;
     vector<string> color_names;
+    int64_t k;
 
-    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads){
+    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads) : k(k){
 
             GGCATConfig config;
 
@@ -118,11 +119,16 @@ public:
                 -1);
 
             vector<string> file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
+
+            auto debug = [](const std::string&, const vector<int64_t>&, bool){
+                // Nothing
+            };
+            iterate(debug); // DEBUG
             
     }
 
     // The callback takes a unitig, the color set, and the is_same flag
-    void iterate(std::function<void(const std::string&, const vector<int64_t>&, bool)> callback, int64_t k){
+    void iterate(std::function<void(const std::string&, const vector<int64_t>&, bool)> callback){
 
         vector<int64_t> prev_colors;
         std::mutex callback_mutex;
@@ -137,8 +143,9 @@ public:
             try{
                 string unitig = string(read.data, read.data + read.size);
 
+                cout << "colors: " << endl;
                 for(size_t i = 0; i < colors.size; i++) cout << colors.data[i] << " "; cout  << endl;
-                cout << unitig << endl;
+                cout << "unitig: " << unitig << endl;
                 
                 if(same_colors){
                     callback(unitig, prev_colors, true);
@@ -155,6 +162,7 @@ public:
             }
         };
 
+        cout << "Graph file " << graph_file << endl;
         this->instance->dump_unitigs(graph_file,k,1,true,outer_callback);
     }
 
@@ -171,8 +179,16 @@ class Colored_Unitig_Stream_GGCAT{
     public:
 
         // Always reports canonical bidirected unitigs
-        Colored_Unitig_Stream_GGCAT(vector<string>& filenames, int64_t mem_gigas, int64_t n_threads, int64_t k) {
-            // TODO rewrite with iterate
+        Colored_Unitig_Stream_GGCAT(GGCAT_unitig_database& db) {
+            // TODO: IMPLEMENT (now just a dummy implementation)
+            auto collect = [](const string& unitig, const vector<int64_t>& colors, bool same_colors){
+                if(unitig.size() == 0){
+                    // DEBUG
+                    cerr << "EMPTY UNITIG" << endl;
+                    exit(1);
+                }
+            };
+            db.iterate(collect);
         }
 
         bool done(){
@@ -740,7 +756,7 @@ private:
             }
         };
 
-        unitig_database.iterate(process_unitig_and_colors, SBWT.get_k());
+        unitig_database.iterate(process_unitig_and_colors);
 
         coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        
