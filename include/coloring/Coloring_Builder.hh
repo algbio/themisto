@@ -128,19 +128,13 @@ public:
         std::mutex callback_mutex;
 
         auto outer_callback = [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
-            cout << "Callback" << endl;
             // Calls in callback provided by the caller of iterate.
             // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
             // Also the same_colors boolean is referred to the previous call of this function from the current thread.
             // Number of threads is set to 1 just above, so no lock needed at the moment.
             std::lock_guard<std::mutex> _lock(callback_mutex);
             try{
-                string unitig = string(read.data, read.data + read.size);
-
-                cout << "colors: " << endl;
-                for(size_t i = 0; i < colors.size; i++) cout << colors.data[i] << " "; cout  << endl;
-                cout << "unitig: " << unitig << endl;
-                
+                string unitig = string(read.data, read.data + read.size);                
                 if(same_colors){
                     callback(unitig, prev_colors, true);
                 } else{
@@ -156,7 +150,6 @@ public:
             }
         };
 
-        cout << "Graph file " << graph_file << endl;
         this->instance->dump_unitigs(graph_file,k,1,true,outer_callback,true,-1);
     }
 
