@@ -5,6 +5,7 @@ int pseudoalign_main(int argc, char** argv);
 int extract_unitigs_main(int argc, char** argv);
 int stats_main(int argc, char** argv);
 int dump_color_matrix_main(int argc, char** argv);
+int build_index_main_ggcat(int argc, char** argv);
 
 int color_set_diagnostics_main(int argc, char** argv); // Undocumented developer feature
 
