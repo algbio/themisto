@@ -545,7 +545,6 @@ int build_index_main_ggcat(int argc, char** argv){
         ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
-        ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -566,10 +565,11 @@ int build_index_main_ggcat(int argc, char** argv){
     string temp_dir = opts["temp-dir"].as<string>();
     int64_t memory_megas = opts["mem-megas"].as<int64_t>();
     int64_t colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<int64_t>();
-    bool verbose = opts["verbose"].as<bool>();
-    bool silent = opts["silent"].as<bool>();
-    string coloring_structure_type = opts["coloring-structure-type"].as<string>();
+    bool verbose = opts["verbose"].as<bool>(); // TODO: does nothing
+    bool silent = opts["silent"].as<bool>(); // TODO: does nothing
 
+    create_directory_if_does_not_exist(temp_dir);
+    sbwt::get_temp_file_manager().set_dir(temp_dir);
 
     // List of filenames
     string seqfile_CLI_variable = opts["input-file"].as<string>();
