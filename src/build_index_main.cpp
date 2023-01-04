@@ -508,7 +508,7 @@ int build_index_main(int argc, char** argv_given){
         sbwt_config.max_abundance = 1e9;
         sbwt_config.min_abundance = 1;
         sbwt_config.n_threads = C.n_threads;
-        sbwt_config.ram_gigas = min((int64_t)2, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
+        sbwt_config.ram_gigas = max((int64_t)2, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
         sbwt_config.temp_dir = C.temp_dir;
         dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
         dbg_ptr->serialize(C.index_dbg_file);
@@ -594,7 +594,7 @@ int build_index_main_ggcat(int argc, char** argv){
     sbwt_config.max_abundance = 1e9;
     sbwt_config.min_abundance = 1;
     sbwt_config.n_threads = n_threads;
-    sbwt_config.ram_gigas = min((int64_t)2, memory_megas / (1 << 10)); // KMC requires at least 2 GB
+    sbwt_config.ram_gigas = max((int64_t)2, memory_megas / (1 << 10)); // KMC requires at least 2 GB
     sbwt_config.temp_dir = temp_dir;
     sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
     SBWT.serialize(index_dbg_file);
@@ -604,7 +604,7 @@ int build_index_main_ggcat(int argc, char** argv){
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
     sbwt::SeqIO::Reader reader(unitigfile); reader.enable_reverse_complements();
-    cb.build_from_colored_unitigs(coloring, reader, SBWT, min((int64_t)1, memory_megas / (1 << 10)), n_threads, colorset_sampling_distance, db);
+    cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, memory_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
 
     sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
     sbwt::throwing_ofstream out(index_color_file, ios::binary);
