@@ -535,7 +535,7 @@ int build_index_main(int argc, char** argv_given){
 }
 
 int build_index_main_ggcat(int argc, char** argv){
-    cxxopts::Options options(argv[0], "Build the Themisto index using GGCAT. Only file-colors are supported. Reverse complements are always added to the index. Only takes in lists of filenames.");
+    cxxopts::Options options(argv[0], "Build the Themisto index using GGCAT. Only file-colors are supported. Reverse complements are always added to the index. Only takes in lists of filenames. Only supports the sdsl-hybrid coloring.");
 
     options.add_options()
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
@@ -576,6 +576,7 @@ int build_index_main_ggcat(int argc, char** argv){
     vector<string> seqfiles = sbwt::readlines(seqfile_CLI_variable);
 
     // Run GGCAT
+    sbwt::write_log("Running GGCAT", sbwt::LogLevel::MAJOR);
     GGCAT_unitig_database db(seqfiles, max(1LL, memory_megas / (1LL << 10)), k, n_threads, true); // Canonical unitigs
 
     string unitigfile = db.get_unitig_filename();
@@ -584,20 +585,32 @@ int build_index_main_ggcat(int argc, char** argv){
             sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(unitigfile);
 
     // Build SBWT
-    /*
+
+    sbwt::write_log("Building SBWT", sbwt::LogLevel::MAJOR);
     sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
     sbwt_config.build_streaming_support = true;
-    sbwt_config.input_files = KMC_input_files;
-    sbwt_config.k = C.k;
+    sbwt_config.input_files = {unitigfile, rev_unitigfile};
+    sbwt_config.k = k;
     sbwt_config.max_abundance = 1e9;
     sbwt_config.min_abundance = 1;
-    sbwt_config.n_threads = C.n_threads;
-    sbwt_config.ram_gigas = min((int64_t)2, C.memory_megas / (1 << 10)); // KMC requires at least 2 GB
-    sbwt_config.temp_dir = C.temp_dir;
-    dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
-    dbg_ptr->serialize(C.index_dbg_file);
-    sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
-    */
+    sbwt_config.n_threads = n_threads;
+    sbwt_config.ram_gigas = min((int64_t)2, memory_megas / (1 << 10)); // KMC requires at least 2 GB
+    sbwt_config.temp_dir = temp_dir;
+    sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
+    SBWT.serialize(index_dbg_file);
+    sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(SBWT.number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
+    
+    sbwt::write_log("Building color structure", sbwt::LogLevel::MAJOR);
+    Coloring<SDSL_Variant_Color_Set> coloring;
+    Coloring_Builder<SDSL_Variant_Color_Set> cb;
+    sbwt::SeqIO::Reader reader(unitigfile); reader.enable_reverse_complements();
+    cb.build_from_colored_unitigs(coloring, reader, SBWT, min((int64_t)1, memory_megas / (1 << 10)), n_threads, colorset_sampling_distance, db);
 
-   return 0;
+    sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
+    sbwt::throwing_ofstream out(index_color_file, ios::binary);
+    coloring.serialize(out.stream);
+
+
+    sbwt::write_log("Done", sbwt::LogLevel::MAJOR);
+    return 0;
 }
