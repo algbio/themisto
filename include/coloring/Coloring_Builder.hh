@@ -174,13 +174,13 @@ class Colored_Unitig_Stream_GGCAT{
 
         // Always reports canonical bidirected unitigs
         Colored_Unitig_Stream_GGCAT(GGCAT_unitig_database& db) {
-            // TODO: IMPLEMENT (now just a dummy implementation)
-            auto collect = [](const string& unitig, const vector<int64_t>& colors, bool same_colors){
+            auto collect = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
                 if(unitig.size() == 0){
-                    // DEBUG
-                    cerr << "EMPTY UNITIG" << endl;
+                    cerr << "BUG: EMPTY UNITIG" << endl;
                     exit(1);
                 }
+                unitigs.push_back(unitig);
+                color_sets.push_back(colors);
             };
             db.iterate(collect);
         }
