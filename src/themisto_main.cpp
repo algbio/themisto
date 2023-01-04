@@ -8,7 +8,7 @@
 
 using namespace std;
 
-static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "dump-color-matrix", "stats"};
+static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "dump-color-matrix", "stats", "build-using-ggcat"};
 
 void print_help(int argc, char** argv){
     (void) argc; // Unused parameter
@@ -46,6 +46,7 @@ int main(int argc, char** argv){
 
     try{
         if(command == "build") return build_index_main(argc, argv);
+        else if(command == "build-using-ggcat") return build_index_main_ggcat(argc, argv);
         else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
         else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
         else if(command == "stats") return stats_main(argc, argv);
