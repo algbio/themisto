@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <array>
+
 #include "globals.hh"
 #include "zstr.hpp"
 #include "old_buffered_streams.hh"
