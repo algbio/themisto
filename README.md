@@ -40,7 +40,7 @@ Warning: these instruction have not been tested in a while. We are aware that th
 Compiling Themisto on macOS requires users to first install gcc-10 or newer from homebrew with
 
 ```
-brew install gcc@8
+brew install gcc@10
 ```
 
 Afterwards, Themisto can be compiled by entering the directory and running
@@ -52,7 +52,7 @@ cd ggcat/crates/capi/ggcat-cpp-api/
 make
 cd ../../../..
 cd build
-cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=31 ..
+cmake -DCMAKE_C_COMPILER=$(which gcc-10) -DCMAKE_CXX_COMPILER=$(which g++-10) -DMAX_KMER_LENGTH=31 ..
 make
 ```
 
