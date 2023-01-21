@@ -347,6 +347,9 @@ Usage:
 ```
 git submodule init
 git submodule update
+cd ggcat/crates/capi/ggcat-cpp-api/
+make
+cd ../../../..
 cd googletest
 mkdir build
 cd build
