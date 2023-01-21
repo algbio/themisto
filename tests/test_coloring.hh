@@ -247,7 +247,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 }
 
 TEST(COLORING_TESTS, coli3) {
-    std::string filename = "example_input/coli3.fna";
+    std::string filename = "testcases/coli3.fna";
     int64_t k = 31;
 
     // Build the SBWT

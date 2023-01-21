@@ -328,7 +328,7 @@ int build_index_main(int argc, char** argv_given){
         else argv[i] = argv_given[i];
     }
 
-    cxxopts::Options options(argv[0], "Builds an index consisting of compact de Bruijn graph using the Wheeler graph data structure and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence. If there are characters outside of the DNA alphabet ACGT in the input sequences, those are replaced with random characters from the DNA alphabet.");
+    cxxopts::Options options(argv[0], "Build the Themisto index:");
 
     options.add_options()
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
@@ -357,13 +357,8 @@ int build_index_main(int argc, char** argv_given){
 
     if (old_argc == 1 || opts.count("help")){
         std::cerr << options.help() << std::endl;
-        cerr << "Usage examples:" << endl;
-        cerr << "Build the de Bruijn graph and colors:" << endl;
-        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-prefix my_index --temp-dir temp" << endl;
-        cerr << "Build only the de Bruijn graph" << endl;
-        cerr << "  " << argv[0] << " -k 31 --mem-megas 10000 --input-file references.fna --index-prefix my_index --temp-dir temp --no-colors" << endl;
-        cerr << "Load a previously built de Bruijn graph from the index directory and compute the colors:" << endl;
-        cerr << "  " << argv[0] << " --mem-megas 10000 --input-file references.fna --color-file colors.txt --index-prefix my_index --temp-dir temp --load-dbg" << endl;
+        cerr << "Usage example:" << endl;
+        cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
     }    
 

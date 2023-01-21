@@ -72,71 +72,80 @@ ulimit -n 2048
 
 ## Quick start
 
-Themisto takes as an input a set of sequences in FASTA or FASTQ format, and a file specifying the color (a non-negative integer) of each sequence. The i-th line of the color file contains the color of the i-th sequence in the sequence file. For optimal compression, use color numbers in the range [0, n-1], where n is the number of distinct colors. If no color file is given, the index is built without colors. This way, the user can later try multiple colorings without recomputing the de Bruijn graph.
-
-There is an example dataset with sequences at `example_input/coli3.fna` and colors at `example_input/colors.txt`. To build the index with order k = 30, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory.
+To build the Themisto index for a set of genomes, you need to pass in a text file that contains the paths to the FASTA files of the genomes, one file per line. Each FASTA file is given a different color 0,1,2,3... in the same order as the appear in the list. There are three example genomes of E. coli in `example_input` and a file at `example_input/coli_file_list.txt` listing the file names. To build the index for this data, run the following command:
 
 ```
-./build/bin/themisto build --node-length 30 -i example_input/coli3.fna -c example_input/colors.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4
+./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements
 ```
 
-We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive, the program should take less than one minute on this example input. Beware: for inputs that are in the range of tens of gigabytes, the index construction may need over a terabyte of temporary disk space.
+This build an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. The flag --reverse-complements add the reference complements of all k-mers to the index. We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive.
 
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
 
 ```
-./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7 --ignore-unknown-kmers
 ```
+
+This reports all colors such that at least a fraction 0.7 of the k-mers of the query are in the reference genome of the color, ignoring k-mers that are not found in any reference.
 
 This should produce the following output file:
 
 ```
-0 43 748 
-1 524 
-2 855 
-3 787 
+0 0 2
+1 0 1 2
+2 2
+3 2
 ```
 
-There is one line for each query sequence. The lines may appear in a different order if parallelism was used. The first integer on a line is the 0-based rank of a query sequence in the query file, and the rest of the integers are the colors that are pseudoaligned with the query. For example, here the query with rank 2 (i.e. the 3rd sequence in the query file) pseudoaligns to color 855.
+There is one line for each query sequence. The lines may appear in a different order if parallelism was used. The first integer on a line is the 0-based rank of a query sequence in the query file, and the rest of the integers are the colors that are pseudoaligned with the query. For example, here the query with rank 1 (i.e. the second sequence in the query file) pseudoaligns to colors 0, 1 and 2.
 
 ## Full instructions for index construction
-
-This command builds an index consisting of compact de Bruijn graph using the BOSS data structure (implemented as a [Wheeler graph](https://www.sciencedirect.com/science/article/pii/S0304397517305285)) and color information. The input is a set of reference sequences in a single file in fasta or fastq format, and a colorfile, which is a plain text file containing the colors (integers) of the reference sequences in the same order as they appear in the reference sequence file, one line per sequence.
 
 ```
 Usage:
   build [OPTION...]
 
-  -k, --node-length arg         The k of the k-mers.
+  -k, --node-length arg         The k of the k-mers. (default: 0)
   -i, --input-file arg          The input sequences in FASTA or FASTQ 
                                 format. The format is inferred from the 
                                 file extension. Recognized file extensions 
                                 for fasta are: .fasta, .fna, .ffn, .faa and 
                                 .frn . Recognized extensions for fastq are: 
-                                .fastq and .fq . If the file ends with .gz, 
-                                it is uncompressed into a temporary 
-                                directory and the temporary file is deleted 
-                                after use.
-  -c, --color-file arg          One color per sequence in the fasta file, 
-                                one color per line. If not given, the 
-                                sequences are given colors 0,1,2... in the 
-                                order they appear in the input file. 
+                                .fastq and .fq. (default: "")
+  -c, --manual-colors arg       A file containing one integer color per 
+                                sequence, one color per line. If there are 
+                                multiple sequence files, then this file 
+                                should be a text file containing the 
+                                corresponding color filename for each 
+                                sequence file, one filename per line.  
                                 (default: "")
+  -f, --file-colors             Creates a distinct color 0,1,2,... for each 
+                                file in the input file list, in the order 
+                                the files appear in the list
+  -e, --sequence-colors         Creates a distinct color 0,1,2,... for each 
+                                sequence in the input, in the order the 
+                                sequences are processed. This is the 
+                                default behavior if no other color options 
+                                are given.
+      --no-colors               Build only the de Bruijn graph without 
+                                colors.
   -o, --index-prefix arg        The de Bruijn graph will be written to 
                                 [prefix].tdbg and the color structure to 
                                 [prefix].tcolors.
+  -r, --reverse-complements     Also add reverse complements of the k-mers 
+                                to the index.
       --temp-dir arg            Directory for temporary files. This 
                                 directory should have fast I/O operations 
                                 and should have as much space as possible.
   -m, --mem-megas arg           Number of megabytes allowed for external 
-                                memory algorithms. Default: 1000 (default: 
-                                1000)
+                                memory algorithms (must be at least 2048). 
+                                (default: 2048)
   -t, --n-threads arg           Number of parallel exectuion threads. 
                                 Default: 1 (default: 1)
       --randomize-non-ACGT      Replace non-ACGT letters with random 
                                 nucleotides. If this option is not given, 
-                                (k+1)-mers containing a non-ACGT character 
-                                are deleted instead.
+                                k-mers containing a non-ACGT character are 
+                                deleted instead.
   -d, --colorset-pointer-tradeoff arg
                                 This option controls a time-space tradeoff 
                                 for storing and querying color sets. If 
@@ -148,13 +157,26 @@ Usage:
                                 if the number of distinct color sets is 
                                 small and the graph is large and has long 
                                 unitigs. (default: 1)
-      --no-colors               Build only the de Bruijn graph without 
-                                colors.
       --load-dbg                If given, loads a precomputed de Bruijn 
                                 graph from the index prefix. If this is 
-                                given, the parameter -k must not be given 
+                                given, the value of parameter -k is ignored 
                                 because the order k is defined by the 
                                 precomputed de Bruijn graph.
+  -s, --coloring-structure-type arg
+                                Type of coloring structure to build 
+                                ("sdsl-hybrid", "roaring"). (default: 
+                                sdsl-hybrid)
+      --from-index arg          Take as input a pre-built Themisto index. 
+                                Builds a new index in the format specified 
+                                by --coloring-structure-type. This is 
+                                currenlty implemented by decompressing the 
+                                distinct color sets in memory before 
+                                re-encoding them, so this might take a lot 
+                                of RAM. (default: "")
+  -v, --verbose                 More verbose progress reporting into 
+                                stderr.
+      --silent                  Print as little as possible to stderr (only 
+                                errors).
   -h, --help                    Print usage
 ```
 
@@ -170,25 +192,52 @@ The query file(s) should be in fasta of fastq format. The format is inferred fro
 Usage:
   pseudoalign [OPTION...]
 
-  -q, --query-file arg       Input file of the query sequences (default: 
-                             "")
-      --query-file-list arg  A list of query filenames, one line per 
-                             filename (default: "")
-  -o, --out-file arg         Output filename. Print results
-                             if no output filename is given. (default: "")
-      --out-file-list arg    A file containing a list of output filenames, 
-                             one per line. (default: "")
-  -i, --index-prefix arg     The index prefix that was given to the build 
-                             command.
-      --temp-dir arg         Directory for temporary files.
-      --rc                   Whether to to consider the reverse complement 
-                             k-mers in the pseudoalignemt.
-  -t, --n-threads arg        Number of parallel exectuion threads. Default: 
-                             1 (default: 1)
-      --gzip-output          Compress the output files with gzip.
-      --sort-output          Sort the lines of the out files by sequence 
-                             rank in the input files.
-  -h, --help                 Print usage
+  -q, --query-file arg         Input file of the query sequences (default: 
+                               "")
+      --query-file-list arg    A list of query filenames, one line per 
+                               filename (default: "")
+  -o, --out-file arg           Output filename. Print results if no output 
+                               filename is given. (default: "")
+      --out-file-list arg      A file containing a list of output 
+                               filenames, one per line. (default: "")
+  -i, --index-prefix arg       The index prefix that was given to the build 
+                               command.
+      --temp-dir arg           Directory for temporary files.
+      --threshold arg          Run a thresholded pseudoalignment, i.e. 
+                               report all colors that match to at least the 
+                               given fraction k-mers in the query. If not 
+                               given, runs intersection pseudoalignment. 
+                               (default: -1.0)
+      --ignore-unknown-kmers   Ignore in thresholded pseudoalignment all 
+                               k-mers that are not found in the de Bruijn 
+                               graph, or that have no colors. The 
+                               intersection pseudoalignment always ignores 
+                               unknown k-mers.
+      --rc                     Also pseudoalign against the reverse 
+                               complement of the query. Note: If the 
+                               reverse complements were added to the index 
+                               with the option --reverse complements in 
+                               themisto build, then this option has no 
+                               effect on the pseudoalignment and the 
+                               program does unnecessary work. 
+  -t, --n-threads arg          Number of parallel exectuion threads. 
+                               Default: 1 (default: 1)
+      --gzip-output            Compress the output files with gzip.
+      --sort-output            Sort the lines of the out files by sequence 
+                               rank in the input files.
+      --buffer-size-megas arg  Size of the input buffer in megabytes in 
+                               each thread. If this is larger than the 
+                               number of nucleotides in the input divided 
+                               by the number of threads, then some threads 
+                               will be idle. So if your input files are 
+                               really small and you have a lot of threads, 
+                               consider using a small buffer. (default: 
+                               8.0)
+  -v, --verbose                More verbose progress reporting into stderr.
+      --silent                 Print as little as possible to stderr (only 
+                               errors).
+  -h, --help                   Print usage
+
 ```
 
 Examples:

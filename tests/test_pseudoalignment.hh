@@ -125,8 +125,8 @@ vector<int64_t> pseudoalign_to_colors_trivial(string& query, TestCase& tcase, bo
 }
 
 TEST(TEST_PSEUDOALIGN, coli3_parallelism){
-    std::string seqfile = "example_input/coli3.fna";
-    std::string colorfile = "example_input/colors.txt";
+    std::string seqfile = "testcases/coli3.fna";
+    std::string colorfile = "testcases/colors.txt";
     std::string queryfile = "example_input/coli_reads.fna";
     std::string indexprefix = get_temp_file_manager().create_filename();
     int64_t k = 31;
