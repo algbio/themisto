@@ -5,12 +5,6 @@
 # About Themisto
 Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true). The pseudoalignment algorithm is modeled after the tool Kallisto.
 
-## Colored de Bruijn graph definition
-
-The de Bruijn graph is defined so that the nodes represent k-mers and edges (k+1)-mers. The graph is [edge centric](https://www.biostars.org/p/175058/#256741), meaning that there is an edge from u to v if there is a (k+1)-mer in the data that is suffixed by u and prefixed by v. The set of nodes is the set of endpoints of all edges. Note that this implies that orphan k-mers (those that are not connected to any edge) are not in the graph. Each edge is associated with a set of colors. The color set contains the colors of all input sequences that have the (k+1)-mer corresponding to the edge. Each node is also given a color set that is the union of the color sets of the edges connected to the node.
-
-We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. Since KMC3 only works with the DNA alphabet ACGT, we must preprocess the data so that it does not have any characters outside of the alphabet ACGT. By default, we delete all (k+1)-mers that contain a letter that is outside of the alphabet ACGT. We also offer an option `--randomize-non-ACGT` that replaces non-ACGT characters with random nucleotides. If you would like to deal with non-ACGT characters differently, please preprocess the data before running.
-
 # Installation
 ## Requirements
 
