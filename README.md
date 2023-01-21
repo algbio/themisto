@@ -10,29 +10,34 @@ We use the KMC3 library to list the distinct (k+1)-mers to construct the graph. 
 # Installation
 ## Requirements
 
-We currently support only Linux and macOS. For compilation, you will need a C++17 compliant compiler with OpenMP support, and CMake v3.1 or newer. If compiling with g++, make sure that the version is at least g++-8, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
+We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install). If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ## Compiling
 
 ### Linux
 
-These instructions have been tested to work on Ubuntu 18.04. To build the software, enter the Themisto directory and run
+These instructions have been tested to work on Ubuntu 18.04 with the aforementioned dependencies installed. To build the software, enter the Themisto directory and run
 
 ```
 git submodule init
 git submodule update
+cd ggcat/crates/capi/ggcat-cpp-api/
+make
+cd ../../../..
 cd build
 cmake .. -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
 make
 ```
 
-Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best. This will create the binary at`build/bin/themisto`.
+If there is a linking error at the very end, try runnning `make` again. Where 31 is the maximum k-mer length (node length) to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. Values that are one less than a multiple of 32 work the best. This will create the binary at`build/bin/themisto`.
 
-**Troubleshooting**: If you run into problems involving the &lt;filesystem&gt; header, you probably need to update your compiler. The compiler `g++-8` should be sufficient. Install a new compiler and direct CMake to use it with the `-DCMAKE_CXX_COMPILER` option. For example, to set the compiler to `g++-8`, run CMake with the option `-DCMAKE_CXX_COMPILER=g++-8`. 
+**Troubleshooting**: If you run into problems involving the &lt;filesystem&gt; header, you probably need to update your compiler. The compiler `g++-10` should be sufficient. Install a new compiler and direct CMake to use it with the `-DCMAKE_CXX_COMPILER` option. For example, to set the compiler to `g++-10`, run CMake with the option `-DCMAKE_CXX_COMPILER=g++-10`. 
 
 ## MacOS
 
-Compiling Themisto on macOS requires users to first install gcc-8 or newer from homebrew with
+Warning: these instruction have not been tested in a while. We are aware that there are problems with compiling on ARM-based Macbooks due to x86 instructions in the dependency KMC. Currently, we have no fix for this.
+
+Compiling Themisto on macOS requires users to first install gcc-10 or newer from homebrew with
 
 ```
 brew install gcc@8
@@ -43,6 +48,9 @@ Afterwards, Themisto can be compiled by entering the directory and running
 ```
 git submodule init
 git submodule update
+cd ggcat/crates/capi/ggcat-cpp-api/
+make
+cd ../../../..
 cd build
 cmake -DCMAKE_C_COMPILER=$(which gcc-8) -DCMAKE_CXX_COMPILER=$(which g++-8) -DMAX_KMER_LENGTH=31 ..
 make
