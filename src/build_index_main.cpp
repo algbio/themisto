@@ -310,6 +310,9 @@ bool has_suffix_dot_txt(const string& S){
     return S.size() >= 4 && S.substr(S.size()-4) == ".txt";
 }
 
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles);
+
+
 int build_index_main(int argc, char** argv_given){
 
     // Legacy support: transform old option names to new ones
@@ -418,6 +421,26 @@ int build_index_main(int argc, char** argv_given){
 
     write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
     write_log("Starting", sbwt::LogLevel::MAJOR);
+
+    if(C.file_colors){
+        // Delegate to GGCAT.
+        if(!C.del_non_ACGT){
+            cerr << "Error: file colors only works with deletion of unknown base pairs" << endl;
+            return 1;
+        }
+        if(C.load_dbg){
+            cerr << "Error: can't load pre-existing DBG with file colors" << endl;
+            return 1;
+        }
+        if(!C.reverse_complements){
+            cerr << "Error: must enable reverse complements in file colors" << endl;
+            return 1;
+        }
+// int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles){
+
+        build_index_with_ggcat(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles);
+        return 0;
+    }
 
     if(C.from_index != ""){
         // Transform existing index to new format
@@ -534,50 +557,14 @@ int build_index_main(int argc, char** argv_given){
     return 0;
 }
 
-int build_index_main_ggcat(int argc, char** argv){
-    cxxopts::Options options(argv[0], "Build the Themisto index using GGCAT. Only file-colors are supported. Reverse complements are always added to the index. Only takes in lists of filenames. Only supports the sdsl-hybrid coloring.");
-
-    options.add_options()
-        ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
-        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
-        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
-        ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
-        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
-        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
-        ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
-        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
-        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
-        ("h,help", "Print usage")
-    ;
-
-    int64_t old_argc = argc; // Must store this because the parser modifies it
-    auto opts = options.parse(argc, argv);
-
-    if (old_argc == 1 || opts.count("help")){
-        std::cerr << options.help() << std::endl;
-        exit(1);
-    }    
-
-    int64_t k = opts["k"].as<int64_t>();
-    int64_t n_threads = opts["n-threads"].as<int64_t>();
-    string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
-    string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
-    string temp_dir = opts["temp-dir"].as<string>();
-    int64_t memory_megas = opts["mem-megas"].as<int64_t>();
-    int64_t colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<int64_t>();
-    bool verbose = opts["verbose"].as<bool>(); // TODO: does nothing
-    bool silent = opts["silent"].as<bool>(); // TODO: does nothing
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles){
 
     create_directory_if_does_not_exist(temp_dir);
     sbwt::get_temp_file_manager().set_dir(temp_dir);
 
-    // List of filenames
-    string seqfile_CLI_variable = opts["input-file"].as<string>();
-    vector<string> seqfiles = sbwt::readlines(seqfile_CLI_variable);
-
     // Run GGCAT
     sbwt::write_log("Running GGCAT", sbwt::LogLevel::MAJOR);
-    GGCAT_unitig_database db(seqfiles, max(1LL, memory_megas / (1LL << 10)), k, n_threads, true); // Canonical unitigs
+    GGCAT_unitig_database db(seqfiles, max(1LL, mem_megas / (1LL << 10)), k, n_threads, true); // Canonical unitigs
 
     string unitigfile = db.get_unitig_filename();
     string rev_unitigfile = sbwt::SeqIO::create_reverse_complement_file<
@@ -594,7 +581,7 @@ int build_index_main_ggcat(int argc, char** argv){
     sbwt_config.max_abundance = 1e9;
     sbwt_config.min_abundance = 1;
     sbwt_config.n_threads = n_threads;
-    sbwt_config.ram_gigas = max((int64_t)2, memory_megas / (1 << 10)); // KMC requires at least 2 GB
+    sbwt_config.ram_gigas = max((int64_t)2, mem_megas / (1 << 10)); // KMC requires at least 2 GB
     sbwt_config.temp_dir = temp_dir;
     sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
     SBWT.serialize(index_dbg_file);
@@ -604,12 +591,11 @@ int build_index_main_ggcat(int argc, char** argv){
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
     sbwt::SeqIO::Reader reader(unitigfile); reader.enable_reverse_complements();
-    cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, memory_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+    cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
 
     sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
     sbwt::throwing_ofstream out(index_color_file, ios::binary);
     coloring.serialize(out.stream);
-
 
     sbwt::write_log("Done", sbwt::LogLevel::MAJOR);
     return 0;
