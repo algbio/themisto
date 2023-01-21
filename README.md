@@ -72,9 +72,9 @@ To build the Themisto index for a set of genomes, you need to pass in a text fil
 ./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements
 ```
 
-This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. The flag `--reverse-complements` adds the reverse complements of all k-mers to the index. We recommend to use a fast SSD drive for the temporary directory. With a reasonable desktop workstation and an SSD drive.
+This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. The flag `--reverse-complements` adds the reverse complements of all k-mers to the index. We recommend to use a fast SSD drive for the temporary directory.
 
-To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to out.txt run:
+To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to `out.txt` run:
 
 ```
 ./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7 --ignore-unknown-kmers
