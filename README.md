@@ -1,6 +1,6 @@
-# NEWS:
+# NEWS
 
- A new release Themisto 3.0 is almost ready. The readme is outdated, working on it. For Themisto v2.1, go to commit 27bcca8.
+ A new release Themisto 3.0 is almost ready. The readme is outdated, working on it. For Themisto v2.1, go to commit [27bcca8](https://github.com/algbio/themisto/tree/27bcca83d25991f52211253a7c9a0a08436b5f65).
 
 # About Themisto
 Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true). The pseudoalignment algorithm is modeled after the tool Kallisto.
