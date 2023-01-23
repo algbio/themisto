@@ -213,7 +213,7 @@ if(NOT BUILD_THEMISTO_TESTS)
   add_dependencies(sdsl divsufsort64)
   add_dependencies(themisto ggcat_cpp_api sbwt_static)
   ## Link
-  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
+  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX sbwt_static ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
 
 # Build tests if requested
@@ -225,7 +225,7 @@ if (BUILD_THEMISTO_TESTS)
   add_dependencies(sdsl divsufsort64)
   add_dependencies(themisto_tests ggcat_cpp_api sbwt_static)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
+  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX sbwt_static ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
 
 if(BUILD_IO_BENCHMARK)
