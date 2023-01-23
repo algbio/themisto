@@ -146,6 +146,12 @@ configure_file(${CMAKE_SOURCE_DIR}/version.h.in ${CMAKE_BINARY_DIR}/include/vers
 add_subdirectory(${CMAKE_SOURCE_DIR}/SBWT
 		 ${CMAKE_BINARY_DIR}/external/SBWT/build)
 
+add_custom_target(
+   ggcat_cpp_api
+   COMMAND make
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api
+)
+
 set(LIBSBWT ${CMAKE_BINARY_DIR}/external/SBWT/build/lib/libsbwt_static.a)
 
 include(FetchContent)
@@ -204,7 +210,7 @@ if(NOT BUILD_THEMISTO_TESTS)
   add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
   target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
   # Fix compilation order
-  add_dependencies(sdsl divsufsort64)
+  add_dependencies(sdsl divsufsort64 ggcat_cpp_api)
   ## Link
   target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
@@ -215,7 +221,7 @@ if (BUILD_THEMISTO_TESTS)
     ${CMAKE_BINARY_DIR}/external/googletest/build)
   add_executable(themisto_tests tests/test_main.cpp ${THEMISTO_SOURCES})
   target_compile_definitions(themisto_tests PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
-  add_dependencies(sdsl divsufsort64)
+  add_dependencies(sdsl divsufsort64 ggcat_cpp_api)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
   target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX ${LIBSBWT} ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
 endif()
