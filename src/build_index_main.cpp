@@ -431,7 +431,6 @@ int build_index_main(int argc, char** argv_given){
             cerr << "Error: must enable reverse complements in file colors" << endl;
             return 1;
         }
-// int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles){
 
         build_index_with_ggcat(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles);
         return 0;

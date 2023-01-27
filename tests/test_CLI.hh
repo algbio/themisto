@@ -389,9 +389,27 @@ TEST_F(CLI_TEST, multiple_input_files){
     sbwt::Argv argv3(args3);
     build_index_main(argv3.size, argv3.array);
 
+    // DBG files should match exactly
     ASSERT_TRUE(files_are_equal(index_prefix + ".tdbg", index_prefix2 + ".tdbg"));
-    ASSERT_TRUE(files_are_equal(index_prefix + ".tcolors", index_prefix2 + ".tcolors"));
-    ASSERT_TRUE(files_are_equal(index_prefix2 + ".tcolors", index_prefix3 + ".tcolors"));
+    ASSERT_TRUE(files_are_equal(index_prefix2 + ".tdbg", index_prefix3 + ".tdbg"));
 
-    // Check that file colors gives the same answer
+    // Color files might not match exactly because there are multiple representation
+    // for the same color structure, depending on which order the color sets are stored.
+    // So, we dump the color sets to check that they are equal.
+
+    string dump1 = get_temp_file_manager().create_filename("dump-",".txt");
+    string dump2 = get_temp_file_manager().create_filename("dump-",".txt");
+    string dump3 = get_temp_file_manager().create_filename("dump-",".txt");
+    vector<string> dump1_args = {"dump_color_matrix_main", "-i", index_prefix, "-o", dump1};
+    vector<string> dump2_args = {"dump_color_matrix_main", "-i", index_prefix, "-o", dump2};
+    vector<string> dump3_args = {"dump_color_matrix_main", "-i", index_prefix, "-o", dump3};
+    sbwt::Argv dump1_argv(dump1_args);
+    sbwt::Argv dump2_argv(dump2_args);
+    sbwt::Argv dump3_argv(dump3_args);
+    dump_color_matrix_main(dump1_argv.size, dump1_argv.array);
+    dump_color_matrix_main(dump2_argv.size, dump2_argv.array);
+    dump_color_matrix_main(dump3_argv.size, dump3_argv.array);
+ 
+    ASSERT_TRUE(files_are_equal(dump1, dump2));
+    ASSERT_TRUE(files_are_equal(dump2, dump3));
 }
