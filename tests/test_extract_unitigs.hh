@@ -370,8 +370,6 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
     unitigs_out.close();
     unitig_colors_out.close();
 
-    cerr << unitigs_outfile << " " << unitig_colors_outfile << endl;
-
     // Parse unitigs and colors from disk
     vector<string> unitigs;
     vector<vector<int64_t> > color_sets;
