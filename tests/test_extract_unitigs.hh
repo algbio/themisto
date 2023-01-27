@@ -346,7 +346,7 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
 pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(string input_file_listfile, int64_t k){
     // Build Themisto with file colors
     string indexprefix = get_temp_file_manager().create_filename();
-    vector<string> args = {"build", "-k", to_string(k), "-i", input_file_listfile, "-o", indexprefix, "--temp-dir", get_temp_file_manager().get_dir(), "--file-colors", "--reverse-complements"}; // TODO: --file-colors now uses ggcat. Should use manual colors to get Themisto unitigs.
+    vector<string> args = {"build", "-k", to_string(k), "-i", input_file_listfile, "-o", indexprefix, "--temp-dir", get_temp_file_manager().get_dir(), "--sequence-colors", "--reverse-complements"}; // Using --sequence-colors intead of --file-colors because file-colors call ggcat and we want to avoid that because we want to compare against ggcat.
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
