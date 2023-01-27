@@ -705,6 +705,7 @@ private:
         core_kmer_marker<sequence_reader_t> ckm;
         ckm.mark_core_kmers(sequence_reader, SBWT);
         sdsl::bit_vector cores = ckm.core_kmer_marks;
+        cout << "core " << cores << endl;
 
         SBWT_backward_traversal_support backward_support(coloring.index_ptr);
 
@@ -719,6 +720,11 @@ private:
         auto process_unitig_and_colors = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
             // same_colors means that the color set of the current unitig is the same as the color set of
             // the previous.
+
+            cerr << "Unitig, colors " << unitig; // DEBUG
+            for(auto x : colors) cerr << " " << x; // DEBUG
+            cerr << endl; // DEBUG
+
             if(!same_colors){
                 color_set_id++;
                 // Keep track of maximum color

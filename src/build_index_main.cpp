@@ -310,7 +310,7 @@ bool has_suffix_dot_txt(const string& S){
     return S.size() >= 4 && S.substr(S.size()-4) == ".txt";
 }
 
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles);
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files);
 
 
 int build_index_main(int argc, char** argv_given){
@@ -432,7 +432,7 @@ int build_index_main(int argc, char** argv_given){
             return 1;
         }
 
-        build_index_with_ggcat(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles);
+        build_index_with_ggcat(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped);
         return 0;
     }
 
@@ -551,7 +551,8 @@ int build_index_main(int argc, char** argv_given){
     return 0;
 }
 
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles){
+// TODO: HARDCODES SDSL COLOR SET. SUPPORT ROARING AS WELL
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files){
 
     create_directory_if_does_not_exist(temp_dir);
     sbwt::get_temp_file_manager().set_dir(temp_dir);
@@ -582,10 +583,24 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
     sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(SBWT.number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
     
     sbwt::write_log("Building color structure", sbwt::LogLevel::MAJOR);
-    Coloring<SDSL_Variant_Color_Set> coloring;
-    Coloring_Builder<SDSL_Variant_Color_Set> cb;
-    sbwt::SeqIO::Reader reader(unitigfile); reader.enable_reverse_complements();
-    cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+    Coloring<SDSL_Variant_Color_Set> coloring; // TODO: TEMPLATIZE FOR ROARING
+    if(gzipped_input_files){
+        // BAD CODE ALERT: almost all of this code is duplicated in the else-branch. If you change something here,
+        // make the equivalent change to the else-branch
+        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped
+        Coloring_Builder<SDSL_Variant_Color_Set, reader_t> cb; // TODO: TEMPLATIZE FOR ROARING
+        reader_t reader(seqfiles);
+        reader.enable_reverse_complements();
+        cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+    } else{
+        // BAD CODE ALERT: almost all of this code is duplicated in the if-branch. If you change something here,
+        // make the equivalent change to the if-branch
+        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
+        Coloring_Builder<SDSL_Variant_Color_Set, reader_t> cb; // TODO: TEMPLATIZE FOR ROARING
+        reader_t reader(seqfiles);
+        reader.enable_reverse_complements();
+        cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+    }
 
     sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
     sbwt::throwing_ofstream out(index_color_file, ios::binary);
