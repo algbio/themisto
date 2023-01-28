@@ -43,6 +43,8 @@ index_prefix = temp_dir + "/index"
 query_file = "../../temp/all.fasta.gz"
 out_dir = "./out"
 
+run("mkdir -p {}".format(out_dir))
+run("mkdir -p {}".format(temp_dir))
 run("find ../../ref_sequences -type f | grep fasta.gz > file_list.txt")
 
 # Build index
