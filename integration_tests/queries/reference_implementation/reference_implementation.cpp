@@ -105,8 +105,15 @@ int dump_color_martrix_main(int argc, char** argv){
 }
 
 int main(int argc, char** argv){
-    if(argv[1] == "query")
+    if(argc == 1){
+        cerr << "Commands: query, dump-color-matrix" << endl;
+        return 1;
+    }
+    if(argv[1] == string("query"))
         return query_main(argc-1, argv+1);
-    else if(argv[1] == "dump-color-matrix")
+    else if(argv[1] == string("dump-color-matrix"))
         return dump_color_martrix_main(argc-1, argv+1);
+    else{
+        cerr << "Unkown command " << argv[1] << endl;
+    }
 }
