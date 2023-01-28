@@ -57,9 +57,9 @@ def dump_color_matrix(indexfile, outfile):
         themisto_binary, indexfile, outfile)
     )
 
-def dump_reference_color_matrix(k, inputfile, rc, outfile):
-    run("{} dump-color-matrix -k {} -i {} -o {} {}".format(
-        ref_binary, k, inputfile, outfile, "--rc" if rc else "")
+def dump_reference_color_matrix(k, inputfile, rc, color_input_mode, outfile):
+    run("{} dump-color-matrix -k {} -i {} -o {} {} {}".format(
+        ref_binary, k, inputfile, outfile, "--rc" if rc else "", color_input_mode)
     )
 
 runs = [
@@ -73,5 +73,5 @@ for k, input, rc, color_input_mode, outfile in runs:
     for color_set_type in ["sdsl-hybrid", "roaring"]:
         build_index(k, input, rc, color_input_mode, outfile, color_set_type)
         dump_color_matrix(outfile, outfile + ".colordump")
-        dump_reference_color_matrix(k, infile_list, rc, outfile + ".colordump.ref")
+        dump_reference_color_matrix(k, infile_list, rc, color_input_mode, outfile + ".colordump.ref")
         check_outputs(outfile + ".colordump", outfile + ".colordump.ref")

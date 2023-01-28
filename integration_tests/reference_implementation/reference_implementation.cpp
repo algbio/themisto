@@ -83,7 +83,7 @@ int dump_color_martrix_main(int argc, char** argv){
     string out_file = opts["o"].as<string>();
     bool revcomps = opts["rc"].as<bool>();
     bool file_colors = opts["file-colors"].as<bool>();
-    bool sequence_colors = opts["sequences-colors"].as<bool>();
+    bool sequence_colors = opts["sequence-colors"].as<bool>();
 
     vector<string> in_files = readlines(in_file_list);
     vector<string> seqs = read_sequences(in_files);
