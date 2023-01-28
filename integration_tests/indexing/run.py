@@ -41,10 +41,13 @@ k = 31
 temp_dir = "./temp"
 out_dir = "./out"
 infile_list = "file_list.txt"
+manual_colorfile = "../ref_sequences/colorfile.txt"
+concat_all_file = temp_dir + "/all.fasta.gz"
 
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list)
+run("cat " + infile_list +" | xargs cat > " + concat_all_file)
 
 def build_index(k, input, rc, color_input_mode, outfile, color_set_type):
     print("Color set type", color_set_type)
@@ -63,6 +66,8 @@ def dump_reference_color_matrix(k, inputfile, rc, color_input_mode, outfile):
     )
 
 runs = [
+    [31, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors"],
+    [31, concat_all_file, True,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors-rc"],
     [31, infile_list, False, "--sequence-colors", out_dir + "/seq-colors"],
     [31, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc"],
     #[31, infile_list, False, "--file-colors",     out_dir + "/file-colors"], # Can't do file colors without rc because of how ggcat is called

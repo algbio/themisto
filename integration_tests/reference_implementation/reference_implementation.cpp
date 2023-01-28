@@ -69,6 +69,7 @@ int dump_color_martrix_main(int argc, char** argv){
         ("rc", "Whether to add reverse complemets to the index.", cxxopts::value<bool>()->default_value("false"))
         ("file-colors", "", cxxopts::value<bool>()->default_value("false"))
         ("sequence-colors", "", cxxopts::value<bool>()->default_value("false"))
+        ("manual-colors", "A manual colorfile, one per sequence", cxxopts::value<string>()->default_value(""))
         ("o", "The output filename.", cxxopts::value<string>())
     ;
 
@@ -84,6 +85,8 @@ int dump_color_martrix_main(int argc, char** argv){
     bool revcomps = opts["rc"].as<bool>();
     bool file_colors = opts["file-colors"].as<bool>();
     bool sequence_colors = opts["sequence-colors"].as<bool>();
+    string colorfile = opts["manual-colors"].as<string>();
+    bool manual_colors = colorfile != "";
 
     vector<string> in_files = readlines(in_file_list);
     vector<string> seqs = read_sequences(in_files);
@@ -95,8 +98,9 @@ int dump_color_martrix_main(int argc, char** argv){
             for(int64_t i = 0; i < n_seqs; i++) colors.push_back(color);
         }
     } else if(sequence_colors){
-        for(int64_t i = 0; i < seqs.size(); i++) 
-            colors.push_back(i);
+        for(int64_t i = 0; i < seqs.size(); i++) colors.push_back(i);
+    } else if(manual_colors){
+        colors = read_colorfile(colorfile);
     } else{
         cerr << "Error: coloring mode not specified" << endl;
         return 1;
