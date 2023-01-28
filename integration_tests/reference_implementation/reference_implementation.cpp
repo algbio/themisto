@@ -88,15 +88,17 @@ void threshold_pseudoalign(const unordered_map<kmer_t, set<int64_t>>& index, int
     for(const string& query : queries){
         // Look up k-mers
         unordered_map<int64_t, int64_t> counts; // color -> count
-        int64_t n_known_kmers = 0;
+        int64_t n_relevant_kmers = 0;
         for(int64_t i = 0; i < (int64_t)query.size()-k+1; i++){ // For all k-mers
             if(is_good_kmer(query.c_str(), i, k)){ // Must have only DNA-characters
+                n_relevant_kmers++;
                 kmer_t x(query.c_str() + i, k);
-                if(index.find(x) != index.end()){
-                    n_known_kmers++;
+                if(index.find(x) != index.end()){ // Known k-mer
                     for(int64_t color : index.at(x)){
                         counts[color]++;
                     }
+                } else{ // Unknown k-mer
+                    if(ignore_unknown) n_relevant_kmers--;
                 }
             }
         }
@@ -104,8 +106,7 @@ void threshold_pseudoalign(const unordered_map<kmer_t, set<int64_t>>& index, int
         // Report results
         write_number_in_ascii(out, query_id);
         for(auto [color, count] : counts){
-            //cout << "color, count: " << color << " " << count << endl;
-            if((double) count / n_known_kmers > threshold){
+            if((double) count / n_relevant_kmers > threshold){
                 out.write(&space, 1);
                 write_number_in_ascii(out, color);
             }
@@ -144,6 +145,25 @@ int main(int argc, char** argv){
     unique_ptr<unordered_map<kmer_t, set<int64_t>>> kmer_to_color_set = build_kmer_map(seqs, colors, k);
     cerr << "Indexing done" << endl;
 
-    Buffered_ofstream<> out(out_dir + "/thesholded.txt");
-    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.01, true);
+    {Buffered_ofstream<> out(out_dir + "/theshold-ignore-0.01.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.01, true);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-ignore-0.1.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.1, true);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-ignore-0.5.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.5, true);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-ignore-0.9.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.9, true);}       
+    {Buffered_ofstream<> out(out_dir + "/theshold-ignore-0.1.01.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 1.01, true);}
+
+    {Buffered_ofstream<> out(out_dir + "/theshold-0.01.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.01, false);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-0.1.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.1, false);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-0.5.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.5, false);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-0.9.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 0.9, false);}
+    {Buffered_ofstream<> out(out_dir + "/theshold-0.1.01.txt");
+    threshold_pseudoalign(*kmer_to_color_set, k, seqs, out, 1.01, false);}
 }
