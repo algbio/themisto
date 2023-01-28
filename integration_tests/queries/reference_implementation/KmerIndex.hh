@@ -92,4 +92,30 @@ public:
         }
     }
 
+    template<typename output_stream_t>
+    void dump_color_matrix(output_stream_t& out){
+        vector<pair<kmer_t, set<int64_t>>> matrix; // matrix[i] will be the list of non-zero entries in i-th row of the the color matrix
+        for(auto [kmer, colors] : mapping){
+            matrix.push_back({kmer, colors});
+        }
+
+        std::sort(matrix.begin(), matrix.end()); // Sort by k-mer
+
+        // Write out
+        char space = ' ';
+        char newline = '\n';
+        for(auto [kmer, colors] : matrix){
+            // Write the k-mer
+            string kmer_str = kmer.to_string();
+            out.write(kmer_str.c_str(), kmer_str.size());
+
+            // Write the colors
+            for(int64_t color : colors){
+                out.write(&space, 1);
+                write_number_in_ascii(out, color);
+            }
+            out.write(&newline, 1);
+        }
+    }
+
 };
