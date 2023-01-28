@@ -36,7 +36,7 @@ def check_outputs(themisto_outfile, ref_outfile):
     print("OK: ", themisto_outfile)
 
 themisto_binary = "../../build/bin/themisto"
-ref_binary = "reference_implementation/query_reference_implementation"
+ref_binary = "../reference_implementation/themisto_reference_implementation"
 k = 31
 temp_dir = "./temp"
 index_prefix = temp_dir + "/index"
@@ -69,7 +69,7 @@ with open('parameters.csv') as csvfile:
         ))
 
         # Query reference implementation
-        run("{} -k {} -i {} -q {} -o {} --threshold {} {} {}".format(
+        run("{} query -k {} -i {} -q {} -o {} --threshold {} {} {}".format(
             ref_binary, k, "file_list.txt", query_file, ref_outfile,
             threshold,
             "--ignore-unknown-kmers" if ignore == "yes" else "", 
