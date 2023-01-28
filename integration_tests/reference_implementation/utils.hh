@@ -47,6 +47,13 @@ vector<int64_t> read_colorfile(string filename){
     return colors;
 }
 
+int64_t count_sequences(string filename){
+    SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> in(filename);
+    int64_t count = 0;
+    while(in.get_next_read_to_buffer() > 0) count++;
+    return count;
+}
+
 // Assumes gzipped data
 vector<string> read_sequences(vector<string> filenames){
     vector<string> seqs;

@@ -33,7 +33,7 @@ def check_outputs(themisto_outfile, ref_outfile):
         T_colors = map(int, T.split()[1:])
         R_colors = map(int, R.split()[1:])
         assert(sorted(T_colors) == sorted(R_colors)) # The colors are in arbitrary order so we sort
-    print("OK:", themisto_outfile)
+    print("\n===\nOK: {}\n===\n".format(themisto_outfile))
 
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
@@ -46,9 +46,10 @@ run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list)
 
-def build_index(k, input, rc, colormode, outfile):
-    run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5 {}".format(
-        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", colormode)
+def build_index(k, input, rc, color_input_mode, outfile, color_set_type):
+    print("Color set type", color_set_type)
+    run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d 5 {} --coloring-structure-type {}".format(
+        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", color_input_mode, color_set_type)
     )
 
 def dump_color_matrix(indexfile, outfile):
@@ -64,12 +65,13 @@ def dump_reference_color_matrix(k, inputfile, rc, outfile):
 runs = [
     [31, infile_list, False, "--sequence-colors", out_dir + "/seq-colors"],
     [31, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc"],
-    [31, infile_list, False, "--file-colors",     out_dir + "/file-colors"],
+    #[31, infile_list, False, "--file-colors",     out_dir + "/file-colors"], # Can't do file colors without rc because of how ggcat is called
     [31, infile_list, True,  "--file-colors",     out_dir + "/file-colors-rc"]
 ]
 
-for k, input, rc, colormode, outfile in runs:
-    build_index(k, input, rc, colormode, outfile)
-    dump_color_matrix(outfile, outfile + ".colordump")
-    dump_reference_color_matrix(k, infile_list, rc, outfile + ".colordump.ref")
-    check_outputs(outfile + ".colordump", outfile + ".colordump.ref")
+for k, input, rc, color_input_mode, outfile in runs:
+    for color_set_type in ["sdsl-hybrid", "roaring"]:
+        build_index(k, input, rc, color_input_mode, outfile, color_set_type)
+        dump_color_matrix(outfile, outfile + ".colordump")
+        dump_reference_color_matrix(k, infile_list, rc, outfile + ".colordump.ref")
+        check_outputs(outfile + ".colordump", outfile + ".colordump.ref")

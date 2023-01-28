@@ -67,6 +67,8 @@ int dump_color_martrix_main(int argc, char** argv){
         ("k", "The k of the k-mers.", cxxopts::value<int64_t>())
         ("i", "A text file with list of input files, one per line (.fna.gz files).", cxxopts::value<string>())
         ("rc", "Whether to add reverse complemets to the index.", cxxopts::value<bool>()->default_value("false"))
+        ("file-colors", "", cxxopts::value<bool>()->default_value("false"))
+        ("sequence-colors", "", cxxopts::value<bool>()->default_value("false"))
         ("o", "The output filename.", cxxopts::value<string>())
     ;
 
@@ -80,11 +82,25 @@ int dump_color_martrix_main(int argc, char** argv){
     string in_file_list = opts["i"].as<string>();
     string out_file = opts["o"].as<string>();
     bool revcomps = opts["rc"].as<bool>();
-    
-    vector<string> seqs = read_sequences(readlines(in_file_list));
+    bool file_colors = opts["file-colors"].as<bool>();
+    bool sequence_colors = opts["sequences-colors"].as<bool>();
+
+    vector<string> in_files = readlines(in_file_list);
+    vector<string> seqs = read_sequences(in_files);
+
     vector<int64_t> colors;
-    for(int64_t i = 0; i < seqs.size(); i++) 
-        colors.push_back(i); // Sequence colors
+    if(file_colors){
+        for(int64_t color = 0; color < in_files.size(); color++){
+            int64_t n_seqs = count_sequences(in_files[color]);
+            for(int64_t i = 0; i < n_seqs; i++) colors.push_back(color);
+        }
+    } else if(sequence_colors){
+        for(int64_t i = 0; i < seqs.size(); i++) 
+            colors.push_back(i);
+    } else{
+        cerr << "Error: coloring mode not specified" << endl;
+        return 1;
+    }
 
     if(revcomps){
         int64_t n = seqs.size(); // Need to save this size to a local variable or else the loop below goes on forever
