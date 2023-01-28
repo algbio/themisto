@@ -35,17 +35,17 @@ def check_outputs(themisto_outfile, ref_outfile):
         assert(sorted(T_hits) == sorted(R_hits)) # The hits are in arbitrary order so we sort
     print("OK: ", themisto_outfile)
 
-themisto_binary = "../../../build/bin/themisto"
+themisto_binary = "../../build/bin/themisto"
 ref_binary = "reference_implementation/query_reference_implementation"
 k = 31
 temp_dir = "./temp"
 index_prefix = temp_dir + "/index"
-query_file = "../../temp/all.fasta.gz"
+query_file = "../temp/all.fasta.gz"
 out_dir = "./out"
 
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
-run("find ../../ref_sequences -type f | grep fasta.gz > file_list.txt")
+run("find ../ref_sequences -type f | grep fasta.gz > file_list.txt")
 
 # Build index
 run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
