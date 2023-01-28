@@ -51,6 +51,11 @@ def build_index(k, input, rc, colormode, outfile):
         themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", colormode)
     )
 
+def dump_color_matrix(indexfile, outfile):
+    run("{} dump-color-matrix -i {} -o {} --sparse".format(
+        themisto_binary, indexfile, outfile)
+    )
+
 runs = [
     [31, infile_list, False, "--sequence-colors", out_dir + "/seq-colors"],
     [31, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc"],
@@ -60,4 +65,4 @@ runs = [
 
 for k, input, rc, colormode, outfile in runs:
     build_index(k, input, rc, colormode, outfile)
-
+    dump_color_matrix(outfile, outfile + ".colordump")
