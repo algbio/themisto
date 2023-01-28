@@ -29,11 +29,11 @@ def check_outputs(themisto_outfile, ref_outfile):
         T = themisto_lines[i]
         R = ref_lines[i]
         assert(len(T) == len(R))
-        assert(T[0] == R[0]) # Sequence id
-        T_hits = map(int, T.split()[1:])
-        R_hits = map(int, R.split()[1:])
-        assert(sorted(T_hits) == sorted(R_hits)) # The hits are in arbitrary order so we sort
-    print("OK: ", themisto_outfile)
+        assert(T[0] == R[0]) # K-mer string
+        T_colors = map(int, T.split()[1:])
+        R_colors = map(int, R.split()[1:])
+        assert(sorted(T_colors) == sorted(R_colors)) # The colors are in arbitrary order so we sort
+    print("OK:", themisto_outfile)
 
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
@@ -56,6 +56,11 @@ def dump_color_matrix(indexfile, outfile):
         themisto_binary, indexfile, outfile)
     )
 
+def dump_reference_color_matrix(k, inputfile, rc, outfile):
+    run("{} dump-color-matrix -k {} -i {} -o {} {}".format(
+        ref_binary, k, inputfile, outfile, "--rc" if rc else "")
+    )
+
 runs = [
     [31, infile_list, False, "--sequence-colors", out_dir + "/seq-colors"],
     [31, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc"],
@@ -66,3 +71,5 @@ runs = [
 for k, input, rc, colormode, outfile in runs:
     build_index(k, input, rc, colormode, outfile)
     dump_color_matrix(outfile, outfile + ".colordump")
+    dump_reference_color_matrix(k, infile_list, rc, outfile + ".colordump.ref")
+    check_outputs(outfile + ".colordump", outfile + ".colordump.ref")
