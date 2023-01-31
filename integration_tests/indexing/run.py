@@ -76,7 +76,7 @@ runs = [
     #[31, 5, infile_list, False, "--file-colors",     out_dir + "/file-colors", "sdsl-hybrid"], # Can't do file colors without rc because of how ggcat is called
     [31, 6, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "sdsl-hybrid"],
     [31, 7, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"], # Roaring
-    [100, 8, infile_list, True,  "--manual-colors", out_dir + "/file-colors-rc", "roaring"] # Large k
+    [100, 8, infile_list, True,  "--manual-colors " + manual_colorfile, out_dir + "/file-colors-rc", "roaring"] # Large k
 ]
 
 for k, d, input, rc, color_input_mode, outfile, color_set_type in runs:
