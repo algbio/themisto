@@ -45,6 +45,10 @@ out_dir = "./out"
 
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
+
+run("python3 gen_queries.py")
+run("cat generated_queries.fasta.gz >> file_list.txt")
+
 run("find ../ref_sequences -type f | grep fasta.gz > file_list.txt")
 
 # Build index
