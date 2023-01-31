@@ -37,7 +37,7 @@ def check_outputs(themisto_outfile, ref_outfile):
 
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
-k = 31
+k = 30
 temp_dir = "./temp"
 index_prefix = temp_dir + "/index"
 query_file = "../temp/all.fasta.gz"

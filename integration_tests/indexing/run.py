@@ -37,7 +37,7 @@ def check_outputs(themisto_outfile, ref_outfile):
 
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
-k = 31
+k = 30
 temp_dir = "./temp"
 out_dir = "./out"
 infile_list = "file_list.txt"
