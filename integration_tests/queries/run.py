@@ -47,9 +47,9 @@ run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 
 run("python3 gen_queries.py")
-run("cat generated_queries.fasta.gz >> file_list.txt")
+run("echo generated_queries.fasta.gz > file_list.txt")
 
-run("find ../ref_sequences -type f | grep fasta.gz > file_list.txt")
+run("find ../ref_sequences -type f | grep fasta.gz >> file_list.txt")
 
 # Build index
 run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
