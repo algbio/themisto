@@ -49,6 +49,9 @@ run("mkdir -p {}".format(temp_dir))
 run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list)
 run("cat " + infile_list +" | xargs cat > " + concat_all_file)
 
+print("Input files:")
+print(open(infile_list).read())
+
 def build_index(k, d, input, rc, color_input_mode, outfile, color_set_type):
     print("Color set type", color_set_type)
     run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d {} {} --coloring-structure-type {}".format(

@@ -47,6 +47,9 @@ run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 run("find ../ref_sequences -type f | grep fasta.gz > file_list.txt")
 
+print("Input files:")
+print(open(infile_list).read())
+
 # Build index
 run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
     themisto_binary, k, "file_list.txt", index_prefix, temp_dir)
