@@ -49,10 +49,10 @@ run("mkdir -p {}".format(temp_dir))
 run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list)
 run("cat " + infile_list +" | xargs cat > " + concat_all_file)
 
-def build_index(k, input, rc, color_input_mode, outfile, color_set_type):
+def build_index(k, d, input, rc, color_input_mode, outfile, color_set_type):
     print("Color set type", color_set_type)
-    run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d 5 {} --coloring-structure-type {}".format(
-        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", color_input_mode, color_set_type)
+    run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d {} {} --coloring-structure-type {}".format(
+        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", d, color_input_mode, color_set_type)
     )
 
 def dump_color_matrix(indexfile, outfile):
@@ -66,17 +66,18 @@ def dump_reference_color_matrix(k, inputfile, rc, color_input_mode, outfile):
     )
 
 runs = [
-    [31, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors"],
-    [31, concat_all_file, True,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors-rc"],
-    [31, infile_list, False, "--sequence-colors", out_dir + "/seq-colors"],
-    [31, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc"],
-    #[31, infile_list, False, "--file-colors",     out_dir + "/file-colors"], # Can't do file colors without rc because of how ggcat is called
-    [31, infile_list, True,  "--file-colors",     out_dir + "/file-colors-rc"]
+    [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
+    [31, 2, concat_all_file, True,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors-rc", "sdsl-hybrid"],
+    [31, 3, infile_list, False, "--sequence-colors", out_dir + "/seq-colors", "sdsl-hybrid"],
+    [31, 4, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc", "sdsl-hybrid"],
+    #[31, 5, infile_list, False, "--file-colors",     out_dir + "/file-colors", "sdsl-hybrid"], # Can't do file colors without rc because of how ggcat is called
+    [31, 6, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "sdsl-hybrid"],
+    [31, 7, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"], # Roaring
+    [100, 8, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"] # Large k
 ]
 
-for k, input, rc, color_input_mode, outfile in runs:
-    for color_set_type in ["sdsl-hybrid", "roaring"]:
-        build_index(k, input, rc, color_input_mode, outfile, color_set_type)
-        dump_color_matrix(outfile, outfile + ".colordump")
-        dump_reference_color_matrix(k, infile_list, rc, color_input_mode, outfile + ".colordump.ref")
-        check_outputs(outfile + ".colordump", outfile + ".colordump.ref")
+for k, d, input, rc, color_input_mode, outfile, color_set_type in runs:
+    build_index(k, d, input, rc, color_input_mode, outfile, color_set_type)
+    dump_color_matrix(outfile, outfile + ".colordump")
+    dump_reference_color_matrix(k, infile_list, rc, color_input_mode, outfile + ".colordump.ref")
+    check_outputs(outfile + ".colordump", outfile + ".colordump.ref")
