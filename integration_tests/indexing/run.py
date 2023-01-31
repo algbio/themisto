@@ -70,13 +70,13 @@ def dump_reference_color_matrix(k, inputfile, rc, color_input_mode, outfile):
 
 runs = [
     [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
+    [100, 8, concat_all_file, False,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"], # Large k
     [31, 2, concat_all_file, True,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors-rc", "sdsl-hybrid"],
     [31, 3, infile_list, False, "--sequence-colors", out_dir + "/seq-colors", "sdsl-hybrid"],
     [31, 4, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc", "sdsl-hybrid"],
     #[31, 5, infile_list, False, "--file-colors",     out_dir + "/file-colors", "sdsl-hybrid"], # Can't do file colors without rc because of how ggcat is called
     [31, 6, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "sdsl-hybrid"],
     [31, 7, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"], # Roaring
-    [100, 8, infile_list, True,  "--manual-colors " + manual_colorfile, out_dir + "/file-colors-rc", "roaring"] # Large k
 ]
 
 for k, d, input, rc, color_input_mode, outfile, color_set_type in runs:
