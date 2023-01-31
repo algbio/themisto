@@ -11,8 +11,33 @@
 #include "KmerIndex.hh"
 
 typedef Kmer<32> kmer_t;
+typedef Kmer<128> big_kmer_t;
 
 using namespace std;
+
+template<typename kmer_t> 
+void run_queries(const vector<string>& seqs, const vector<int64_t> colors, const vector<string>& queries, int64_t k, double threshold, bool ignore_unknown, bool revcomps, string out_file){
+    cerr << "Indexing..." << endl;
+    KmerIndex<kmer_t> index(seqs, colors, k);
+    cerr << "Indexing done" << endl;
+
+    Buffered_ofstream<> out(out_file);
+    cerr << "Querying" << endl;
+    index.threshold_pseudoalign(queries, out, threshold, ignore_unknown, revcomps);
+    cerr << "Querying done" << endl;    
+}
+
+template<typename kmer_t> 
+void run_dump_color_matrix(const vector<string>& seqs, const vector<int64_t> colors, int64_t k, string out_file){
+    cerr << "Indexing..." << endl;
+    KmerIndex<kmer_t> index(seqs, colors, k);
+    cerr << "Indexing done" << endl;
+    cerr << "Dumping the color matrix" << endl;
+    Buffered_ofstream<> out(out_file);
+    index.dump_color_matrix(out);
+    cerr << "Done" << endl;
+}
+  
 
 int query_main(int argc, char** argv){
 
@@ -48,14 +73,14 @@ int query_main(int argc, char** argv){
     for(int64_t i = 0; i < seqs.size(); i++) 
         colors.push_back(i); // Sequence colors
 
-    cerr << "Indexing..." << endl;
-    KmerIndex index(seqs, colors, k);
-    cerr << "Indexing done" << endl;
-
-    Buffered_ofstream<> out(out_file);
-    cerr << "Aligning" << endl;
-    index.threshold_pseudoalign(queries, out, threshold, ignore_unknown, revcomps);
-    cerr << "Aligning done" << endl;
+    if(k <= 32){
+        run_queries<Kmer<32>>(seqs, colors, queries, k, threshold, ignore_unknown, revcomps, out_file);
+    } else if(k <= 128){
+        run_queries<Kmer<128>>(seqs, colors, queries, k, threshold, ignore_unknown, revcomps, out_file);
+    } else{
+        throw std::runtime_error("k too large");
+        return 1;
+    }
 
     return 0;
 }
@@ -114,13 +139,14 @@ int dump_color_martrix_main(int argc, char** argv){
         }
     }
 
-    cerr << "Indexing..." << endl;
-    KmerIndex index(seqs, colors, k);
-    cerr << "Indexing done" << endl;
-    cerr << "Dumping the color matrix" << endl;
-    Buffered_ofstream<> out(out_file);
-    index.dump_color_matrix(out);
-
+    if(k <= 32){
+        run_dump_color_matrix<Kmer<32>>(seqs, colors, k, out_file);
+    } else if(k <= 128){
+        run_dump_color_matrix<Kmer<128>>(seqs, colors, k, out_file);
+    } else{
+        throw std::runtime_error("k too large");
+        return 1;
+    }
     return 0;
 }
 

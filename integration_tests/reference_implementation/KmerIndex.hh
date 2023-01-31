@@ -7,8 +7,7 @@
 
 using namespace std;
 
-typedef Kmer<32> kmer_t;
-
+template<typename kmer_t>
 class KmerIndex{
 
 public:
@@ -36,7 +35,7 @@ public:
     }
 
     template<typename output_stream_t>
-    void threshold_pseudoalign(vector<string>& queries, output_stream_t& out, double threshold, bool ignore_unknown, bool revcomps){
+    void threshold_pseudoalign(const vector<string>& queries, output_stream_t& out, double threshold, bool ignore_unknown, bool revcomps){
         char space = ' ';
         char newline = '\n';
         int64_t query_id = 0;
