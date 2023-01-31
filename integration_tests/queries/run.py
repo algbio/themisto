@@ -18,7 +18,7 @@ def run_get_output(command):
 
 def run(command):
     sys.stderr.write(command + "\n")
-    return subprocess.run(command, shell=True)
+    return subprocess.run(command, shell=True).returncode
 
 def check_outputs(themisto_outfile, ref_outfile):
     themisto_lines = open(themisto_outfile).read().splitlines()
@@ -46,15 +46,15 @@ out_dir = "./out"
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 
-run("python3 gen_queries.py")
-run("echo generated_queries.fasta.gz > file_list.txt")
+assert(run("python3 gen_queries.py") == 0)
+assert(run("echo generated_queries.fasta.gz > file_list.txt") == 0)
 
-run("find ../ref_sequences -type f | grep fasta.gz >> file_list.txt")
+assert(run("find ../ref_sequences -type f | grep fasta.gz >> file_list.txt") == 0)
 
 # Build index
-run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
-    themisto_binary, k, "file_list.txt", index_prefix, temp_dir)
-)
+assert(run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
+    themisto_binary, k, "file_list.txt", index_prefix, temp_dir)) 
+== 0)
 
 with open('parameters.csv') as csvfile:
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
@@ -66,19 +66,19 @@ with open('parameters.csv') as csvfile:
         ref_outfile = out_dir + "/ref-" + run_id + ".txt"
 
         # Query Themisto
-        run("{} pseudoalign -q {} -i {} -o {} --temp-dir {} --threshold {} {} {}".format(
+        assert(run("{} pseudoalign -q {} -i {} -o {} --temp-dir {} --threshold {} {} {}".format(
             themisto_binary, query_file, index_prefix, themisto_outfile, temp_dir, threshold,
             "--ignore-unknown-kmers" if ignore == "yes" else "", 
-            "--rc" if revcomp == "yes" else ""
-        ))
+            "--rc" if revcomp == "yes" else ""))
+        == 0)
 
         # Query reference implementation
-        run("{} query -k {} -i {} -q {} -o {} --threshold {} {} {}".format(
+        assert(run("{} query -k {} -i {} -q {} -o {} --threshold {} {} {}".format(
             ref_binary, k, "file_list.txt", query_file, ref_outfile,
             threshold,
             "--ignore-unknown-kmers" if ignore == "yes" else "", 
-            "--rc" if revcomp == "yes" else ""
-        ))
+            "--rc" if revcomp == "yes" else ""))
+        == 0)
 
         # Check that outputs match
         check_outputs(themisto_outfile, ref_outfile)

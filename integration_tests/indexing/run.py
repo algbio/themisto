@@ -18,7 +18,7 @@ def run_get_output(command):
 
 def run(command):
     sys.stderr.write(command + "\n")
-    return subprocess.run(command, shell=True)
+    return subprocess.run(command, shell=True).returncode
 
 def check_outputs(themisto_outfile, ref_outfile):
     themisto_lines = open(themisto_outfile).read().splitlines()
@@ -46,27 +46,27 @@ concat_all_file = temp_dir + "/all.fasta.gz"
 
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
-run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list)
-run("cat " + infile_list +" | xargs cat > " + concat_all_file)
+assert(run("find ../ref_sequences -type f | grep fasta.gz > " + infile_list) == 0)
+assert(run("cat " + infile_list +" | xargs cat > " + concat_all_file) == 0)
 
 print("Input files:")
 print(open(infile_list).read())
 
 def build_index(k, d, input, rc, color_input_mode, outfile, color_set_type):
     print("Color set type", color_set_type)
-    run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d {} {} --coloring-structure-type {}".format(
-        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", d, color_input_mode, color_set_type)
-    )
+    assert(run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d {} {} --coloring-structure-type {}".format(
+        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", d, color_input_mode, color_set_type))
+    == 0)
 
 def dump_color_matrix(indexfile, outfile):
-    run("{} dump-color-matrix -i {} -o {} --sparse".format(
-        themisto_binary, indexfile, outfile)
-    )
+    assert(run("{} dump-color-matrix -i {} -o {} --sparse".format(
+        themisto_binary, indexfile, outfile))
+    == 0)
 
 def dump_reference_color_matrix(k, inputfile, rc, color_input_mode, outfile):
-    run("{} dump-color-matrix -k {} -i {} -o {} {} {}".format(
-        ref_binary, k, inputfile, outfile, "--rc" if rc else "", color_input_mode)
-    )
+    assert(run("{} dump-color-matrix -k {} -i {} -o {} {} {}".format(
+        ref_binary, k, inputfile, outfile, "--rc" if rc else "", color_input_mode))
+    == 0)
 
 runs = [
     [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
