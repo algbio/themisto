@@ -311,7 +311,7 @@ bool has_suffix_dot_txt(const string& S){
 }
 
 template<typename color_set_t>
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files);
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg);
 
 
 int build_index_main(int argc, char** argv_given){
@@ -571,7 +571,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
     if(load_dbg){
         sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
         dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
-        dbg_ptr->load(C.index_dbg_file);        
+        dbg_ptr->load(index_dbg_file);
     } else{
         // Build SBWT
         sbwt::write_log("Building SBWT", sbwt::LogLevel::MAJOR);
@@ -585,7 +585,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
         sbwt_config.ram_gigas = max((int64_t)2, mem_megas / (1 << 10)); // KMC requires at least 2 GB
         sbwt_config.temp_dir = temp_dir;
 
-        dbg_ptr = std::make_unique<sbwt::plain_matrix_bwt_t>(sbwt_config);
+        dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>(sbwt_config);
         dbg_ptr->serialize(index_dbg_file);
         sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
     }
