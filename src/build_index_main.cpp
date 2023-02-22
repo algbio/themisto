@@ -424,19 +424,15 @@ int build_index_main(int argc, char** argv_given){
             cerr << "Error: file colors only works with deletion of unknown base pairs" << endl;
             return 1;
         }
-        if(C.load_dbg){
-            cerr << "Error: can't load pre-existing DBG with file colors" << endl;
-            return 1;
-        }
         if(!C.reverse_complements){
             cerr << "Error: must enable reverse complements in file colors" << endl;
             return 1;
         }
 
         if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_index_with_ggcat<SDSL_Variant_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped);
+            build_index_with_ggcat<SDSL_Variant_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped, C.load_dbg);
         } else if(C.coloring_structure_type == "roaring"){
-            build_index_with_ggcat<Roaring_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped); 
+            build_index_with_ggcat<Roaring_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped, C.load_dbg); 
         }
         return 0;
     }
@@ -557,7 +553,7 @@ int build_index_main(int argc, char** argv_given){
 }
 
 template<typename color_set_t>
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files){
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg){
 
     create_directory_if_does_not_exist(temp_dir);
     sbwt::get_temp_file_manager().set_dir(temp_dir);
@@ -571,22 +567,29 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
             sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
             sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(unitigfile);
 
-    // Build SBWT
+    std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
+    if(load_dbg){
+        sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
+        dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
+        dbg_ptr->load(C.index_dbg_file);        
+    } else{
+        // Build SBWT
+        sbwt::write_log("Building SBWT", sbwt::LogLevel::MAJOR);
+        sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
+        sbwt_config.build_streaming_support = true;
+        sbwt_config.input_files = {unitigfile, rev_unitigfile};
+        sbwt_config.k = k;
+        sbwt_config.max_abundance = 1e9;
+        sbwt_config.min_abundance = 1;
+        sbwt_config.n_threads = n_threads;
+        sbwt_config.ram_gigas = max((int64_t)2, mem_megas / (1 << 10)); // KMC requires at least 2 GB
+        sbwt_config.temp_dir = temp_dir;
 
-    sbwt::write_log("Building SBWT", sbwt::LogLevel::MAJOR);
-    sbwt::plain_matrix_sbwt_t::BuildConfig sbwt_config;
-    sbwt_config.build_streaming_support = true;
-    sbwt_config.input_files = {unitigfile, rev_unitigfile};
-    sbwt_config.k = k;
-    sbwt_config.max_abundance = 1e9;
-    sbwt_config.min_abundance = 1;
-    sbwt_config.n_threads = n_threads;
-    sbwt_config.ram_gigas = max((int64_t)2, mem_megas / (1 << 10)); // KMC requires at least 2 GB
-    sbwt_config.temp_dir = temp_dir;
-    sbwt::plain_matrix_sbwt_t SBWT(sbwt_config);
-    SBWT.serialize(index_dbg_file);
-    sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(SBWT.number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
-    
+        dbg_ptr = std::make_unique<sbwt::plain_matrix_bwt_t>(sbwt_config);
+        dbg_ptr->serialize(index_dbg_file);
+        sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
+    }
+
     sbwt::write_log("Building color structure", sbwt::LogLevel::MAJOR);
     Coloring<color_set_t> coloring;
     if(gzipped_seq_files){
@@ -596,7 +599,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
         Coloring_Builder<color_set_t, reader_t> cb;
         reader_t reader(seqfiles);
         reader.enable_reverse_complements();
-        cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+        cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
     } else{
         // BAD CODE ALERT: almost all of this code is duplicated in the if-branch. If you change something here,
         // make the equivalent change to the if-branch
@@ -604,7 +607,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
         Coloring_Builder<color_set_t, reader_t> cb;
         reader_t reader(seqfiles);
         reader.enable_reverse_complements();
-        cb.build_from_colored_unitigs(coloring, reader, SBWT, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
+        cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
     }
 
     sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
