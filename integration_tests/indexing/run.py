@@ -73,12 +73,12 @@ def test_file_colors_with_load_dbg(input):
     # Build DBG without colors
     assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --no-colors".format(
         themisto_binary, input, out_prefix, temp_dir
-    )))
+    )) == 0)
 
     # Build colors with --file-colors
     assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --file-colors --load-dbg".format(
         themisto_binary, input, out_prefix, temp_dir
-    )))
+    )) == 0)
 
     # Compare to reference implementation
     dump_reference_color_matrix(31, input, True, "--file-colors", out_dir + "/load_dbg_test.colordump")
