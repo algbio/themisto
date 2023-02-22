@@ -71,20 +71,22 @@ def test_file_colors_with_load_dbg(input):
     out_prefix = out_dir + "/load_dbg_test"
 
     # Build DBG without colors
-    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --no-colors").format(
-        input, out_prefix, temp_dir
-    ))
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --no-colors".format(
+        themisto_binary, input, out_prefix, temp_dir
+    )))
 
     # Build colors with --file-colors
-    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --file-colors --load-dbg").format(
-        input, out_prefix, temp_dir
-    ))
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --file-colors --load-dbg".format(
+        themisto_binary, input, out_prefix, temp_dir
+    )))
 
     # Compare to reference implementation
     dump_reference_color_matrix(31, input, True, "--file-colors", out_dir + "/load_dbg_test.colordump")
     dump_color_matrix(out_prefix, out_dir + "/load_dbg_test.colordump.ref")
     check_outputs(out_dir + "/load_dbg_test.colordump", out_dir + "/load_dbg_test.colordump.ref")
     
+
+test_file_colors_with_load_dbg(infile_list)
 
 runs = [
     [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
@@ -102,5 +104,3 @@ for k, d, input, rc, color_input_mode, outfile, color_set_type in runs:
     dump_color_matrix(outfile, outfile + ".colordump")
     dump_reference_color_matrix(k, infile_list, rc, color_input_mode, outfile + ".colordump.ref")
     check_outputs(outfile + ".colordump", outfile + ".colordump.ref")
-
-test_file_colors_with_load_dbg(31, 2, infile_list, True)
