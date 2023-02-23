@@ -313,8 +313,7 @@ bool has_suffix_dot_txt(const string& S){
 template<typename color_set_t>
 int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg);
 
-
-int build_index_main(int argc, char** argv_given){
+Build_Config parse_build_options(int argc, char** argv_given){
 
     // Legacy support: transform old option names to new ones
     char** argv = (char**)malloc(sizeof(char*) * argc); // Freed and the and of the function
@@ -454,12 +453,19 @@ int build_index_main(int argc, char** argv_given){
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
     if(C.silent) set_log_level(sbwt::LogLevel::OFF);
 
-    create_directory_if_does_not_exist(C.temp_dir);
+    return C;
+}
 
+int build_index_main(int argc, char** argv){
+
+    Build_Config C = parse_build_options(argc, argv);
     C.check_valid();
-    sbwt::get_temp_file_manager().set_dir(C.temp_dir);
 
     write_log("Build configuration:\n" + C.to_string(), sbwt::LogLevel::MAJOR);
+    
+    create_directory_if_does_not_exist(C.temp_dir);
+    sbwt::get_temp_file_manager().set_dir(C.temp_dir);
+
     write_log("Starting", sbwt::LogLevel::MAJOR);
 
     if(C.file_colors){
