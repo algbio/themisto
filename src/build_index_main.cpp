@@ -360,7 +360,7 @@ int build_index_main(int argc, char** argv_given){
     options.add_options("Coloring (give only one)")
         ("f,file-colors", "This is the default coloring option. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
         ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input files, in the order the sequences are processed.", cxxopts::value<bool>()->default_value("false"))
-        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
+        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line.", cxxopts::value<string>()->default_value(""))
         ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --help-advanced)", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -411,7 +411,9 @@ int build_index_main(int argc, char** argv_given){
     C.from_index = opts["from-index"].as<string>();
 
     C.colorfile_CLI_variable = opts["manual-colors"].as<string>();
-    C.seqfile_CLI_variable = opts["input-file"].as<string>();
+
+    // Parse sequence input file. If building from existing index, there is no such file.
+    C.seqfile_CLI_variable = (C.from_index != "") ? "" : opts["input-file"].as<string>();
 
     if(C.colorfile_CLI_variable == "" && !C.file_colors && !C.sequence_colors)
         C.file_colors = true; // Default behavior if no color options are set
