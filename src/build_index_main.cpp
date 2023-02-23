@@ -336,6 +336,8 @@ Build_Config parse_build_options(int argc, char** argv_given){
             argv[i+1] = legacy_support_fix4_gigabytes.data();
             cerr << "Note: Starting from Themisto v3 memory is given in gigabytes, not megabytes. Automatically replaced option "
             << argv_given[i] << " "  << argv_given[i+1] << " with " << argv[i] << " "  << argv[i+1] << endl;
+
+            i++; // Skip over the integer value at argv[i+1]
         }
         else argv[i] = argv_given[i];
     }
