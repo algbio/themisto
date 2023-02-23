@@ -387,7 +387,7 @@ int build_index_main(int argc, char** argv_given){
         if(opts.count("help-advanced"))
             std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced", "Help"}) << std::endl;
         cerr << "Usage example:" << endl;
-        cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements" << endl;
+        cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
     }    
 
@@ -412,17 +412,17 @@ int build_index_main(int argc, char** argv_given){
     try{
         C.colorfile_CLI_variable = opts["manual-colors"].as<string>();
         C.manual_colors = true;
-    } catch(cxxopts::option_not_present_exception& e){
+    } catch(cxxopts::option_has_no_value_exception& e){
         // Manual colorfile not present. That is ok.
     }
 
     try{
         C.seqfile_CLI_variable = opts["input-file"].as<string>();
-    } catch(cxxopts::option_not_present_exception& e){
+    } catch(cxxopts::option_has_no_value_exception& e){
         // Seqfile not present. That is ok only if --from-index is given
         try{
             C.from_index = opts["from-index"].as<string>();
-        } catch(cxxopts::option_not_present_exception& e){
+        } catch(cxxopts::option_has_no_value_exception& e){
             // --from-index not given. Problem.
             cerr << "Error: --input-file not given" << endl;
             return 1;
