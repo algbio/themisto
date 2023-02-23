@@ -331,33 +331,46 @@ int build_index_main(int argc, char** argv_given){
 
     cxxopts::Options options(argv[0], "Build the Themisto index:");
 
-    options.add_options()
+    options.add_options("Basic")
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
-        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq.", cxxopts::value<string>()->default_value(""))
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension.", cxxopts::value<string>()->default_value(""))
+        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
+        ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
+        ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
+        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("h,help", "Print basic usage options")
+        ("help-advanced", "Print advanced options usage")
+    ;
+
+    options.add_options("Computational resources")
+        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
+        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
+    ;
+
+    options.add_options("Coloring")
         ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
         ("f,file-colors", "Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
         ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input, in the order the sequences are processed. This is the default behavior if no other color options are given.", cxxopts::value<bool>()->default_value("false"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
-        ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
-        ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
-        ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
-        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
-        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
+    ;
+    
+    options.add_options("Advanced")
+        ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, k-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
-        ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
         ("from-index", "Take as input a pre-built Themisto index. Builds a new index in the format specified by --coloring-structure-type. This is currenlty implemented by decompressing the distinct color sets in memory before re-encoding them, so this might take a lot of RAM.", cxxopts::value<string>()->default_value(""))
-        ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
-        ("h,help", "Print usage")
     ;
 
     int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
-    if (old_argc == 1 || opts.count("help")){
-        std::cerr << options.help() << std::endl;
+    if (old_argc == 1 || opts.count("help") || opts.count("help-advanced")){
+        if(old_argc == 1 || opts.count("help"))
+            std::cerr << options.help({"Basic","Coloring","Computational resources"}) << std::endl;
+        if(opts.count("help-advanced"))
+            std::cerr << options.help({"Basic","Coloring","Computational resources","Advanced"}) << std::endl;
         cerr << "Usage example:" << endl;
         cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
