@@ -335,7 +335,7 @@ int build_index_main(int argc, char** argv_given){
 
             legacy_support_fix4_gigabytes = to_string(stoll(argv_given[i+1]) / 1024); // MB to GB
             argv[i+1] = legacy_support_fix4_gigabytes.data();
-            cerr << "Note : since Themisto v3 memory is given in gigabytes, not megabytes. Automatically replaced option "
+            cerr << "Note: Starting from Themisto v3 memory is given in gigabytes, not megabytes. Automatically replaced option "
             << argv_given[i] << " "  << argv_given[i+1] << " with " << argv[i] << " "  << argv[i+1] << endl;
         }
         else argv[i] = argv_given[i];
@@ -345,7 +345,7 @@ int build_index_main(int argc, char** argv_given){
 
     options.add_options("Basic")
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
-        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. If the extension is .txt, the file is interpreted as a list of filenames, one per line")
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. If the extension is .txt, the file is interpreted as a list of filenames, one per line", cxxopts::value<string>())
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
@@ -363,7 +363,7 @@ int build_index_main(int argc, char** argv_given){
         ("f,file-colors", "This is the default coloring option. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
         ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input files, in the order the sequences are processed.", cxxopts::value<bool>()->default_value("false"))
         ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
-        ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
+        ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --advanced-options)", cxxopts::value<bool>()->default_value("false"))
     ;
 
     options.add_options("Advanced")
