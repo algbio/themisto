@@ -138,7 +138,7 @@ struct Build_Config{
     string from_index;
     sbwt::SeqIO::FileFormat input_format;
     bool load_dbg = false;
-    int64_t memory_megas = 1000;
+    int64_t memory_megas = 2048;
     bool no_colors = false;
     bool del_non_ACGT = false;
     int64_t colorset_sampling_distance = 1;
@@ -321,11 +321,23 @@ int build_index_main(int argc, char** argv_given){
     char legacy_support_fix[] = "-k";
     char legacy_support_fix2[] = "--manual-colors";
     char legacy_support_fix3[] = "--sequence-colors";
+    char legacy_support_fix4[] = "--mem-gigas";
+    string legacy_support_fix4_gigabytes;
+
     argv[0] = argv_given[0];
     for(int64_t i = 1; i < argc; i++){
         if(string(argv_given[i]) == "--k") argv[i] = legacy_support_fix;
         else if(string(argv_given[i]) == "--color-file") argv[i] = legacy_support_fix2;
         else if(string(argv_given[i]) == "--auto-colors") argv[i] = legacy_support_fix3;
+        else if(string(argv_given[i]) == "-m" || string(argv_given[i]) == "--mem-megas"){
+            argv[i] = legacy_support_fix4;
+            if(i + 1 >= argc) throw std::runtime_error("Error parsing arguments: memory not given.");
+
+            legacy_support_fix4_gigabytes = to_string(stoll(argv_given[i+1]) / 1024); // MB to GB
+            argv[i+1] = legacy_support_fix4_gigabytes.data();
+            cerr << "Note : since Themisto v3 memory is given in gigabytes, not megabytes. Automatically replaced option "
+            << argv_given[i] << " "  << argv_given[i+1] << " with " << argv[i] << " "  << argv[i+1] << endl;
+        }
         else argv[i] = argv_given[i];
     }
 
@@ -343,7 +355,7 @@ int build_index_main(int argc, char** argv_given){
     ;
 
     options.add_options("Computational resources")
-        ("m,mem-megas", "Number of megabytes allowed for external memory algorithms (must be at least 2048).", cxxopts::value<int64_t>()->default_value("2048"))
+        ("mem-gigas", "Number of gigabytes allowed for external memory algorithms (must be at least 2).", cxxopts::value<int64_t>()->default_value("2"))
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
     ;
 
@@ -353,7 +365,7 @@ int build_index_main(int argc, char** argv_given){
         ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input, in the order the sequences are processed. This is the default behavior if no other color options are given.", cxxopts::value<bool>()->default_value("false"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
     ;
-    
+
     options.add_options("Advanced")
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, k-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
@@ -383,7 +395,7 @@ int build_index_main(int argc, char** argv_given){
     C.index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
     C.temp_dir = opts["temp-dir"].as<string>();
     C.load_dbg = opts["load-dbg"].as<bool>();
-    C.memory_megas = opts["mem-megas"].as<int64_t>();
+    C.memory_megas = opts["mem-gigas"].as<int64_t>() * 1024;
     C.no_colors = opts["no-colors"].as<bool>();
     C.colorset_sampling_distance = opts["colorset-pointer-tradeoff"].as<int64_t>();
     C.del_non_ACGT = !(opts["randomize-non-ACGT"].as<bool>());
