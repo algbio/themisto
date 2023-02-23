@@ -358,9 +358,9 @@ int build_index_main(int argc, char** argv_given){
     ;
 
     options.add_options("Coloring (give only one)")
-        ("f,file-colors", "This is the default coloring option. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
-        ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input files, in the order the sequences are processed.", cxxopts::value<bool>()->default_value("false"))
-        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line.", cxxopts::value<string>()->default_value(""))
+        ("f,file-colors", "Default if the input has multiple sequence files. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
+        ("e,sequence-colors", "Default if the input has just a single sequence file. Creates a distinct color 0,1,2,... for each sequence in the input.", cxxopts::value<bool>()->default_value("false"))
+        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. Colors may be repeated. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line.", cxxopts::value<string>()->default_value(""))
         ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --help-advanced)", cxxopts::value<bool>()->default_value("false"))
     ;
 
