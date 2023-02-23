@@ -350,8 +350,6 @@ int build_index_main(int argc, char** argv_given){
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
-        ("h,help", "Print basic usage options")
-        ("help-advanced", "Print advanced options usage")
     ;
 
     options.add_options("Computational resources")
@@ -364,6 +362,11 @@ int build_index_main(int argc, char** argv_given){
         ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input files, in the order the sequences are processed.", cxxopts::value<bool>()->default_value("false"))
         ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
         ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --advanced-options)", cxxopts::value<bool>()->default_value("false"))
+    ;
+
+    options.add_options("Help")
+        ("h,help", "Print basic usage options")
+        ("help-advanced", "Print advanced options usage")
     ;
 
     options.add_options("Advanced")
@@ -380,9 +383,9 @@ int build_index_main(int argc, char** argv_given){
 
     if (old_argc == 1 || opts.count("help") || opts.count("help-advanced")){
         if(old_argc == 1 || opts.count("help"))
-            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources", "Help"}) << std::endl;
         if(opts.count("help-advanced"))
-            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced", "Help"}) << std::endl;
         cerr << "Usage example:" << endl;
         cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
