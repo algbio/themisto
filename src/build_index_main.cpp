@@ -414,7 +414,7 @@ int build_index_main(int argc, char** argv_given){
     C.seqfile_CLI_variable = opts["input-file"].as<string>();
 
     if(C.colorfile_CLI_variable == "" && !C.file_colors && !C.sequence_colors)
-        C.sequence_colors = true; // Default behavior if no color options are set
+        C.file_colors = true; // Default behavior if no color options are set
 
     C.manual_colors = !C.file_colors && !C.sequence_colors;
 
