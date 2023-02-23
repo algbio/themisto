@@ -345,7 +345,7 @@ int build_index_main(int argc, char** argv_given){
 
     options.add_options("Basic")
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
-        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension.", cxxopts::value<string>()->default_value(""))
+        ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. If the extension is .txt, the file is interpreted as a list of filenames, one per line")
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
         ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
@@ -422,8 +422,7 @@ int build_index_main(int argc, char** argv_given){
             C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
     } else{
         // Single file
-        if(C.seqfile_CLI_variable != "")
-            C.seqfiles = {C.seqfile_CLI_variable};
+        C.seqfiles = {C.seqfile_CLI_variable};
         if(C.manual_colors)
             C.colorfiles = {C.colorfile_CLI_variable};
     }
