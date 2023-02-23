@@ -359,10 +359,10 @@ int build_index_main(int argc, char** argv_given){
         ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
     ;
 
-    options.add_options("Coloring")
+    options.add_options("Coloring (give only one)")
+        ("f,file-colors", "This is the default coloring option. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
+        ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input files, in the order the sequences are processed.", cxxopts::value<bool>()->default_value("false"))
         ("c,manual-colors", "A file containing one integer color per sequence, one color per line. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line. ", cxxopts::value<string>()->default_value(""))
-        ("f,file-colors", "Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
-        ("e,sequence-colors", "Creates a distinct color 0,1,2,... for each sequence in the input, in the order the sequences are processed. This is the default behavior if no other color options are given.", cxxopts::value<bool>()->default_value("false"))
         ("no-colors", "Build only the de Bruijn graph without colors.", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -380,9 +380,9 @@ int build_index_main(int argc, char** argv_given){
 
     if (old_argc == 1 || opts.count("help") || opts.count("help-advanced")){
         if(old_argc == 1 || opts.count("help"))
-            std::cerr << options.help({"Basic","Coloring","Computational resources"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources"}) << std::endl;
         if(opts.count("help-advanced"))
-            std::cerr << options.help({"Basic","Coloring","Computational resources","Advanced"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced"}) << std::endl;
         cerr << "Usage example:" << endl;
         cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
