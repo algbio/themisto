@@ -211,7 +211,7 @@ struct Build_Config{
         ss << "k = " << k << "\n";
         ss << "Reverse complements = " << (reverse_complements ? "true" : "false") << "\n";
         ss << "Number of threads = " << n_threads << "\n";
-        ss << "Memory megabytes = " << memory_megas << "\n";
+        ss << "Memory gigabytes = " << memory_megas/1024 << "\n";
         ss << "Manual colors = " << (manual_colors ? "true" : "false") << "\n";
         ss << "Sequence colors = " << (sequence_colors ? "true" : "false") << "\n";
         ss << "File colors = " << (file_colors ? "true" : "false") << "\n";
@@ -382,9 +382,9 @@ Build_Config parse_build_options(int argc, char** argv_given){
 
     if (old_argc == 1 || opts.count("help") || opts.count("help-advanced")){
         if(old_argc == 1 || opts.count("help"))
-            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources", "Help"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Help"}) << std::endl;
         if(opts.count("help-advanced"))
-            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced", "Help"}) << std::endl;
+            std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced","Help"}) << std::endl;
         cerr << "Usage example:" << endl;
         cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors --reverse-complements" << endl;
         exit(1);
@@ -424,7 +424,7 @@ Build_Config parse_build_options(int argc, char** argv_given){
         } catch(cxxopts::option_has_no_value_exception& e){
             // --from-index not given. Problem.
             cerr << "Error: --input-file not given" << endl;
-            return 1;
+            exit(1);
         }
     }
 
@@ -453,6 +453,8 @@ Build_Config parse_build_options(int argc, char** argv_given){
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
     if(C.silent) set_log_level(sbwt::LogLevel::OFF);
 
+    free(argv);
+
     return C;
 }
 
@@ -471,11 +473,11 @@ int build_index_main(int argc, char** argv){
     if(C.file_colors){
         // Delegate to GGCAT.
         if(!C.del_non_ACGT){
-            cerr << "Error: file colors only works with deletion of unknown base pairs" << endl;
+            cerr << "Error: file colors only works with the option to delete of unknown base pairs" << endl;
             return 1;
         }
         if(!C.reverse_complements){
-            cerr << "Error: must enable reverse complements in file colors" << endl;
+            cerr << "Error: must enable reverse complements with file colors" << endl;
             return 1;
         }
 
@@ -596,8 +598,6 @@ int build_index_main(int argc, char** argv){
     }
 
     sbwt::write_log("Finished", sbwt::LogLevel::MAJOR);
-
-    free(argv);
 
     return 0;
 }
