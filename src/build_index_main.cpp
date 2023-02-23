@@ -360,7 +360,7 @@ int build_index_main(int argc, char** argv_given){
     options.add_options("Coloring (give only one)")
         ("f,file-colors", "Default if the input has multiple sequence files. Creates a distinct color 0,1,2,... for each file in the input file list, in the order the files appear in the list", cxxopts::value<bool>()->default_value("false"))
         ("e,sequence-colors", "Default if the input has just a single sequence file. Creates a distinct color 0,1,2,... for each sequence in the input.", cxxopts::value<bool>()->default_value("false"))
-        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. Colors may be repeated. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line.", cxxopts::value<string>()->default_value(""))
+        ("c,manual-colors", "A file containing one integer color per sequence, one color per line. Colors may be repeated. If there are multiple sequence files, then this file should be a text file containing the corresponding color filename for each sequence file, one filename per line.", cxxopts::value<string>())
         ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --help-advanced)", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -374,7 +374,7 @@ int build_index_main(int argc, char** argv_given){
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, k-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
         ("s,coloring-structure-type", "Type of coloring structure to build (\"sdsl-hybrid\", \"roaring\").", cxxopts::value<string>()->default_value("sdsl-hybrid"))
-        ("from-index", "Take as input a pre-built Themisto index. Builds a new index in the format specified by --coloring-structure-type. This is currently implemented by decompressing the distinct color sets in memory before re-encoding them, so this might take a lot of RAM.", cxxopts::value<string>()->default_value(""))
+        ("from-index", "Take as input a pre-built Themisto index. Builds a new index in the format specified by --coloring-structure-type. This is currently implemented by decompressing the distinct color sets in memory before re-encoding them, so this might take a lot of RAM.")
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -408,31 +408,46 @@ int build_index_main(int argc, char** argv_given){
     C.reverse_complements = opts["reverse-complements"].as<bool>();
     C.file_colors = opts["file-colors"].as<bool>();
     C.sequence_colors = opts["sequence-colors"].as<bool>();
-    C.from_index = opts["from-index"].as<string>();
 
-    C.colorfile_CLI_variable = opts["manual-colors"].as<string>();
+    try{
+        C.colorfile_CLI_variable = opts["manual-colors"].as<string>();
+        C.manual_colors = true;
+    } catch(cxxopts::option_not_present_exception& e){
+        // Manual colorfile not present. That is ok.
+    }
 
-    // Parse sequence input file. If building from existing index, there is no such file.
-    C.seqfile_CLI_variable = (C.from_index != "") ? "" : opts["input-file"].as<string>();
+    try{
+        C.seqfile_CLI_variable = opts["input-file"].as<string>();
+    } catch(cxxopts::option_not_present_exception& e){
+        // Seqfile not present. That is ok only if --from-index is given
+        try{
+            C.from_index = opts["from-index"].as<string>();
+        } catch(cxxopts::option_not_present_exception& e){
+            // --from-index not given. Problem.
+            cerr << "Error: --input-file not given" << endl;
+            return 1;
+        }
+    }
 
-    if(C.colorfile_CLI_variable == "" && !C.file_colors && !C.sequence_colors)
-        C.file_colors = true; // Default behavior if no color options are set
-
-    C.manual_colors = !C.file_colors && !C.sequence_colors;
-
+    // Parse input file (possibly list of files)
     if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
         // List of filenames
         C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable);
-        if(C.manual_colors)
-            C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
+        if(C.manual_colors) C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
     } else{
         // Single file
         C.seqfiles = {C.seqfile_CLI_variable};
-        if(C.manual_colors)
-            C.colorfiles = {C.colorfile_CLI_variable};
+        if(C.manual_colors) C.colorfiles = {C.colorfile_CLI_variable};
     }
 
-    if(C.seqfiles.size() > 0)
+    if(!C.manual_colors && !C.sequence_colors && !C.file_colors){
+        // No coloring mode specified.
+        // Set the default coloring mode depending on the number of input files
+        if(C.seqfiles.size() == 1) C.sequence_colors = true;
+        else C.file_colors = true;
+    }
+
+    if(C.seqfiles.size() > 0) // If not --from-index
         C.input_format = sbwt::SeqIO::figure_out_file_format(C.seqfiles[0]);
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
