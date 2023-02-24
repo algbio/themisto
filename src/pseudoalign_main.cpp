@@ -101,34 +101,50 @@ int pseudoalign_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.\n\nIf the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.\n\n The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.\n\nThe query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq");
 
-    options.add_options()
+    options.add_options("Basic")
         ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value(""))
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
         ("o,out-file", "Output filename. Print results if no output filename is given.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
-        ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
-        ("ignore-unknown-kmers", "Ignore in thresholded pseudoalignment all k-mers that are not found in the de Bruijn graph, or that have no colors. The intersection pseudoalignment always ignores unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
-        ("rc", "Also pseudoalign against the reverse complement of the query. Note: If the reverse complements were added to the index with the option --reverse complements in themisto build, then this option has no effect on the pseudoalignment and the program does unnecessary work. ", cxxopts::value<bool>()->default_value("false"))
-        ("t, n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
         ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
-        ("buffer-size-megas", "Size of the input buffer in megabytes in each thread. If this is larger than the number of nucleotides in the input divided by the number of threads, then some threads will be idle. So if your input files are really small and you have a lot of threads, consider using a small buffer.", cxxopts::value<double>()->default_value("8.0"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+    ;
+
+    options.add_options("Algorithm")
+        ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
+        ("ignore-unknown-kmers", "Ignore in thresholded pseudoalignment all k-mers that are not found in the de Bruijn graph, or that have no colors. The intersection pseudoalignment always ignores unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
+    ;
+
+    options.add_options("Computational resources")
+        ("t, n-threads", "Number of parallel execution threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
+    ;
+
+    options.add_options("Help")
+        ("h,help", "Print usage instructions for commonly used options.")
+        ("help-advanced", "Print advanced usage instructions.")
+    ;
+
+    options.add_options("Advanced")
+        ("rc", "Include reverse complement matches in the pseudoalignment. This option only makes sense if the index was built with --forward-strand-only. Otherwise this option has no effect except to slow down the query.", cxxopts::value<bool>()->default_value("false"))
+        ("buffer-size-megas", "Size of the input buffer in megabytes in each thread. If this is larger than the number of nucleotides in the input divided by the number of threads, then some threads will be idle. So if your input files are really small and you have a lot of threads, consider using a small buffer.", cxxopts::value<double>()->default_value("8.0"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
-        ("h,help", "Print usage")
     ;
 
     int64_t old_argc = argc; // Must store this because the parser modifies it
     auto opts = options.parse(argc, argv);
 
-    if (old_argc == 1 || opts.count("help")){
-        std::cerr << options.help() << std::endl;
-        cerr << "Usage examples:" << endl;
+    if (old_argc == 1 || opts.count("help") || opts.count("help-advanced")){
+        if(old_argc == 1 || opts.count("help"))
+            std::cerr << options.help({"Basic","Algorithm","Computational resources","Help"}) << std::endl;
+        if(opts.count("help-advanced"))
+            std::cerr << options.help({"Basic","Algorithm","Computational resources","Advanced","Help"}) << std::endl;
+        cerr << "Usage example:" << endl;
         cerr << "./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7 --ignore-unknown-kmers" << endl;
         exit(1);
-    }
+    }    
 
     Pseudoalign_Config C;
     if(opts.count("query-file") && opts["query-file"].as<string>() != "") C.query_files.push_back(opts["query-file"].as<string>());
