@@ -59,7 +59,7 @@ void load_sbwt_and_coloring(plain_matrix_sbwt_t& SBWT, Coloring<>& coloring, str
 
 // If no colorfile is given, should assign colors automatically for each sequence
 TEST_F(CLI_TEST, auto_colors){
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
@@ -131,7 +131,7 @@ TEST_F(CLI_TEST, reverse_complement_construction_with_colorfile){
 
 // If --no-colors is given, should not build colors. Also check that giving both --auto-colors and --color-file throws.
 TEST_F(CLI_TEST, no_colors){
-    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
@@ -144,7 +144,7 @@ TEST_F(CLI_TEST, no_colors){
     }
 
     // Test --no-colors and --color-file at the same time
-    vector<string> args_bad = {"build", "--no-colors", "--color-file", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args_bad = {"build", "--no-colors", "--color-file", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     sbwt::Argv argv_bad(args_bad);
     try{
         build_index_main(argv_bad.size, argv_bad.array);
@@ -157,12 +157,12 @@ TEST_F(CLI_TEST, no_colors){
 TEST_F(CLI_TEST, build_colors_separately){
 
     // Build DBG
-    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "--no-colors", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
 
     // Build Colors
-    vector<string> args2 = {"build", "--load-dbg", "-c", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args2 = {"build", "--load-dbg", "-c", colorfile, "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     sbwt::Argv argv2(args2);
     build_index_main(argv2.size, argv2.array);
 
@@ -190,7 +190,7 @@ TEST_F(CLI_TEST, gzip_input_in_building){
         }
     }
 
-    vector<string> args = {"build", "-k", to_string(k), "-i", gzip_outfile, "-o", indexprefix, "--temp-dir", tempdir};
+    vector<string> args = {"build", "-k", to_string(k), "-i", gzip_outfile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
@@ -214,8 +214,8 @@ TEST(PREPROCESSING, upper_case){
     CLI_test_files f1(seqs, {0});
     CLI_test_files f2(seqs2, {0});
 
-    vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexprefix, "--temp-dir", f1.tempdir};
-    vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexprefix, "--temp-dir", f2.tempdir};
+    vector<string> args1 = {"build", "-k", to_string(k), "-i", f1.fastafile, "-c", f1.colorfile, "-o", f1.indexprefix, "--temp-dir", f1.tempdir, "--forward-strand-only"};
+    vector<string> args2 = {"build", "-k", to_string(k), "-i", f2.fastafile, "-c", f2.colorfile, "-o", f2.indexprefix, "--temp-dir", f2.tempdir, "--forward-strand-only"};
 
     build_index_main(sbwt::Argv(args1).size, sbwt::Argv(args1).array);
     build_index_main(sbwt::Argv(args2).size, sbwt::Argv(args2).array);
@@ -256,7 +256,7 @@ TEST(PREPROCESSING, upper_case){
 }
 
 TEST_F(CLI_TEST, test_color_matrix_dump){
-    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--color-file", colorfile};
+    vector<string> args = {"build", "-k", to_string(k), "-i", fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--color-file", colorfile, "--forward-strand-only"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);

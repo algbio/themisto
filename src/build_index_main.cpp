@@ -279,33 +279,36 @@ bool has_suffix_dot_txt(const string& S){
 template<typename color_set_t>
 int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg);
 
-Build_Config parse_build_options(int argc, char** argv_given){
+Build_Config parse_build_options(int argc_given, char** argv_given){
 
     // Legacy support: transform old option names to new ones
-    char** argv = (char**)malloc(sizeof(char*) * argc); // Freed and the and of the function
-    char legacy_support_fix[] = "-k";
-    char legacy_support_fix2[] = "--manual-colors";
-    char legacy_support_fix3[] = "--sequence-colors";
-    char legacy_support_fix4[] = "--mem-gigas";
-    string legacy_support_fix4_gigabytes;
-
+    char** argv = (char**)malloc(sizeof(char*) * argc_given); // Freed and the and of the function
+    static char legacy_support_fix[] = "-k";
+    static char legacy_support_fix2[] = "--manual-colors";
+    static char legacy_support_fix3[] = "--sequence-colors";
+    static char legacy_support_fix4[] = "--mem-gigas";
+    static string legacy_support_fix4_gigabytes;
     argv[0] = argv_given[0];
-    for(int64_t i = 1; i < argc; i++){
-        if(string(argv_given[i]) == "--k") argv[i] = legacy_support_fix;
-        else if(string(argv_given[i]) == "--color-file") argv[i] = legacy_support_fix2;
-        else if(string(argv_given[i]) == "--auto-colors") argv[i] = legacy_support_fix3;
+    int64_t argc = 1;
+    for(int64_t i = 1; i < argc_given; i++){
+        if(string(argv_given[i]) == "--k") argv[argc++] = legacy_support_fix;
+        else if(string(argv_given[i]) == "--color-file") argv[argc++] = legacy_support_fix2;
+        else if(string(argv_given[i]) == "--auto-colors") argv[argc++] = legacy_support_fix3;
         else if(string(argv_given[i]) == "-m" || string(argv_given[i]) == "--mem-megas"){
-            argv[i] = legacy_support_fix4;
-            if(i + 1 >= argc) throw std::runtime_error("Error parsing arguments: memory not given.");
+            argv[argc++] = legacy_support_fix4;
+            if(i + 1 >= argc_given) throw std::runtime_error("Error parsing arguments: memory not given.");
 
             legacy_support_fix4_gigabytes = to_string(stoll(argv_given[i+1]) / 1024); // MB to GB
-            argv[i+1] = legacy_support_fix4_gigabytes.data();
+            argv[argc++] = legacy_support_fix4_gigabytes.data();
             cerr << "Note: Starting from Themisto v3 memory is given in gigabytes, not megabytes. Automatically replaced option "
-            << argv_given[i] << " "  << argv_given[i+1] << " with " << argv[i] << " "  << argv[i+1] << endl;
+            << argv_given[i] << " "  << argv_given[i+1] << " with " << argv[argc-2] << " "  << argv[argc-1] << endl;
 
             i++; // Skip over the integer value at argv[i+1]
-        }
-        else argv[i] = argv_given[i];
+        } else if(string(argv_given[i]) == "-r" || string(argv_given[i]) == "--reverse-complements"){
+            cerr << "Note: Reverse complements are indexed by default starting from Themisto v3, so -r and --reverse-complements are redundant flags." << endl;
+            // Reverse complements are now added by default
+            // Delete the argument = do not copy to new argv.
+        } else argv[argc++] = argv_given[i];
     }
 
     cxxopts::Options options(argv[0], "Build the Themisto index:");
