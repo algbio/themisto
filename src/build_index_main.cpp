@@ -354,7 +354,7 @@ Build_Config parse_build_options(int argc, char** argv_given){
         if(opts.count("help-advanced"))
             std::cerr << options.help({"Basic","Coloring (give only one)","Computational resources","Advanced","Help"}) << std::endl;
         cerr << "Usage example:" << endl;
-        cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors --reverse-complements" << endl;
+        cerr << "./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors" << endl;
         exit(1);
     }    
 
@@ -372,7 +372,7 @@ Build_Config parse_build_options(int argc, char** argv_given){
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
-    C.reverse_complements = !opts["forward_strand_only"].as<bool>();
+    C.reverse_complements = !opts["forward-strand-only"].as<bool>();
     C.file_colors = opts["file-colors"].as<bool>();
     C.sequence_colors = opts["sequence-colors"].as<bool>();
 

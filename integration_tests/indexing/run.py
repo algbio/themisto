@@ -54,7 +54,7 @@ print(open(infile_list).read())
 def build_index(k, d, input, rc, color_input_mode, outfile, color_set_type):
     print("Color set type", color_set_type)
     assert(run("{} build --n-threads 4 -k {} -i {} -o {} --temp-dir {} {} -d {} {} --coloring-structure-type {}".format(
-        themisto_binary, k, input, outfile, temp_dir, "--reverse-complements" if rc else "", d, color_input_mode, color_set_type))
+        themisto_binary, k, input, outfile, temp_dir, "--forward-strand-only" if (not rc) else "", d, color_input_mode, color_set_type))
     == 0)
 
 def dump_color_matrix(indexfile, outfile):
@@ -71,12 +71,12 @@ def test_file_colors_with_load_dbg(input):
     out_prefix = out_dir + "/load_dbg_test"
 
     # Build DBG without colors
-    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --no-colors".format(
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --no-colors".format(
         themisto_binary, input, out_prefix, temp_dir
     )) == 0)
 
     # Build colors with --file-colors
-    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --file-colors --load-dbg".format(
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --file-colors --load-dbg".format(
         themisto_binary, input, out_prefix, temp_dir
     )) == 0)
 
@@ -92,17 +92,17 @@ def test_transform_index(input):
     out3_prefix = out_dir + "/test_transform_index"
 
     # Build sdsl-hybrid index
-    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --coloring-structure-type sdsl-hybrid".format(
         themisto_binary, input, out1_prefix, temp_dir
     )) == 0)
 
     # Transform to Roaring
-    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type roaring".format(
+    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --coloring-structure-type roaring".format(
         themisto_binary, out1_prefix, out2_prefix, temp_dir
     )) == 0)
 
     # Transform back to sdsl-hybrid
-    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
+    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --coloring-structure-type sdsl-hybrid".format(
         themisto_binary, out2_prefix, out3_prefix, temp_dir
     )) == 0)
 
