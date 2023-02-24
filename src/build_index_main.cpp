@@ -475,8 +475,8 @@ int build_index_main(int argc, char** argv){
         }
     }
 
+    // Set up color stream
     std::unique_ptr<Metadata_Stream> color_stream;
-
     if(!C.no_colors){
         if(C.file_colors){
             color_stream = make_unique<Unique_For_Each_File_Color_Stream>(C.seqfiles, C.reverse_complements);
@@ -489,8 +489,8 @@ int build_index_main(int argc, char** argv){
         }
     }
 
+    // Build the DBG
     std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
-
     if(C.load_dbg){
         sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
         dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
@@ -528,6 +528,7 @@ int build_index_main(int argc, char** argv){
         sbwt::write_log("Building de Bruijn Graph finished (" + std::to_string(dbg_ptr->number_of_kmers()) + " k-mers)", sbwt::LogLevel::MAJOR);
     }
 
+    // Build the colors
     if(!C.no_colors){
         sbwt::write_log("Building colors", sbwt::LogLevel::MAJOR);
 
