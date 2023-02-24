@@ -214,7 +214,7 @@ Usage:
       --threshold arg          Fraction of k-mer matches required to report 
                                a color. If this is equal to 1, the 
                                algorithm is implemented with a specialized 
-                               set intersection method. (default: -1.0)
+                               set intersection method. (default: 0.7)
       --include-unknown-kmers  Include all k-mers in the pseudoalignment, 
                                even those which do not occur in the index.
 

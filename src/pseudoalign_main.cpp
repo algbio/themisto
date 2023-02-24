@@ -121,7 +121,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
     ;
 
     options.add_options("Algorithm")
-        ("threshold", "Fraction of k-mer matches required to report a color. If this is equal to 1, the algorithm is implemented with a specialized set intersection method.", cxxopts::value<double>()->default_value("-1.0"))
+        ("threshold", "Fraction of k-mer matches required to report a color. If this is equal to 1, the algorithm is implemented with a specialized set intersection method.", cxxopts::value<double>()->default_value("0.7"))
         ("include-unknown-kmers", "Include all k-mers in the pseudoalignment, even those which do not occur in the index.", cxxopts::value<bool>()->default_value("false"))
     ;
 
