@@ -334,8 +334,8 @@ Build_Config parse_build_options(int argc_given, char** argv_given){
     ;
 
     options.add_options("Help")
-        ("h,help", "Print basic usage options")
-        ("help-advanced", "Print advanced options usage")
+        ("h,help", "Print usage instructions for commonly used options.")
+        ("help-advanced", "Print advanced options usage.")
     ;
 
     options.add_options("Advanced")
