@@ -8,7 +8,7 @@
 
 using namespace std;
 
-static vector<string> commands = {"build", "pseudoalign", "lookup-kmer", "lookup-color", "extract-unitigs", "dump-color-matrix", "stats"};
+static vector<string> commands = {"build", "pseudoalign", "extract-unitigs", "dump-color-matrix", "stats"};
 
 void print_help(int argc, char** argv){
     (void) argc; // Unused parameter
@@ -51,8 +51,6 @@ int main(int argc, char** argv){
         else if(command == "stats") return stats_main(argc, argv);
         else if(command == "dump-color-matrix") return dump_color_matrix_main(argc, argv); // Undocumented developer feature
         else if(command == "color-set-diagnostics") return color_set_diagnostics_main(argc, argv); // Undocumented developer feature
-        else if(command == "lookup-kmer") throw std::runtime_error("Error: not implemented.");
-        else if(command == "lookup-color") throw std::runtime_error("Error: not implemented.");
         else{
             throw std::runtime_error("Invalid command: " + command);
             return 1;
