@@ -314,14 +314,8 @@ Build_Config parse_build_options(int argc, char** argv_given){
         ("k,node-length", "The k of the k-mers.", cxxopts::value<int64_t>()->default_value("0"))
         ("i,input-file", "The input sequences in FASTA or FASTQ format. The format is inferred from the file extension. If the extension is .txt, the file is interpreted as a list of filenames, one per line", cxxopts::value<string>())
         ("o,index-prefix", "The de Bruijn graph will be written to [prefix].tdbg and the color structure to [prefix].tcolors.", cxxopts::value<string>())
-        ("r,reverse-complements", "Also add reverse complements of the k-mers to the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files. This directory should have fast I/O operations and should have as much space as possible.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
-    ;
-
-    options.add_options("Computational resources")
-        ("mem-gigas", "Number of gigabytes allowed for external memory algorithms (must be at least 2).", cxxopts::value<int64_t>()->default_value("2"))
-        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
     ;
 
     options.add_options("Coloring (give only one)")
@@ -331,12 +325,18 @@ Build_Config parse_build_options(int argc, char** argv_given){
         ("no-colors", "Build only the de Bruijn graph without colors. Can be loaded later with --load-dbg (see --help-advanced)", cxxopts::value<bool>()->default_value("false"))
     ;
 
+    options.add_options("Computational resources")
+        ("mem-gigas", "Number of gigabytes allowed for external memory algorithms (must be at least 2).", cxxopts::value<int64_t>()->default_value("2"))
+        ("t,n-threads", "Number of parallel exectuion threads. Default: 1", cxxopts::value<int64_t>()->default_value("1"))
+    ;
+
     options.add_options("Help")
         ("h,help", "Print basic usage options")
         ("help-advanced", "Print advanced options usage")
     ;
 
     options.add_options("Advanced")
+        ("forward-strand-only", "Do not add reverse complements of sequences to the index", cxxopts::value<bool>()->default_value("false"))
         ("load-dbg", "If given, loads a precomputed de Bruijn graph from the index prefix. If this is given, the value of parameter -k is ignored because the order k is defined by the precomputed de Bruijn graph.", cxxopts::value<bool>()->default_value("false"))
         ("randomize-non-ACGT", "Replace non-ACGT letters with random nucleotides. If this option is not given, k-mers containing a non-ACGT character are deleted instead.", cxxopts::value<bool>()->default_value("false"))
         ("d,colorset-pointer-tradeoff", "This option controls a time-space tradeoff for storing and querying color sets. If given a value d, we store color set pointers only for every d nodes on every unitig. The higher the value of d, the smaller then index, but the slower the queries. The savings might be significant if the number of distinct color sets is small and the graph is large and has long unitigs.", cxxopts::value<int64_t>()->default_value("1"))
@@ -372,7 +372,7 @@ Build_Config parse_build_options(int argc, char** argv_given){
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.coloring_structure_type = opts["coloring-structure-type"].as<string>();
-    C.reverse_complements = opts["reverse-complements"].as<bool>();
+    C.reverse_complements = !opts["forward_strand_only"].as<bool>();
     C.file_colors = opts["file-colors"].as<bool>();
     C.sequence_colors = opts["sequence-colors"].as<bool>();
 
