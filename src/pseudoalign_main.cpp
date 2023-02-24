@@ -91,15 +91,22 @@ void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pse
     }
 }
 
-int pseudoalign_main(int argc, char** argv){
+int pseudoalign_main(int argc_given, char** argv_given){
 
-    // Legacy support: transform old option format --outfile --out-file
-    string legacy_support_fix = "--out-file";
-    for(int64_t i = 1; i < argc; i++){
-        if(string(argv[i]) == "--outfile") argv[i] = &(legacy_support_fix[0]);
+    // Legacy support: transform old options
+    char** argv = (char**)malloc(sizeof(char*) * argc_given); // Freed and the and of the function
+    argv[0] = argv_given[0];
+    int64_t argc = 1;
+    static char legacy_support_fix[] = "--out-file";
+    static char legacy_support_fix2[] = "--ignore-unknown-kmers"; // This is now the default
+    for(int64_t i = 1; i < argc_given; i++){
+        if(string(argv_given[i]) == "--outfile") argv[argc++] = legacy_support_fix;
+        else if(string(argv_given[i]) == "--ignore-unknown-kmers"){
+            // This is now the default. Remove (ignore) the flag.
+        } else argv[argc++] = argv_given[i];
     }
 
-    cxxopts::Options options(argv[0], "This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.\n\nIf the coloring data structure was built with the --color-file option, then the integer identifiers of the colors can be mapped back to the provided color names by parsing the file coloring-mapping-id_to_name in the index directory. This file contains as many lines as there are distinct colors, and each line contains two space-separated strings: the first is the integer identifier of a color, and the second is the corresponding color name. In case the --auto-colors option was used, the integer identifiers are always numbers [0..n-1], where n is the total number of reference sequences, and the identifiers are assigned in the same order as the reference sequences were given to build_index.\n\n The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.\n\nThe query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq");
+    cxxopts::Options options(argv[0], "This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output, but this will slow down the program.\n\n The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.\n\nThe query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq. Gzipped sequence files with the extension .gz are also supported.");
 
     options.add_options("Basic")
         ("q, query-file", "Input file of the query sequences", cxxopts::value<string>()->default_value(""))
@@ -142,7 +149,7 @@ int pseudoalign_main(int argc, char** argv){
         if(opts.count("help-advanced"))
             std::cerr << options.help({"Basic","Algorithm","Computational resources","Advanced","Help"}) << std::endl;
         cerr << "Usage example:" << endl;
-        cerr << "./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7 --ignore-unknown-kmers" << endl;
+        cerr << "./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7" << endl;
         exit(1);
     }    
 
@@ -213,5 +220,6 @@ int pseudoalign_main(int argc, char** argv){
 
     write_log("Finished", LogLevel::MAJOR);
 
+    free(argv);
     return 0;
 }

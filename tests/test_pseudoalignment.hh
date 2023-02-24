@@ -326,7 +326,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     SBWT.load(indexprefix + ".tdbg");
     coloring.load(indexprefix + ".tcolors", SBWT);
 
-    vector<string> args2 = {"pseudoalign", "-q", query_fastafile, "-i", indexprefix, "-o", resultfile, "--temp-dir", tempdir, "--rc", "--threshold", to_string(threshold), "--sort-output"};
+    vector<string> args2 = {"pseudoalign", "-q", query_fastafile, "-i", indexprefix, "-o", resultfile, "--temp-dir", tempdir, "--rc", "--threshold", to_string(threshold), "--sort-output", "--include-unknown-kmers"};
     sbwt::Argv argv2(args2);
     pseudoalign_main(argv2.size, argv2.array);
 
