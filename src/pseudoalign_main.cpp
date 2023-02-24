@@ -149,7 +149,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
         if(opts.count("help-advanced"))
             std::cerr << options.help({"Basic","Algorithm","Computational resources","Advanced","Help"}) << std::endl;
         cerr << "Usage example:" << endl;
-        cerr << "./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7" << endl;
+        cerr << argv[0] << " pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7" << endl;
         exit(1);
     }    
 

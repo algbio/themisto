@@ -75,7 +75,7 @@ This builds an index with k = 31, such that the index files are written to `my_i
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to `out.txt` run:
 
 ```
-./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7 --ignore-unknown-kmers
+./build/bin/themisto pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7
 ```
 
 This reports all colors such that at least a fraction 0.7 of the k-mers of the query are in the reference genome of the color, ignoring k-mers that are not found in any reference.
@@ -182,61 +182,69 @@ Usage example:
 
 ## Full instructions for `pseudoalign`
 
-This command aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output.
+This program aligns query sequences against an index that has been built previously. The output is one line per input read. Each line consists of a space-separated list of integers. The first integer specifies the rank of the read in the input file, and the rest of the integers are the identifiers of the colors of the sequences that the read pseudoaligns with. If the program is ran with more than one thread, the output lines are not necessarily in the same order as the reads in the input file. This can be fixed with the option --sort-output, but this will slow down the program.
 
-The query can be given as one file, or as a file with a list of files. In the former case, one output file can be specified with the option --out-file. If --out-file is not given, the results will be print to cout. In the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
+The query can be given as one file, or as a file with a list of files. In the former case, we must specify one output file with the options --out-file, and in the latter case, we must give a file that lists one output filename per line using the option --out-file-list.
 
-The query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq
+The query file(s) should be in fasta of fastq format. The format is inferred from the file extension. Recognized file extensions for fasta are: .fasta, .fna, .ffn, .faa and .frn . Recognized extensions for fastq are: .fastq and .fq. Gzipped sequence files with the extension .gz are also supported.
 
 ```
+
 Usage:
   pseudoalign [OPTION...]
 
-  -q, --query-file arg         Input file of the query sequences (default:
-			       "")
-      --query-file-list arg    A list of query filenames, one line per
-			       filename (default: "")
-  -o, --out-file arg           Output filename. Print results if no output
-			       filename is given. (default: "")
-      --out-file-list arg      A file containing a list of output
-			       filenames, one per line. (default: "")
-  -i, --index-prefix arg       The index prefix that was given to the build
-			       command.
-      --temp-dir arg           Directory for temporary files.
-      --threshold arg          Run a thresholded pseudoalignment, i.e.
-			       report all colors that match to at least the
-			       given fraction k-mers in the query. If not
-			       given, runs intersection pseudoalignment.
-			       (default: -1.0)
-      --ignore-unknown-kmers   Ignore in thresholded pseudoalignment all
-			       k-mers that are not found in the de Bruijn
-			       graph, or that have no colors. The
-			       intersection pseudoalignment always ignores
-			       unknown k-mers.
-      --rc                     Also pseudoalign against the reverse
-			       complement of the query. Note: If the
-			       reverse complements were added to the index
-			       with the option --reverse complements in
-			       themisto build, then this option has no
-			       effect on the pseudoalignment and the
-			       program does unnecessary work.
-  -t, --n-threads arg          Number of parallel exectuion threads.
-			       Default: 1 (default: 1)
-      --gzip-output            Compress the output files with gzip.
-      --sort-output            Sort the lines of the out files by sequence
-			       rank in the input files.
-      --buffer-size-megas arg  Size of the input buffer in megabytes in
-			       each thread. If this is larger than the
-			       number of nucleotides in the input divided
-			       by the number of threads, then some threads
-			       will be idle. So if your input files are
-			       really small and you have a lot of threads,
-			       consider using a small buffer. (default:
-			       8.0)
-  -v, --verbose                More verbose progress reporting into stderr.
-      --silent                 Print as little as possible to stderr (only
-			       errors).
-  -h, --help                   Print usage
+ Basic options:
+  -q, --query-file arg       Input file of the query sequences (default: 
+                             "")
+      --query-file-list arg  A list of query filenames, one line per 
+                             filename (default: "")
+  -o, --out-file arg         Output filename. Print results if no output 
+                             filename is given. (default: "")
+      --out-file-list arg    A file containing a list of output filenames, 
+                             one per line. (default: "")
+  -i, --index-prefix arg     The index prefix that was given to the build 
+                             command.
+      --temp-dir arg         Directory for temporary files.
+      --gzip-output          Compress the output files with gzip.
+      --sort-output          Sort the lines of the out files by sequence 
+                             rank in the input files.
+  -v, --verbose              More verbose progress reporting into stderr.
+
+ Algorithm options:
+      --threshold arg          Fraction of k-mer matches required to report 
+                               a color. If this is equal to 1, the 
+                               algorithm is implemented with a specialized 
+                               set intersection method. (default: -1.0)
+      --include-unknown-kmers  Include all k-mers in the pseudoalignment, 
+                               even those which do not occur in the index.
+
+ Computational resources options:
+  -t, --n-threads arg  Number of parallel execution threads. Default: 1 
+                       (default: 1)
+
+ Advanced options:
+      --rc                     Include reverse complement matches in the 
+                               pseudoalignment. This option only makes 
+                               sense if the index was built with 
+                               --forward-strand-only. Otherwise this option 
+                               has no effect except to slow down the query.
+      --buffer-size-megas arg  Size of the input buffer in megabytes in 
+                               each thread. If this is larger than the 
+                               number of nucleotides in the input divided 
+                               by the number of threads, then some threads 
+                               will be idle. So if your input files are 
+                               really small and you have a lot of threads, 
+                               consider using a small buffer. (default: 
+                               8.0)
+      --silent                 Print as little as possible to stderr (only 
+                               errors).
+
+ Help options:
+  -h, --help           Print usage instructions for commonly used options.
+      --help-advanced  Print advanced usage instructions.
+
+Usage example:
+pseudoalign pseudoalign --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --out-file out.txt --n-threads 4 --threshold 0.7
 
 ```
 
@@ -255,11 +263,6 @@ Pseudoalign example_input/queries.fna against an index and write results to out.
 Pseudoalign a list of fasta files in input_list.txt into output filenames in output_list.txt:
 ```
 ./build/bin/themisto pseudoalign --query-file-list input_list.txt --index-prefix my_index --temp-dir temp --out-file-list output_list.txt
-```
-
-Pseudoalign example_input/queries.fna against an index using also reverse complements:
-```
-./build/bin/themisto pseudoalign --rc --query-file example_input/queries.fna --index-prefix my_index --temp-dir temp --outfile out.txt
 ```
 
 ## Extracting unitigs with `extract-unitigs`
