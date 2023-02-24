@@ -199,7 +199,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         delete queries_out_gzip; // Flushes the stream
 
         stringstream build_argstring;
-        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " --forward-strand-only";;
+        build_argstring << "build -k "  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " --forward-strand-only";;
         Argv build_argv(split(build_argstring.str()));
 
         ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
@@ -207,7 +207,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run without rc
         string final_file = sbwt::get_temp_file_manager().create_filename("finalfile-");
         stringstream pseudoalign_argstring;
-        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " buffer-size-megas 0.00001"; // Really small buffer to expose race conditions
+        pseudoalign_argstring << "pseudoalign -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file << " --n-threads " << 3 << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " buffer-size-megas 0.00001 --threshold 1"; // Really small buffer to expose race conditions
         Argv pseudoalign_argv(split(pseudoalign_argstring.str()));
 
         ASSERT_EQ(pseudoalign_main(pseudoalign_argv.size, pseudoalign_argv.array),0);
@@ -217,7 +217,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run with rc
         string final_file_rc = get_temp_file_manager().create_filename("finalfile_rc-");
         stringstream pseudoalign_rc_argstring;
-        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001 --sort-output"; // Really small buffer to expose race conditions
+        pseudoalign_rc_argstring << "pseudoalign --rc -q " << queries_outfilename << " -i " << index_prefix << " -o " << final_file_rc << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir()  << " buffer-size-megas 0.00001 --sort-output --threshold 1"; // Really small buffer to expose race conditions
         Argv pseudoalign_rc_argv(split(pseudoalign_rc_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_rc_argv.size, pseudoalign_rc_argv.array),0);
 
@@ -235,7 +235,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         // Run with gzipped input
         string final_file_gzip = get_temp_file_manager().create_filename("finalfile_gzip-");
         stringstream pseudoalign_gzip_argstring;
-        pseudoalign_gzip_argstring << "pseudoalign -q " << queries_gzip_outfilename << " -i " << index_prefix << " -o " << final_file_gzip << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir() << " --sort-output";
+        pseudoalign_gzip_argstring << "pseudoalign -q " << queries_gzip_outfilename << " -i " << index_prefix << " -o " << final_file_gzip << " --n-threads " << 3 << " --temp-dir " << get_temp_file_manager().get_dir() << " --sort-output --threshold 1";
         Argv pseudoalign_gzip_argv(split(pseudoalign_gzip_argstring.str()));
         ASSERT_EQ(pseudoalign_main(pseudoalign_gzip_argv.size, pseudoalign_gzip_argv.array),0);
 
