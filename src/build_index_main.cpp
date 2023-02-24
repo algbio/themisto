@@ -272,11 +272,9 @@ void build_coloring(plain_matrix_sbwt_t& dbg, Metadata_Stream* cfs, const Build_
 
 // Builds from existing index and serializes to disk
 template<typename old_coloring_t, typename new_coloring_t> 
-void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_coloring, const Build_Config& C){
+void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_coloring, const string& to_index_dbg, const string& to_index_colors){
 
     // TODO: This makes a ton of unnecessary copies of things and has high peak RAM
-
-    write_log("Building new structure of type " + C.coloring_structure_type, LogLevel::MAJOR);
 
     vector<typename new_coloring_t::colorset_type> new_colorsets;
 
@@ -297,14 +295,50 @@ void build_from_index(plain_matrix_sbwt_t& dbg, const old_coloring_t& old_colori
                                 old_coloring.get_node_id_to_colorset_id_structure(),
                                 dbg, largest_color, total_length);
 
-    write_log("Serializing to " + C.index_dbg_file + " and " + C.index_color_file, LogLevel::MAJOR);
+    write_log("Serializing to " + to_index_dbg + " and " + to_index_colors, LogLevel::MAJOR);
 
-    throwing_ofstream colors_out(C.index_color_file);
+    throwing_ofstream colors_out(to_index_colors);
     new_coloring.serialize(colors_out.stream);
     
-    throwing_ofstream dbg_out(C.index_dbg_file);
+    throwing_ofstream dbg_out(to_index_dbg);
     dbg.serialize(dbg_out.stream);
 }
+
+void transform_existing_index(const string& from_index_dbg, const string& from_index_coloring, const string& to_index_dbg, const string& to_index_coloring, const string& new_index_color_set_type){
+
+    write_log("Building new structure of type " + new_index_color_set_type, LogLevel::MAJOR);
+
+    // Transform existing index to new format
+
+    sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
+    std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
+    dbg_ptr->load(from_index_dbg);
+
+    sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
+    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> old_coloring;
+    load_coloring(from_index_coloring, *dbg_ptr, old_coloring);
+
+    if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(old_coloring))
+        write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
+    if(std::holds_alternative<Coloring<Roaring_Color_Set>>(old_coloring))
+        write_log("roaring coloring structure loaded", LogLevel::MAJOR);
+
+    auto visitor = [&](auto& old){
+        if(new_index_color_set_type == "sdsl-hybrid"){
+            build_from_index<decltype(old), Coloring<SDSL_Variant_Color_Set>>(*dbg_ptr, old, to_index_dbg, to_index_coloring);
+        } else if(new_index_color_set_type == "roaring"){
+            build_from_index<decltype(old), Coloring<Roaring_Color_Set>>(*dbg_ptr, old,  to_index_dbg, to_index_coloring);
+        } else{
+            throw std::runtime_error("Unkown coloring structure type: " + new_index_color_set_type);
+        }
+    };
+
+    std::visit(visitor, old_coloring);
+
+    return;
+
+}
+
 
 bool has_suffix_dot_txt(const string& S){
     return S.size() >= 4 && S.substr(S.size()-4) == ".txt";
@@ -430,15 +464,17 @@ Build_Config parse_build_options(int argc, char** argv_given){
         }
     }
 
-    // Parse input file (possibly list of files)
-    if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
-        // List of filenames
-        C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable);
-        if(C.manual_colors) C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
-    } else{
-        // Single file
-        C.seqfiles = {C.seqfile_CLI_variable};
-        if(C.manual_colors) C.colorfiles = {C.colorfile_CLI_variable};
+    if(C.seqfile_CLI_variable != ""){ // If is empty, then we have --from-index
+        // Parse input file (possibly list of files)
+        if(has_suffix_dot_txt(C.seqfile_CLI_variable)){
+            // List of filenames
+            C.seqfiles = sbwt::readlines(C.seqfile_CLI_variable);
+            if(C.manual_colors) C.colorfiles = sbwt::readlines(C.colorfile_CLI_variable);
+        } else{
+            // Single file
+            C.seqfiles = {C.seqfile_CLI_variable};
+            if(C.manual_colors) C.colorfiles = {C.colorfile_CLI_variable};
+        }
     }
 
     if(!C.manual_colors && !C.sequence_colors && !C.file_colors){
@@ -472,6 +508,11 @@ int build_index_main(int argc, char** argv){
 
     write_log("Starting", sbwt::LogLevel::MAJOR);
 
+    if(C.from_index != ""){
+        transform_existing_index(C.from_index + ".tdbg", C.from_index + ".tcolors", C.index_dbg_file, C.index_color_file, C.coloring_structure_type);
+        return 0;
+    }
+
     if(C.file_colors){
         // Delegate to GGCAT.
         if(!C.del_non_ACGT){
@@ -489,38 +530,6 @@ int build_index_main(int argc, char** argv){
             build_index_with_ggcat<Roaring_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped, C.load_dbg); 
         }
         return 0;
-    }
-
-    if(C.from_index != ""){
-        // Transform existing index to new format
-
-        sbwt::write_log("Loading de Bruijn Graph", sbwt::LogLevel::MAJOR);
-        std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr = std::make_unique<sbwt::plain_matrix_sbwt_t>();
-        dbg_ptr->load(C.from_index + ".tdbg");
-
-        sbwt::write_log("Loading coloring", sbwt::LogLevel::MAJOR);
-        std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> old_coloring;
-        load_coloring(C.from_index + ".tcolors", *dbg_ptr, old_coloring);
-
-        if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(old_coloring))
-            write_log("sdsl coloring structure loaded", LogLevel::MAJOR);
-        if(std::holds_alternative<Coloring<Roaring_Color_Set>>(old_coloring))
-            write_log("roaring coloring structure loaded", LogLevel::MAJOR);
-
-        auto visitor = [&](auto& old){
-            if(C.coloring_structure_type == "sdsl-hybrid"){
-                build_from_index<decltype(old), Coloring<SDSL_Variant_Color_Set>>(*dbg_ptr, old, C);
-            } else if(C.coloring_structure_type == "roaring"){
-                build_from_index<decltype(old), Coloring<Roaring_Color_Set>>(*dbg_ptr, old, C);
-            } else{
-                throw std::runtime_error("Unkown coloring structure type: " + C.coloring_structure_type);
-            }
-        };
-
-        std::visit(visitor, old_coloring);
-
-        return 0;
-
     }
 
     // Deal with non-ACGT characters
