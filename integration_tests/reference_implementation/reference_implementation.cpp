@@ -48,7 +48,7 @@ int query_main(int argc, char** argv){
         ("i", "A text file with list of input files, one per line (.fna.gz files).", cxxopts::value<string>())
         ("q", "A file with the query sequences (.fna.gz).", cxxopts::value<string>())
         ("threshold", "The pseudoalignment threshold.", cxxopts::value<double>())
-        ("ignore-unknown-kmers", "Whether to ignore unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
+        ("include-unknown-kmers", "Whether to include unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
         ("rc", "Whether to also check against reverse complements.", cxxopts::value<bool>()->default_value("false"))
         ("o", "The output filename.", cxxopts::value<string>())
     ;
@@ -64,7 +64,7 @@ int query_main(int argc, char** argv){
     string query_file = opts["q"].as<string>();
     string out_file = opts["o"].as<string>();
     double threshold = opts["threshold"].as<double>();
-    double ignore_unknown = opts["ignore-unknown-kmers"].as<bool>();
+    double ignore_unknown =! opts["include-unknown-kmers"].as<bool>();
     bool revcomps = opts["rc"].as<bool>();
     
     vector<string> seqs = read_sequences(readlines(in_file_list));

@@ -40,15 +40,14 @@ ref_binary = "../reference_implementation/themisto_reference_implementation"
 k = 30
 temp_dir = "./temp"
 index_prefix = temp_dir + "/index"
-query_file = "../temp/all.fasta.gz"
+query_file = "generated_queries.fasta.gz"
 out_dir = "./out"
 
 run("mkdir -p {}".format(out_dir))
 run("mkdir -p {}".format(temp_dir))
 
-assert(run("python3 gen_queries.py") == 0)
-assert(run("echo generated_queries.fasta.gz > file_list.txt") == 0)
-
+assert(run("python3 gen_queries.py " + query_file) == 0)
+assert(run("echo -n > file_list.txt") == 0) # Clear file
 assert(run("find ../ref_sequences -type f | grep fasta.gz >> file_list.txt") == 0)
 
 # Build index
@@ -68,7 +67,7 @@ with open('parameters.csv') as csvfile:
         # Query Themisto
         assert(run("{} pseudoalign -q {} -i {} -o {} --temp-dir {} --threshold {} {} {}".format(
             themisto_binary, query_file, index_prefix, themisto_outfile, temp_dir, threshold,
-            "--ignore-unknown-kmers" if ignore == "yes" else "", 
+            "--include-unknown-kmers" if ignore == "no" else "", 
             "--rc" if revcomp == "yes" else ""))
         == 0)
 
@@ -76,7 +75,7 @@ with open('parameters.csv') as csvfile:
         assert(run("{} query -k {} -i {} -q {} -o {} --threshold {} {} {}".format(
             ref_binary, k, "file_list.txt", query_file, ref_outfile,
             threshold,
-            "--ignore-unknown-kmers" if ignore == "yes" else "", 
+            "--include-unknown-kmers" if ignore == "no" else "", 
             "--rc" if revcomp == "yes" else ""))
         == 0)
 

@@ -114,8 +114,8 @@ int pseudoalign_main(int argc, char** argv){
     ;
 
     options.add_options("Algorithm")
-        ("threshold", "Run a thresholded pseudoalignment, i.e. report all colors that match to at least the given fraction k-mers in the query. If not given, runs intersection pseudoalignment.", cxxopts::value<double>()->default_value("-1.0"))
-        ("ignore-unknown-kmers", "Ignore in thresholded pseudoalignment all k-mers that are not found in the de Bruijn graph, or that have no colors. The intersection pseudoalignment always ignores unknown k-mers.", cxxopts::value<bool>()->default_value("false"))
+        ("threshold", "Fraction of k-mer matches required to report a color. If this is equal to 1, the algorithm is implemented with a specialized set intersection method.", cxxopts::value<double>()->default_value("-1.0"))
+        ("include-unknown-kmers", "Include all k-mers in the pseudoalignment, even those which do not occur in the index.", cxxopts::value<bool>()->default_value("false"))
     ;
 
     options.add_options("Computational resources")
@@ -166,7 +166,7 @@ int pseudoalign_main(int argc, char** argv){
     C.silent = opts["silent"].as<bool>();
     C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
     C.threshold = opts["threshold"].as<double>();
-    C.ignore_unknown = opts["ignore-unknown-kmers"].as<bool>();
+    C.ignore_unknown = !opts["include-unknown-kmers"].as<bool>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);

@@ -1,15 +1,17 @@
 import gzip
 import random
+import sys
 
 rhinovirus_C = open("rhinovirus_C.txt").read().strip()
 # ^ This is the first virus genome from ../ref_sequences/rhinovirus_c.fasta.gz
 
+filename = sys.argv[1]
 sample = list(rhinovirus_C[1000:3000]) # Slice of 2000bp from the middle
 
 # Let's add mutations one by one
 ACGT = "ACGT"
 
-out = gzip.open("generated_queries.fasta.gz", 'wb')
+out = gzip.open(filename, 'wb')
 for i in range(0,100):
 
 	# Add a mutation
