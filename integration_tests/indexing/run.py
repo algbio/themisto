@@ -86,8 +86,36 @@ def test_file_colors_with_load_dbg(input):
     check_outputs(out_dir + "/load_dbg_test.colordump", out_dir + "/load_dbg_test.colordump.ref")
     
 
-test_file_colors_with_load_dbg(infile_list)
+def test_transform_index(input):
+    out1_prefix = out_dir + "/test_transform_index"
+    out2_prefix = out_dir + "/test_transform_index"
+    out3_prefix = out_dir + "/test_transform_index"
 
+    # Build sdsl-hybrid index
+    assert(run("{} build --n-threads 4 -k 31 -i {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
+        themisto_binary, input, out1_prefix, temp_dir
+    )) == 0)
+
+    # Transform to Roaring
+    assert(run("{} build --n-threads 4 -k 31 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type roaring".format(
+        themisto_binary, out1_prefix, out2_prefix, temp_dir
+    )) == 0)
+
+    # Transform back to sdsl-hybrid
+    assert(run("{} build --n-threads 4 -k 31 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
+        themisto_binary, out2_prefix, out3_prefix, temp_dir
+    )) == 0)
+
+    # Check that the color matrix dump matches with the dump from the original
+    dump_color_matrix(out1_prefix, out1_prefix + ".colordump") 
+    dump_color_matrix(out3_prefix, out3_prefix + ".colordump")
+    check_outputs(out1_prefix + ".colordump", out3_prefix + ".colordump")
+
+test_transform_index(infile_list)
+test_file_colors_with_load_dbg(infile_list) # Tests --no-colors and --load-dbg
+
+
+# Testing different coloring options, different k, diffenent d, rc or no-rc.
 runs = [
     [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
     [100, 8, concat_all_file, False,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"], # Large k
