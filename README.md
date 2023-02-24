@@ -1,6 +1,6 @@
 # NEWS
 
- A new release Themisto 3.0 is almost ready. The readme is outdated, working on it. For Themisto v2.1, go to commit [27bcca8](https://github.com/algbio/themisto/tree/27bcca83d25991f52211253a7c9a0a08436b5f65).
+A new release Themisto 3.0 is almost ready! For stable Themisto v2.1, go to commit [27bcca8](https://github.com/algbio/themisto/tree/27bcca83d25991f52211253a7c9a0a08436b5f65).
 
 # About Themisto
 Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true). The pseudoalignment algorithm is modeled after the tool Kallisto.
@@ -67,10 +67,10 @@ ulimit -n 2048
 To build the Themisto index for a set of genomes, you need to pass in a text file that contains the paths to the FASTA files of the genomes, one file per line. Each FASTA file is given a different color 0,1,2,3... in the same order as they appear in the list. There are three example genomes of E. coli in `example_input` and a file at `example_input/coli_file_list.txt` listing the file names. To build the index for this data, run the following command:
 
 ```
-./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements
+./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors
 ```
 
-This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. The flag `--reverse-complements` adds the reverse complements of all k-mers to the index. We recommend to use a fast SSD drive for the temporary directory.
+This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. We recommend to use a fast SSD drive for the temporary directory.
 
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to `out.txt` run:
 
@@ -94,82 +94,90 @@ There is one line for each query sequence. The lines may appear in a different o
 ## Full instructions for index construction
 
 ```
+Build the Themisto index:
 Usage:
   build [OPTION...]
 
-  -k, --node-length arg         The k of the k-mers. (default: 0)
-  -i, --input-file arg          The input sequences in FASTA or FASTQ
-				format. The format is inferred from the
-				file extension. Recognized file extensions
-				for fasta are: .fasta, .fna, .ffn, .faa and
-				.frn . Recognized extensions for fastq are:
-				.fastq and .fq. (default: "")
-  -c, --manual-colors arg       A file containing one integer color per
-				sequence, one color per line. If there are
-				multiple sequence files, then this file
-				should be a text file containing the
-				corresponding color filename for each
-				sequence file, one filename per line.
-				(default: "")
-  -f, --file-colors             Creates a distinct color 0,1,2,... for each
-				file in the input file list, in the order
-				the files appear in the list
-  -e, --sequence-colors         Creates a distinct color 0,1,2,... for each
-				sequence in the input, in the order the
-				sequences are processed. This is the
-				default behavior if no other color options
-				are given.
-      --no-colors               Build only the de Bruijn graph without
-				colors.
-  -o, --index-prefix arg        The de Bruijn graph will be written to
-				[prefix].tdbg and the color structure to
-				[prefix].tcolors.
-  -r, --reverse-complements     Also add reverse complements of the k-mers
-				to the index.
-      --temp-dir arg            Directory for temporary files. This
-				directory should have fast I/O operations
-				and should have as much space as possible.
-  -m, --mem-megas arg           Number of megabytes allowed for external
-				memory algorithms (must be at least 2048).
-				(default: 2048)
-  -t, --n-threads arg           Number of parallel exectuion threads.
-				Default: 1 (default: 1)
-      --randomize-non-ACGT      Replace non-ACGT letters with random
-				nucleotides. If this option is not given,
-				k-mers containing a non-ACGT character are
-				deleted instead.
+ Basic options:
+  -k, --node-length arg   The k of the k-mers. (default: 0)
+  -i, --input-file arg    The input sequences in FASTA or FASTQ format. The 
+                          format is inferred from the file extension. If 
+                          the extension is .txt, the file is interpreted as 
+                          a list of filenames, one per line
+  -o, --index-prefix arg  The de Bruijn graph will be written to 
+                          [prefix].tdbg and the color structure to 
+                          [prefix].tcolors.
+      --temp-dir arg      Directory for temporary files. This directory 
+                          should have fast I/O operations and should have 
+                          as much space as possible.
+  -v, --verbose           More verbose progress reporting into stderr.
+
+ Coloring (give only one) options:
+  -f, --file-colors        Default if the input has multiple sequence 
+                           files. Creates a distinct color 0,1,2,... for 
+                           each file in the input file list, in the order 
+                           the files appear in the list
+  -e, --sequence-colors    Default if the input has just a single sequence 
+                           file. Creates a distinct color 0,1,2,... for 
+                           each sequence in the input.
+  -c, --manual-colors arg  A file containing one integer color per 
+                           sequence, one color per line. Colors may be 
+                           repeated. If there are multiple sequence files, 
+                           then this file should be a text file containing 
+                           the corresponding color filename for each 
+                           sequence file, one filename per line.
+      --no-colors          Build only the de Bruijn graph without colors. 
+                           Can be loaded later with --load-dbg (see 
+                           --help-advanced)
+
+ Computational resources options:
+      --mem-gigas arg  Number of gigabytes allowed for external memory 
+                       algorithms (must be at least 2). (default: 2)
+  -t, --n-threads arg  Number of parallel exectuion threads. Default: 1 
+                       (default: 1)
+
+ Advanced options:
+      --forward-strand-only     Do not add reverse complements of sequences 
+                                to the index
+      --load-dbg                If given, loads a precomputed de Bruijn 
+                                graph from the index prefix. If this is 
+                                given, the value of parameter -k is ignored 
+                                because the order k is defined by the 
+                                precomputed de Bruijn graph.
+      --randomize-non-ACGT      Replace non-ACGT letters with random 
+                                nucleotides. If this option is not given, 
+                                k-mers containing a non-ACGT character are 
+                                deleted instead.
   -d, --colorset-pointer-tradeoff arg
-				This option controls a time-space tradeoff
-				for storing and querying color sets. If
-				given a value d, we store color set
-				pointers only for every d nodes on every
-				unitig. The higher the value of d, the
-				smaller then index, but the slower the
-				queries. The savings might be significant
-				if the number of distinct color sets is
-				small and the graph is large and has long
-				unitigs. (default: 1)
-      --load-dbg                If given, loads a precomputed de Bruijn
-				graph from the index prefix. If this is
-				given, the value of parameter -k is ignored
-				because the order k is defined by the
-				precomputed de Bruijn graph.
+                                This option controls a time-space tradeoff 
+                                for storing and querying color sets. If 
+                                given a value d, we store color set 
+                                pointers only for every d nodes on every 
+                                unitig. The higher the value of d, the 
+                                smaller then index, but the slower the 
+                                queries. The savings might be significant 
+                                if the number of distinct color sets is 
+                                small and the graph is large and has long 
+                                unitigs. (default: 1)
   -s, --coloring-structure-type arg
-				Type of coloring structure to build
-				("sdsl-hybrid", "roaring"). (default:
-				sdsl-hybrid)
-      --from-index arg          Take as input a pre-built Themisto index.
-				Builds a new index in the format specified
-				by --coloring-structure-type. This is
-				currenlty implemented by decompressing the
-				distinct color sets in memory before
-				re-encoding them, so this might take a lot
-				of RAM. (default: "")
-  -v, --verbose                 More verbose progress reporting into
-				stderr.
-      --silent                  Print as little as possible to stderr (only
-				errors).
-  -h, --help                    Print usage
+                                Type of coloring structure to build 
+                                ("sdsl-hybrid", "roaring"). (default: 
+                                sdsl-hybrid)
+      --from-index arg          Take as input a pre-built Themisto index. 
+                                Builds a new index in the format specified 
+                                by --coloring-structure-type. This is 
+                                currently implemented by decompressing the 
+                                distinct color sets in memory before 
+                                re-encoding them, so this might take a lot 
+                                of RAM.
+      --silent                  Print as little as possible to stderr (only 
+                                errors).
+ Help options:
+  -h, --help           Print usage instructions for commonly used options.
+      --help-advanced  Print advanced options usage.
+
+Usage example:
+./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-gigas 2 --n-threads 4 --file-colors
 ```
 
 ## Full instructions for `pseudoalign`
