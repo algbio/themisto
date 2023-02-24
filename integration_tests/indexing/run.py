@@ -97,12 +97,12 @@ def test_transform_index(input):
     )) == 0)
 
     # Transform to Roaring
-    assert(run("{} build --n-threads 4 -k 31 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type roaring".format(
+    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type roaring".format(
         themisto_binary, out1_prefix, out2_prefix, temp_dir
     )) == 0)
 
     # Transform back to sdsl-hybrid
-    assert(run("{} build --n-threads 4 -k 31 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
+    assert(run("{} build --n-threads 4 --from-index {} -o {} --temp-dir {} --reverse-complements --coloring-structure-type sdsl-hybrid".format(
         themisto_binary, out2_prefix, out3_prefix, temp_dir
     )) == 0)
 
