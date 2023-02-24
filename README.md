@@ -67,10 +67,10 @@ ulimit -n 2048
 To build the Themisto index for a set of genomes, you need to pass in a text file that contains the paths to the FASTA files of the genomes, one file per line. Each FASTA file is given a different color 0,1,2,3... in the same order as they appear in the list. There are three example genomes of E. coli in `example_input` and a file at `example_input/coli_file_list.txt` listing the file names. To build the index for this data, run the following command:
 
 ```
-./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors
+./build/bin/themisto build -k 31 -i example_input/coli_file_list.txt --index-prefix my_index --temp-dir temp --mem-megas 2048 --n-threads 4 --file-colors --reverse-complements
 ```
 
-This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. We recommend to use a fast SSD drive for the temporary directory.
+This builds an index with k = 31, such that the index files are written to `my_index.tdbg` and `my_index.tcolors`, using the directory `temp` as temporary storage, using four threads and up to 2GB of memory. The flag `--reverse-complements` adds the reverse complements of all k-mers to the index. We recommend to use a fast SSD drive for the temporary directory.
 
 To align the four sequences in `example_input/queries.fna` against the index we just built, writing output to `out.txt` run:
 

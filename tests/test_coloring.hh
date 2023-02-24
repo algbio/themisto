@@ -254,7 +254,7 @@ TEST(COLORING_TESTS, coli3) {
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     string indexprefix = get_temp_file_manager().create_filename();
     string tempdir = get_temp_file_manager().get_dir();
-    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
+    vector<string> args = {"build", "-k", to_string(k), "-i", filename, "-o", indexprefix, "--temp-dir", tempdir, "--reverse-complements"};
     cout << args << endl;
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);

@@ -199,7 +199,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
         delete queries_out_gzip; // Flushes the stream
 
         stringstream build_argstring;
-        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir() << " --forward-strand-only";
+        build_argstring << "build -k"  << tcase.k << " --n-threads " << 2 << " --mem-megas " << 2048 << " -i " << genomes_outfilename << " -c " << colorfile_outfilename << " --colorset-pointer-tradeoff 3 " << " -o " << index_prefix << " --temp-dir " << sbwt::get_temp_file_manager().get_dir();
         Argv build_argv(split(build_argstring.str()));
 
         ASSERT_EQ(build_index_main(build_argv.size, build_argv.array),0);
@@ -319,7 +319,7 @@ TEST(TEST_PSEUDOALIGN, thresholded){
     write_as_fasta(seqs, ref_fastafile);
     write_as_fasta(queries, query_fastafile);
 
-    vector<string> args = {"build", "-k", to_string(k), "-i", ref_fastafile, "-o", indexprefix, "--temp-dir", tempdir, "--forward-strand-only"};
+    vector<string> args = {"build", "-k", to_string(k), "-i", ref_fastafile, "-o", indexprefix, "--temp-dir", tempdir};
     sbwt::Argv argv(args);
     build_index_main(argv.size, argv.array);
     plain_matrix_sbwt_t SBWT; Coloring<> coloring;
