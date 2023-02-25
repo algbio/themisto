@@ -1,5 +1,5 @@
 # About Themisto
-Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v1).
+Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v1).
 
 # Installation
 ## Requirements
