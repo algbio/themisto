@@ -1,9 +1,5 @@
-# NEWS
-
-A new release Themisto 3.0 is almost ready! For stable Themisto v2.1, go to commit [27bcca8](https://github.com/algbio/themisto/tree/27bcca83d25991f52211253a7c9a0a08436b5f65).
-
 # About Themisto
-Themisto is a succinct colored de Bruijn graph supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto. For more information, see the [webpage](https://www.helsinki.fi/en/researchgroups/genome-scale-algorithmics/themisto) and the [paper](https://www.biorxiv.org/content/biorxiv/early/2020/04/04/2020.04.03.021501/DC1/embed/media-1.pdf?download=true). The pseudoalignment algorithm is modeled after the tool Kallisto.
+Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v1).
 
 # Installation
 ## Requirements
@@ -32,7 +28,7 @@ If there is a linking error at the very end, try runnning `make` again. Where 31
 
 ## MacOS
 
-Warning: these instruction have not been tested in a while. We are aware that there are problems with compiling on ARM-based Macbooks due to x86 instructions in the dependency KMC. Currently, we have no fix for this.
+We are aware that there are problems with compiling on ARM-based Macbooks due to x86 instructions in the dependency KMC. Currently, we have no fix for this.
 
 Compiling Themisto on macOS requires users to first install gcc-10 or newer from homebrew with
 
