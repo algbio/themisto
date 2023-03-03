@@ -1,3 +1,3 @@
-example_input/GCA_000006665.1_ASM666v1.fna
 example_input/GCA_000005845.2_ASM584v2.fna
+example_input/GCA_000006665.1_ASM666v1.fna
 example_input/GCA_000007445.1_ASM744v1.fna
