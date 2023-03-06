@@ -17,9 +17,6 @@ These instructions have been tested to work on Ubuntu 18.04 with the aforementio
 
 ```
 git submodule update --init --recursive
-cd ggcat/crates/capi/ggcat-cpp-api/
-make
-cd ../../../..
 cd build
 cmake .. -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
 make
