@@ -49,53 +49,73 @@ set(THEMISTO_SOURCES
   src/stats_main.cpp
   )
 
-## Check if we should compile zlib or bzip2
-if(CMAKE_BUILD_ZLIB)
-  configure_file(CMakeLists_zlib.txt.in ${CMAKE_BINARY_DIR}/external/zlib-download/CMakeLists.txt)
-  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/zlib-download )
-  if(result)
-    message(FATAL_ERROR "CMake step for zlib failed: ${result}")
+  ## Require zlib
+if(NOT ZLIB)
+  if(NOT CMAKE_BUILD_ZLIB)
+    find_library(ZLIB NAMES z REQUIRED)
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/zlib-download )
-  if(result)
-    message(FATAL_ERROR "Build step for zlib failed: ${result}")
+
+  if(CMAKE_BUILD_ZLIB OR ZLIB MATCHES NOTFOUND)
+    configure_file(CMakeLists_zlib.txt.in ${CMAKE_CURRENT_BINARY_DIR}/external/zlib-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/zlib-download )
+    if(result)
+      message(FATAL_ERROR "CMake step for zlib failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external/zlib-download )
+    if(result)
+      message(FATAL_ERROR "Build step for zlib failed: ${result}")
+    endif()
+    set(ZLIB ${CMAKE_CURRENT_BINARY_DIR}/external/zlib/libz.a)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/zlib)
+    ExternalProject_Add(zlib
+      SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/zlib"
+      BUILD_IN_SOURCE   1
+      BUILD_COMMAND     $(MAKE) -f ${CMAKE_CURRENT_BINARY_DIR}/external/zlib/Makefile CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS}
+      CONFIGURE_COMMAND ""
+      INSTALL_COMMAND   ""
+      TEST_COMMAND      ""
+      UPDATE_COMMAND    ""
+      )
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/zlib)
   endif()
-  set(ZLIB ${CMAKE_BINARY_DIR}/lib/libz.a)
-  include_directories(${CMAKE_BINARY_DIR}/external/zlib)
-else()
-  find_library(ZLIB z PATHS ${CMAKE_SOURCE_DIR}/KMC/kmc_tools/libs)
 endif()
-if(CMAKE_BUILD_BZIP2)
-  configure_file(CMakeLists_bzip2.txt.in ${CMAKE_BINARY_DIR}/external/bzip2-download/CMakeLists.txt)
-  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/bzip2-download )
-  if(result)
-    message(FATAL_ERROR "CMake step for bzip2 failed: ${result}")
+
+## Require bzip2
+if(NOT BZIP2)
+  if(NOT CMAKE_BUILD_BZIP2)
+    find_library(BZIP2 NAMES bz2 REQUIRED)
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE result
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/bzip2-download )
-  if(result)
-    message(FATAL_ERROR "Build step for bzip2 failed: ${result}")
+
+  if(CMAKE_BUILD_BZIP2 OR BZIP2 MATCHES NOTFOUND)
+    configure_file(CMakeLists_bzip2.txt.in ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download )
+    if(result)
+      message(FATAL_ERROR "CMake step for bzip2 failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download )
+    if(result)
+      message(FATAL_ERROR "Build step for bzip2 failed: ${result}")
+    endif()
+    set(BZIP2 ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/libbz2.a)
+    ExternalProject_Add(bzip2
+      SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/bzip2"
+      BUILD_IN_SOURCE   1
+      BUILD_COMMAND     $(MAKE) -f ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/Makefile CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS}
+      CONFIGURE_COMMAND ""
+      INSTALL_COMMAND   ""
+      TEST_COMMAND      ""
+      UPDATE_COMMAND    ""
+      )
+    include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/bzip2)
   endif()
-  set(BZIP2 ${CMAKE_BINARY_DIR}/external/bzip2/libbz2.a)
-  ExternalProject_Add(bzip2
-    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/bzip2"
-    BUILD_IN_SOURCE   1
-    BUILD_COMMAND     $(MAKE) -f ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/Makefile CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS}
-    CONFIGURE_COMMAND ""
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-    UPDATE_COMMAND    ""
-  )
-  include_directories(${CMAKE_BINARY_DIR}/external/bzip2)
-else()
-  find_library(BZIP2 bz2 PATHS ${CMAKE_BINARY_DIR}/external/bzip2)
 endif()
 
 ## Require c++20
@@ -188,18 +208,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/include
   ${CMAKE_SOURCE_DIR}/SBWT/KMC/kmc_core
   ${CMAKE_BINARY_DIR}/_deps/roaring-src/include/
-  ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/include
-  )
-
-## Handle compiling zlib or bzip2 from source
-if(CMAKE_BUILD_ZLIB)
-  add_subdirectory(${CMAKE_BINARY_DIR}/external/zlib
-		   ${CMAKE_BINARY_DIR}/external/zlib)
-  set_target_properties(example PROPERTIES EXCLUDE_FROM_ALL 1)
-  set_target_properties(minigzip PROPERTIES EXCLUDE_FROM_ALL 1)
-endif()
-if(CMAKE_BUILD_BZIP2)
-endif()
+  ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/include)
 
 set(GGCAT_CPP_BINDINGS ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cpp_bindings.a)
 set(GGCAT_CXX_INTEROP ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cxx_interop.a)
@@ -213,7 +222,22 @@ if(NOT BUILD_THEMISTO_TESTS)
   add_dependencies(sdsl divsufsort64)
   add_dependencies(themisto ggcat_cpp_api sbwt_static)
   ## Link
-  target_link_libraries(themisto sdsl Threads::Threads OpenMP::OpenMP_CXX sbwt_static ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
+  target_link_libraries(themisto PRIVATE
+    sdsl
+    Threads::Threads
+    OpenMP::OpenMP_CXX
+    sbwt_static
+    ${GGCAT}
+    ${BZIP2}
+    ${ZLIB}
+    ${CXX_FILESYSTEM_LIBRARIES}
+    kmc_tools
+    kmc_core
+    roaring
+    ${GGCAT_API}
+    ${GGCAT_CPP_BINDINGS}
+    ${GGCAT_CXX_INTEROP}
+    ${CMAKE_DL_LIBS})
 endif()
 
 # Build tests if requested
@@ -225,11 +249,34 @@ if (BUILD_THEMISTO_TESTS)
   add_dependencies(sdsl divsufsort64)
   add_dependencies(themisto_tests ggcat_cpp_api sbwt_static)
   target_include_directories(themisto_tests PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include)
-  target_link_libraries(themisto_tests PRIVATE gtest sdsl Threads::Threads OpenMP::OpenMP_CXX sbwt_static ${GGCAT} ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring ${GGCAT_API} ${GGCAT_CPP_BINDINGS} ${GGCAT_CXX_INTEROP} ${CMAKE_DL_LIBS})
+  target_link_libraries(themisto_tests PRIVATE
+    gtest sdsl
+    Threads::Threads
+    OpenMP::OpenMP_CXX
+    sbwt_static
+    ${GGCAT}
+    ${BZIP2}
+    ${ZLIB}
+    ${CXX_FILESYSTEM_LIBRARIES}
+    kmc_tools
+    kmc_core
+    roaring
+    ${GGCAT_API}
+    ${GGCAT_CPP_BINDINGS}
+    ${GGCAT_CXX_INTEROP}
+    ${CMAKE_DL_LIBS})
 endif()
 
 if(BUILD_IO_BENCHMARK)
   message("Setting up IO benchmark.")
   add_executable(benchmark_io tests/benchmark_io.cpp ${THEMISTO_SOURCES})
-  target_link_libraries(benchmark_io sdsl Threads::Threads OpenMP::OpenMP_CXX ${BZIP2} ${ZLIB} ${CXX_FILESYSTEM_LIBRARIES} kmc_tools kmc_core roaring)
+  target_link_libraries(benchmark_io PRIVATE sdsl
+    Threads::Threads
+    OpenMP::OpenMP_CXX
+    ${BZIP2}
+    ${ZLIB}
+    ${CXX_FILESYSTEM_LIBRARIES}
+    kmc_tools
+    kmc_core
+    roaring)
 endif()
