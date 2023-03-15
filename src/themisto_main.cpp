@@ -17,7 +17,7 @@ void print_help(int argc, char** argv){
     cerr << "Running a command without arguments prints the usage instructions for the command." << endl;
 }
 
-int main(int argc, char** argv){
+int make_d_equal_1_main(int argc, char** argv){
 
     bool silent_in_argv = false;
     for(int64_t i = 1; i < argc; i++)
@@ -51,6 +51,7 @@ int main(int argc, char** argv){
         else if(command == "stats") return stats_main(argc, argv);
         else if(command == "dump-color-matrix") return dump_color_matrix_main(argc, argv); // Undocumented developer feature
         else if(command == "color-set-diagnostics") return color_set_diagnostics_main(argc, argv); // Undocumented developer feature
+        else if(command == "make-d-equal-1") return make_d_equal_1_main(argc, argv); // Undocumented developer feature
         else{
             throw std::runtime_error("Invalid command: " + command);
             return 1;

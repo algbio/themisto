@@ -94,6 +94,12 @@ public:
         return bytes_written;
     }
 
+    int64_t serialize(const string& filename) const{
+        throwing_ofstream out(filename, ios::binary);
+        return serialize(out.stream);
+    }
+
+
     void load(std::ifstream& is, const plain_matrix_sbwt_t& index) {
         index_ptr = &index;
 

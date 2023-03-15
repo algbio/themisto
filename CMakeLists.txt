@@ -47,6 +47,7 @@ set(THEMISTO_SOURCES
   src/extract_unitigs_main.cpp
   src/DBG.cpp
   src/stats_main.cpp
+  src/make_d_equal_1.cpp
   )
 
   ## Require zlib
