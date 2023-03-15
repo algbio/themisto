@@ -45,6 +45,7 @@ int make_d_equal_1_main(int argc, char** argv){
     cerr << "Building backward traversal support" << endl;
     SBWT_backward_traversal_support backward_support(&SBWT);
 
+    cerr << "Making d = 1" << endl;
     coloring.add_all_node_id_to_color_set_id_pointers(SBWT, backward_support);
 
     SBWT.serialize(output_dbg_file);

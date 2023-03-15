@@ -234,7 +234,7 @@ public:
 
         // Data structure for the new "sparse" array of values
         uint64_t max_value = node_id_to_color_set_id.get_max_value();
-        sdsl::bit_vector marks(index.number_of_subsets());
+        sdsl::bit_vector marks(index.number_of_subsets(), 1); // Everything is marked, even dummies, but that is ok
         sdsl::int_vector<> values(index.number_of_subsets(), 0, std::bit_width(max_value));
 
         // Reusable space during the loop below
@@ -243,18 +243,16 @@ public:
 
         for(int64_t v = 0; v < index.number_of_subsets(); v++){
             if(this->node_id_to_color_set_id.has_index(v)){
+                
                 int64_t value = this->node_id_to_color_set_id.get(v);
 
                 values[v] = value;
-                marks[v] = 1;
 
                 sbwt_bws.list_DBG_in_neighbors(v, in_neighbors, indegree);
                 for(int64_t i = 0; i < indegree; i++){
                     int64_t u = in_neighbors[i];
-                    int64_t counter = 0;
                     while(!this->node_id_to_color_set_id.has_index(u)){
                         values[u] = value;
-                        marks[u] = 1;
 
                         sbwt_bws.list_DBG_in_neighbors(u, in_neighbors, indegree);
                         if(indegree == 0) break; // Root node
