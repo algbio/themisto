@@ -237,36 +237,45 @@ public:
         sdsl::bit_vector marks(index.number_of_subsets(), 1); // Everything is marked, even dummies, but that is ok
         sdsl::int_vector<> values(index.number_of_subsets(), 0, std::bit_width(max_value));
 
-        // Reusable space during the loop below
+        // The code below is parallel, so the for-loop is in batches so that the critical
+        // section is run less often
+        int64_t batch_size = 10000;
 
         #pragma omp parallel for num_threads (n_threads)
-        for(int64_t v = 0; v < index.number_of_subsets(); v++){
-            int64_t in_neighbors[4];
-            int64_t indegree;
+        for(int64_t b = 0; b < index.number_of_subsets(); b += batch_size){
+            int64_t batch_end = min(b + batch_size, index.number_of_subsets()); // One past the end
+            vector<pair<int64_t,int64_t>> updates; // Batched updates
 
-            if(this->node_id_to_color_set_id.has_index(v)){
-                
-                int64_t value = this->node_id_to_color_set_id.get(v);
+            for(int64_t v = b; v < batch_end; v++){
 
-                #pragma omp critical 
-                {
-                    values[v] = value;
-                }
+                int64_t in_neighbors[4];
+                int64_t indegree;
 
-                sbwt_bws.list_DBG_in_neighbors(v, in_neighbors, indegree);
-                for(int64_t i = 0; i < indegree; i++){
-                    int64_t u = in_neighbors[i];
-                    while(!this->node_id_to_color_set_id.has_index(u)){
-                        #pragma omp critical 
-                        {
-                            values[u] = value;
+                if(this->node_id_to_color_set_id.has_index(v)){
+                    
+                    int64_t value = this->node_id_to_color_set_id.get(v);
+                    updates.push_back({v,value});
+
+                    sbwt_bws.list_DBG_in_neighbors(v, in_neighbors, indegree);
+                    for(int64_t i = 0; i < indegree; i++){
+                        int64_t u = in_neighbors[i];
+                        while(!this->node_id_to_color_set_id.has_index(u)){
+                            updates.push_back({u,value});
+
+                            sbwt_bws.list_DBG_in_neighbors(u, in_neighbors, indegree);
+                            if(indegree == 0) break; // Root node
+                            if(indegree >= 2) break; // Predecessors are already marked
+                            u = in_neighbors[0]; // The only in-neighbor
                         }
-
-                        sbwt_bws.list_DBG_in_neighbors(u, in_neighbors, indegree);
-                        if(indegree == 0) break; // Root node
-                        if(indegree >= 2) break; // Predecessors are already marked
-                        u = in_neighbors[0]; // The only in-neighbor
                     }
+                }
+            }
+
+            // Critical section: apply the updates
+            #pragma omp critical
+            {
+                for(auto [v, value] : updates){
+                    values[v] = value;
                 }
             }
         }
