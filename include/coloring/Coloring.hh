@@ -223,6 +223,46 @@ public:
         return breakdown;
     }
 
+    // Increases the index size, but makes queries faster
+    void add_all_node_id_to_color_set_id_pointers(const plain_matrix_sbwt_t& index, SBWT_backward_traversal_support& sbwt_bws) {
+
+        // Data structure for the new "sparse" array of values
+        uint64_t max_value = node_id_to_color_set_id.get_max_value();
+        sdsl::bit_vector marks(index.number_of_subsets());
+        sdsl::int_vector<> values(index.number_of_subsets(), 0, std::bit_width(max_value));
+
+        // Reusable space during the loop below
+        int64_t in_neighbors[4];
+        int64_t indegree;
+
+        for(int64_t v = 0; v < index.number_of_subsets(); v++){
+            if(this->node_id_to_color_set_id.has_index(v)){
+                int64_t value = this->node_id_to_color_set_id.get(v);
+
+                values[v] = value;
+                marks[v] = 1;
+
+                sbwt_bws.list_DBG_in_neighbors(v, in_neighbors, indegree);
+                for(int64_t i = 0; i < indegree; i++){
+                    int64_t u = in_neighbors[i];
+                    int64_t counter = 0;
+                    while(!this->node_id_to_color_set_id.has_index(u)){
+                        values[u] = value;
+                        marks[u] = 1;
+
+                        sbwt_bws.list_DBG_in_neighbors(u, in_neighbors, indegree);
+                        if(indegree == 0) break; // Root node
+                        if(indegree >= 2) break; // Predecessors are already marked
+                        u = in_neighbors[0]; // The only in-neighbor
+                    }
+                }
+            }
+        }
+        
+        this->node_id_to_color_set_id = Sparse_Uint_Array(marks, values, max_value);
+
+    }
+
     template<typename T1, typename T2> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 };
