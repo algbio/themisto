@@ -230,7 +230,7 @@ public:
     }
 
     // Increases the index size, but makes queries faster
-    void add_all_node_id_to_color_set_id_pointers(const plain_matrix_sbwt_t& index, SBWT_backward_traversal_support& sbwt_bws) {
+    void add_all_node_id_to_color_set_id_pointers(const plain_matrix_sbwt_t& index, SBWT_backward_traversal_support& sbwt_bws, int64_t n_threads) {
 
         // Data structure for the new "sparse" array of values
         uint64_t max_value = node_id_to_color_set_id.get_max_value();
@@ -238,21 +238,29 @@ public:
         sdsl::int_vector<> values(index.number_of_subsets(), 0, std::bit_width(max_value));
 
         // Reusable space during the loop below
-        int64_t in_neighbors[4];
-        int64_t indegree;
 
+        #pragma omp parallel for num_threads (n_threads)
         for(int64_t v = 0; v < index.number_of_subsets(); v++){
+            int64_t in_neighbors[4];
+            int64_t indegree;
+
             if(this->node_id_to_color_set_id.has_index(v)){
                 
                 int64_t value = this->node_id_to_color_set_id.get(v);
 
-                values[v] = value;
+                #pragma omp critical 
+                {
+                    values[v] = value;
+                }
 
                 sbwt_bws.list_DBG_in_neighbors(v, in_neighbors, indegree);
                 for(int64_t i = 0; i < indegree; i++){
                     int64_t u = in_neighbors[i];
                     while(!this->node_id_to_color_set_id.has_index(u)){
-                        values[u] = value;
+                        #pragma omp critical 
+                        {
+                            values[u] = value;
+                        }
 
                         sbwt_bws.list_DBG_in_neighbors(u, in_neighbors, indegree);
                         if(indegree == 0) break; // Root node

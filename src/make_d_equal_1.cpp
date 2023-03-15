@@ -16,6 +16,7 @@ int make_d_equal_1_main(int argc, char** argv){
     options.add_options()
         ("i", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("o", "The index prefix for the output.", cxxopts::value<string>())
+        ("t", "Number of threads.", cxxopts::value<int64_t>()->default_value("1"))
         ("h,help", "Print usage")
     ;
 
@@ -33,6 +34,8 @@ int make_d_equal_1_main(int argc, char** argv){
     string output_dbg_file = opts["o"].as<string>() + ".tdbg";
     string output_color_file = opts["o"].as<string>() + ".tcolors";
 
+    int64_t n_threads = opts["t"].as<int64_t>();
+
     write_log("Loading the index", LogLevel::MAJOR);
     plain_matrix_sbwt_t SBWT;
     Coloring<> coloring;
@@ -46,7 +49,7 @@ int make_d_equal_1_main(int argc, char** argv){
     SBWT_backward_traversal_support backward_support(&SBWT);
 
     cerr << "Making d = 1" << endl;
-    coloring.add_all_node_id_to_color_set_id_pointers(SBWT, backward_support);
+    coloring.add_all_node_id_to_color_set_id_pointers(SBWT, backward_support, n_threads);
 
     SBWT.serialize(output_dbg_file);
     coloring.serialize(output_color_file);
