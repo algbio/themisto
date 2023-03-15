@@ -51,8 +51,12 @@ int make_d_equal_1_main(int argc, char** argv){
     cerr << "Making d = 1" << endl;
     coloring.add_all_node_id_to_color_set_id_pointers(SBWT, backward_support, n_threads);
 
+    write_log("Saving the updated index", LogLevel::MAJOR);
+
     SBWT.serialize(output_dbg_file);
     coloring.serialize(output_color_file);
+
+    write_log("Done", LogLevel::MAJOR);
 
     return 0;
     
