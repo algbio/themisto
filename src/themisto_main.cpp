@@ -17,7 +17,7 @@ void print_help(int argc, char** argv){
     cerr << "Running a command without arguments prints the usage instructions for the command." << endl;
 }
 
-int make_d_equal_1_main(int argc, char** argv){
+int main(int argc, char** argv){
 
     bool silent_in_argv = false;
     for(int64_t i = 1; i < argc; i++)

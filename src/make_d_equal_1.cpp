@@ -9,7 +9,7 @@
 using namespace sbwt;
 using namespace std;
 
-int color_set_diagnostics_main(int argc, char** argv){
+int make_d_equal_1_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "Prints stuff avoid the coloring data structure. For developers.");
 
