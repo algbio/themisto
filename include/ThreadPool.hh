@@ -93,7 +93,6 @@ class ExampleWorkerThread : public BaseWorkerThread<ExampleWorkItem>{
 template<typename worker_t>
 class ThreadPool{
 
-    int64_t next_worker_id;
     vector<unique_ptr<BaseWorkerThread<typename worker_t::work_item_t>>> workers;
     vector<std::thread> threads;
     sbwt::ParallelBoundedQueue<std::optional<typename worker_t::work_item_t>> work_queue;
@@ -101,7 +100,7 @@ class ThreadPool{
 
     public:
 
-    ThreadPool(int64_t n_workers, int64_t max_work_queue_load, int64_t n_calls_between_output_flushes) : next_worker_id(0), work_queue(max_work_queue_load){
+    ThreadPool(int64_t n_workers, int64_t max_work_queue_load, int64_t n_calls_between_output_flushes) : work_queue(max_work_queue_load){
         for(int64_t i = 0; i < n_workers; i++){
             unique_ptr<BaseWorkerThread<typename worker_t::work_item_t>> worker = make_unique<ExampleWorkerThread>(&mutex, n_calls_between_output_flushes);
             workers.push_back(std::move(worker));
