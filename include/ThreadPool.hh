@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "ParallelBoundedQueue.hh"
+#include "sbwt/EM_sort/ParallelBoundedQueue.hh"
 #include <mutex>
 #include <cmath>
 #include <optional>

@@ -29,6 +29,8 @@
 
 #include "ggcat.hh"
 
+#include "ThreadPool.hh"
+
 using namespace ggcat;
 
 class Colored_Unitig_Stream{
@@ -711,6 +713,36 @@ private:
         Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
 
         int64_t color_set_id = -1;
+
+        /* TODO
+        struct WorkItem{
+            const string& unitig;
+            const vector<int64_t>& colors; 
+            bool same_colors;
+        };
+
+        class Worker : BaseWorkerThread<WorkItem>{
+
+            private:
+
+            public:
+
+            typedef WorkItem work_item_t;
+
+            Worker(std::mutex* mutex, int64_t n_calls_between_flushes) : BaseWorkerThread<WorkItem>(mutex, n_calls_between_flushes) {}
+
+            // This function should only use local variables and no shared state
+            virtual void process_work_item(WorkItem item){
+                // TODO: process the item and write results to a member variable
+            }
+
+            // This function is protected with a lock and may use shared state.
+            virtual void flush_results(){
+                // TODO: Write cached results and clear 
+            }
+
+        };
+        */
 
         auto add_color_set_pointer = [&](int64_t node_id){
             builder.add(node_id, color_set_id);
