@@ -66,7 +66,7 @@ class ThreadPool{
     typedef typename worker_t::WorkItem work_item_t;
 
     int64_t next_worker_id;
-    vector<WorkerThread> workers;
+    vector<worker_t> workers;
     vector<std::thread> threads;
     sbwt::ParallelBoundedQueue<std::optional<work_item_t>> work_queue;
     std::mutex mutex;
