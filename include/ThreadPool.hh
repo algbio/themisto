@@ -8,55 +8,83 @@
 #include <numeric>
 
 using namespace std;
-
-class ExampleWorkerThread{
+template<typename work_item_t>
+class BaseWorkerThread{
 
     private:
 
-    vector<int64_t> results;
     std::mutex* mutex;
     int64_t n_calls_between_flushes;
 
     public:
 
-    struct WorkItem{
-        vector<int64_t> data;
-    };
 
     // Takes in the mutex that protects flush_results
-    ExampleWorkerThread(std::mutex* mutex, int64_t n_calls_between_flushes) : n_calls_between_flushes(n_calls_between_flushes){
+    BaseWorkerThread(std::mutex* mutex, int64_t n_calls_between_flushes) : n_calls_between_flushes(n_calls_between_flushes){
         this->mutex = mutex;
     }
 
     // This function should only use local variables and no shared state
-    void run(sbwt::ParallelBoundedQueue<std::optional<WorkItem>>& Q){
+    virtual void process_work_item(work_item_t item) = 0;
+
+    // This function is protected with a lock and may use shared state.
+    virtual void flush_results() = 0;
+
+    
+    void run(sbwt::ParallelBoundedQueue<std::optional<work_item_t>>& Q){
+
         int64_t calls_to_next_flush = n_calls_between_flushes;
-        while(std::optional<WorkItem> item = Q.pop()){
+        while(std::optional<work_item_t> item = Q.pop()){
             
             // Process the work item
-            int64_t sum = 0;
-            for(int64_t i = 0; i < 1000000; i++){
-                sum += std::accumulate(item->data.begin(), item->data.end(), 0);
-            }
-            results.push_back(sum);
+            process_work_item(*item);
 
             // Flush results if needed
             calls_to_next_flush--;
             if(calls_to_next_flush == 0){
                 calls_to_next_flush = n_calls_between_flushes;
+                std::lock_guard<std::mutex> lock(*mutex);
                 flush_results();
             }
         }
 
+        std::lock_guard<std::mutex> lock(*mutex);
         flush_results();
     }
 
-    // This function may use shared state.
-    void flush_results(){
-        std::lock_guard<std::mutex> lock(*mutex);
+};
 
+
+struct ExampleWorkItem{
+    vector<int64_t> data;
+};
+
+class ExampleWorkerThread : public BaseWorkerThread<ExampleWorkItem>{
+
+    private:
+
+    vector<int64_t> results;
+
+    public:
+
+    typedef ExampleWorkItem work_item_t;
+
+    ExampleWorkerThread(std::mutex* mutex, int64_t n_calls_between_flushes) : BaseWorkerThread(mutex, n_calls_between_flushes) {}
+
+    // This function should only use local variables and no shared state
+    virtual void process_work_item(ExampleWorkItem item){
+        // Do some computation on the item
+        int64_t sum = 0;
+        while(item.data.size() > 0){
+            sum += item.data[0];
+            item.data.erase(item.data.begin());
+        }
+        results.push_back(sum);
+    }
+
+    // This function is protected with a lock and may use shared state.
+    virtual void flush_results(){
         for(int64_t x : results) cout << x << "\n";
-        
         results.clear();
     }
 
@@ -65,28 +93,27 @@ class ExampleWorkerThread{
 template<typename worker_t>
 class ThreadPool{
 
-    typedef typename worker_t::WorkItem work_item_t;
-
     int64_t next_worker_id;
-    vector<worker_t> workers;
+    vector<unique_ptr<BaseWorkerThread<typename worker_t::work_item_t>>> workers;
     vector<std::thread> threads;
-    sbwt::ParallelBoundedQueue<std::optional<work_item_t>> work_queue;
+    sbwt::ParallelBoundedQueue<std::optional<typename worker_t::work_item_t>> work_queue;
     std::mutex mutex;
 
     public:
 
     ThreadPool(int64_t n_workers, int64_t max_work_queue_load, int64_t n_calls_between_output_flushes) : next_worker_id(0), work_queue(max_work_queue_load){
         for(int64_t i = 0; i < n_workers; i++){
-            workers.push_back(worker_t(&mutex, n_calls_between_output_flushes));
+            unique_ptr<BaseWorkerThread<typename worker_t::work_item_t>> worker = make_unique<ExampleWorkerThread>(&mutex, n_calls_between_output_flushes);
+            workers.push_back(std::move(worker));
             threads.push_back(
                 std::thread([this, i]{
-                    this->workers[i].run(this->work_queue);
+                    this->workers[i]->run(this->work_queue);
                 })
             );
         }
     }
 
-    void add_work(work_item_t input, int64_t load){
+    void add_work(typename worker_t::work_item_t input, int64_t load){
         work_queue.push(input, load);
     }
 
