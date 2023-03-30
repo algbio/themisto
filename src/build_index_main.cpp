@@ -10,6 +10,7 @@
 #include "sbwt/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
 #include "coloring/Coloring_Builder.hh"
+#include "coloring/Coloring_builder_from_ggcat.hh"
 #include "transform_index.hh"
 
 using namespace std;
@@ -593,7 +594,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
         // BAD CODE ALERT: almost all of this code is duplicated in the else-branch. If you change something here,
         // make the equivalent change to the else-branch
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped
-        Coloring_Builder<color_set_t, reader_t> cb;
+        Coloring_Builder_From_GGCAT<color_set_t, reader_t> cb;
         reader_t reader(seqfiles);
         reader.enable_reverse_complements();
         cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
@@ -601,7 +602,7 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
         // BAD CODE ALERT: almost all of this code is duplicated in the if-branch. If you change something here,
         // make the equivalent change to the if-branch
         typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
-        Coloring_Builder<color_set_t, reader_t> cb;
+        Coloring_Builder_From_GGCAT<color_set_t, reader_t> cb;
         reader_t reader(seqfiles);
         reader.enable_reverse_complements();
         cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);

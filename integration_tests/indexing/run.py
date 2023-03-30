@@ -35,6 +35,10 @@ def check_outputs(themisto_outfile, ref_outfile):
         assert(sorted(T_colors) == sorted(R_colors)) # The colors are in arbitrary order so we sort
     print("\n===\nOK: {}\n===\n".format(themisto_outfile))
 
+run_long_k = True
+if len(sys.argv) == 2 and sys.argv[1] == "--no-long-k":
+    run_long_k = False
+
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
 temp_dir = "./temp"
@@ -117,15 +121,17 @@ test_file_colors_with_load_dbg(infile_list) # Tests --no-colors and --load-dbg
 
 # Testing different coloring options, different k, diffenent d, rc or no-rc.
 runs = [
+    [31, 6, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "sdsl-hybrid"],
+    [31, 7, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"], # Roaring
     [31, 1, concat_all_file, False, "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"],
-    [100, 8, concat_all_file, False,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"], # Large k
     [31, 2, concat_all_file, True,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors-rc", "sdsl-hybrid"],
     [31, 3, infile_list, False, "--sequence-colors", out_dir + "/seq-colors", "sdsl-hybrid"],
     [31, 4, infile_list, True,  "--sequence-colors", out_dir + "/seq-colors-rc", "sdsl-hybrid"],
     #[31, 5, infile_list, False, "--file-colors",     out_dir + "/file-colors", "sdsl-hybrid"], # Can't do file colors without rc because of how ggcat is called
-    [31, 6, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "sdsl-hybrid"],
-    [31, 7, infile_list, True,  "--file-colors", out_dir + "/file-colors-rc", "roaring"], # Roaring
 ]
+
+if run_long_k:
+    [100, 8, concat_all_file, False,  "--manual-colors " + manual_colorfile, out_dir + "/manual-colors", "sdsl-hybrid"], # Large k
 
 for k, d, input, rc, color_input_mode, outfile, color_set_type in runs:
     build_index(k, d, input, rc, color_input_mode, outfile, color_set_type)

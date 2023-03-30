@@ -27,181 +27,6 @@
 #include "Roaring_Color_Set.hh"
 #include "Fixed_Width_Int_Color_Set.hh"
 
-#include "ggcat.hh"
-
-#include "ThreadPool.hh"
-
-using namespace ggcat;
-
-class Colored_Unitig_Stream{
-
-    private:
-
-    public:
-
-        vector<string> unitigs;
-        vector<vector<int64_t> > color_sets;
-        int64_t unitig_idx;
-        int64_t color_set_idx;
-
-        Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
-            unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {
-                assert(unitigs.size() == color_sets.size());
-        }
-
-        bool done(){
-            return unitig_idx >= unitigs.size();
-        }
-
-        string next_unitig(){
-            return unitigs[unitig_idx++];
-        }
-
-        bool next_colors_are_different(){
-            return true;
-        }
-
-        vector<int64_t> next_colors(){
-            return color_sets[color_set_idx++];
-        }
-
-};
-
-class GGCAT_unitig_database{
-
-private:
-    // No copying
-    GGCAT_unitig_database(GGCAT_unitig_database const& other) = delete;
-    GGCAT_unitig_database& operator=(GGCAT_unitig_database const& other) = delete;
-
-public:
-
-    GGCATInstance* instance;
-    string graph_file;
-    vector<string> color_names;
-    int64_t k;
-
-    GGCAT_unitig_database(vector<string>& filenames, int64_t mem_gigas, int64_t k, int64_t n_threads, bool canonical) : k(k) {
-
-        GGCATConfig config;
-
-        config.use_temp_dir = true;
-        config.temp_dir = get_temp_file_manager().get_dir();
-        config.memory = mem_gigas;
-        config.prefer_memory = true;
-        config.total_threads_count = n_threads;
-        config.intermediate_compression_level = -1;
-
-        config.use_stats_file = false;
-        config.stats_file = "";
-
-        // This leaks memory but it's only a few bytes. It can't be easily fixed because
-        // this memory is allocated in the Rust API of GGCAT and freed only at the
-        // end of the program.
-        instance = GGCATInstance::create(config);
-        
-        graph_file = get_temp_file_manager().create_filename("",".fa");
-
-        color_names.clear();
-        for(int64_t i = 0; i < filenames.size(); i++){
-            color_names.push_back(to_string(i));
-        }
-
-        std::string output_file = instance->build_graph_from_files(
-            Slice<std::string>(filenames.data(), filenames.size()),
-            graph_file,
-            k,
-            n_threads,
-            !canonical,
-            1,
-            ExtraElaborationStep_UnitigLinks,
-            true,
-            Slice<std::string>(color_names.data(), color_names.size()),
-            -1);
-
-        vector<string> file_color_names = GGCATInstance::dump_colors(GGCATInstance::get_colormap_file(graph_file));
-
-    }
-
-    // The callback takes a unitig, the color set, and the is_same flag
-    void iterate(std::function<void(const std::string&, const vector<int64_t>&, bool)> callback){
-
-        vector<int64_t> prev_colors;
-        std::mutex callback_mutex;
-
-        auto outer_callback = [&](Slice<char> read, Slice<uint32_t> colors, bool same_colors){
-            // Calls in callback provided by the caller of iterate.
-            // WARNING: this function is called asynchronously from multiple threads, so it must be thread-safe.
-            // Also the same_colors boolean is referred to the previous call of this function from the current thread.
-            // Number of threads is set to 1 just above, so no lock needed at the moment.
-            std::lock_guard<std::mutex> _lock(callback_mutex);
-            try{
-                string unitig = string(read.data, read.data + read.size);                
-                if(same_colors){
-                    callback(unitig, prev_colors, true);
-                } else{
-                    prev_colors.clear();
-                    for (size_t i = 0; i < colors.size; i++){
-                        prev_colors.push_back(colors.data[i]);
-                    }
-                    callback(unitig, prev_colors, false);
-                }
-            } catch(const std::exception& e){
-                std::cerr << "Caught Error: " << e.what() << '\n';
-                exit(1);
-            }
-        };
-
-        this->instance->dump_unitigs(graph_file,k,1,true,outer_callback,true,-1);
-    }
-
-    string get_unitig_filename(){
-        return graph_file;
-    }
-
-};
-
-class Colored_Unitig_Stream_GGCAT{
-
-
-    vector<string> unitigs;
-    vector<vector<int64_t> > color_sets;
-    int64_t unitig_idx = 0;
-    int64_t color_set_idx = 0;
-
-    public:
-
-        // Always reports canonical bidirected unitigs
-        Colored_Unitig_Stream_GGCAT(GGCAT_unitig_database& db) {
-            auto collect = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
-                if(unitig.size() == 0){
-                    cerr << "BUG: EMPTY UNITIG" << endl;
-                    exit(1);
-                }
-                unitigs.push_back(unitig);
-                color_sets.push_back(colors);
-            };
-            db.iterate(collect);
-        }
-
-        bool done(){
-            return unitig_idx >= unitigs.size();
-        }
-
-        bool next_colors_are_different(){
-            return true;
-        }
-
-        string next_unitig(){
-            return unitigs[unitig_idx++];
-        }
-
-        vector<int64_t> next_colors(){
-            return color_sets[color_set_idx++];
-        }
-
-};
-
 // Color stream from an in-memory vector
 class In_Memory_Color_Stream : public Metadata_Stream{
 
@@ -227,6 +52,35 @@ public:
     }
 
 };
+
+// Walks backward from from_node and marks every colorset_sampling_distance node on the way
+// Calls the given callback at every sampled node. The callback takes the node id of the sampled node.
+template<typename callback_t>
+void iterate_unitig_node_samples(const sdsl::bit_vector& cores, const SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_sampling_distance, callback_t&& callback){
+    assert(cores[from_node] == 1);
+    int64_t in_neighbors[4];
+    int64_t indegree;
+    backward_support.list_DBG_in_neighbors(from_node, in_neighbors, indegree);
+    for(int64_t i = 0; i < indegree; i++){
+        int64_t u = in_neighbors[i];
+        int64_t counter = 0;
+        while(cores[u] == 0){
+            counter++;
+            if(counter == colorset_sampling_distance){
+                callback(u);
+                counter = 0;
+            }
+            backward_support.list_DBG_in_neighbors(u, in_neighbors, indegree);
+            if(indegree == 0) break; // Root node
+            if(indegree >= 2) break; // Predecessors are already marked
+            u = in_neighbors[0]; // The only in-neighbor
+            // This loop is guaranteed to terminate. Proof:
+            // If the in-degree and out-degree of u always stays 1, then we come back to the original node eventually,
+            // which is marked, so we stop. Otherwise, the in-degree becomes 0 or >= 2 at some point, and we hit
+            // the break statements above.
+        }
+    }
+}
 
 
 template<typename colorset_t = SDSL_Variant_Color_Set,
@@ -585,35 +439,6 @@ private:
 
     }
 
-    // Walks backward from from_node and marks every colorset_sampling_distance node on the way
-    // Calls the given callback at every sampled node. The callback takes the node id of the sampled node.
-    template<typename callback_t>
-    void iterate_unitig_node_samples(const sdsl::bit_vector& cores, SBWT_backward_traversal_support& backward_support, int64_t from_node, int64_t colorset_sampling_distance, callback_t&& callback){
-        assert(cores[from_node] == 1);
-        int64_t in_neighbors[4];
-        int64_t indegree;
-        backward_support.list_DBG_in_neighbors(from_node, in_neighbors, indegree);
-        for(int64_t i = 0; i < indegree; i++){
-            int64_t u = in_neighbors[i];
-            int64_t counter = 0;
-            while(cores[u] == 0){
-                counter++;
-                if(counter == colorset_sampling_distance){
-                    callback(u);
-                    counter = 0;
-                }
-                backward_support.list_DBG_in_neighbors(u, in_neighbors, indegree);
-                if(indegree == 0) break; // Root node
-                if(indegree >= 2) break; // Predecessors are already marked
-                u = in_neighbors[0]; // The only in-neighbor
-                // This loop is guaranteed to terminate. Proof:
-                // If the in-degree and out-degree of u always stays 1, then we come back to the original node eventually,
-                // which is marked, so we stop. Otherwise, the in-degree becomes 0 or >= 2 at some point, and we hit
-                // the break statements above.
-            }
-        }
-    }
-
     public:
 
 
@@ -689,100 +514,5 @@ private:
         get_temp_file_manager().delete_file(collected_nodes);
 
         write_log("Representation built", LogLevel::MAJOR);
-    }
-
-    // Colored unitig stream database produce canonical bidirected unitigs
-    void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
-                    sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers. Should also produce reverse complements
-                    const plain_matrix_sbwt_t& SBWT,
-                    const std::int64_t ram_bytes,
-                    const std::int64_t n_threads,
-                    int64_t colorset_sampling_distance,
-                    GGCAT_unitig_database& unitig_database){
-        
-        coloring.index_ptr = &SBWT;
-        coloring.largest_color_id = -1;
-
-        write_log("Marking core kmers", LogLevel::MAJOR);
-        core_kmer_marker<sequence_reader_t> ckm;
-        ckm.mark_core_kmers(sequence_reader, SBWT);
-        sdsl::bit_vector cores = ckm.core_kmer_marks;
-
-        SBWT_backward_traversal_support backward_support(coloring.index_ptr);
-
-        Sparse_Uint_Array_Builder builder(cores.size(), ram_bytes, n_threads);
-
-        int64_t color_set_id = -1;
-
-        /* TODO
-        struct WorkItem{
-            const string& unitig;
-            const vector<int64_t>& colors; 
-            bool same_colors;
-        };
-
-        class Worker : BaseWorkerThread<WorkItem>{
-
-            private:
-
-            public:
-
-            typedef WorkItem work_item_t;
-
-            Worker(std::mutex* mutex, int64_t n_calls_between_flushes) : BaseWorkerThread<WorkItem>(mutex, n_calls_between_flushes) {}
-
-            // This function should only use local variables and no shared state
-            virtual void process_work_item(WorkItem item){
-                // TODO: process the item and write results to a member variable
-            }
-
-            // This function is protected with a lock and may use shared state.
-            virtual void flush_results(){
-                // TODO: Write cached results and clear 
-            }
-
-        };
-        */
-
-        auto add_color_set_pointer = [&](int64_t node_id){
-            builder.add(node_id, color_set_id);
-        };
-
-        auto process_unitig_and_colors = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
-            // same_colors means that the color set of the current unitig is the same as the color set of
-            // the previous.
-
-            if(!same_colors){
-                color_set_id++;
-                // Keep track of maximum color
-                for(int64_t x : colors) coloring.largest_color_id = max(x, coloring.largest_color_id);
-
-                // Store color set
-                coloring.sets.add_set(colors);
-                coloring.total_color_set_length += colors.size();
-            }
-
-            // Store pointers to the color set
-            for(int64_t colex_rank : SBWT.streaming_search(unitig)){
-                if(colex_rank != -1 && cores[colex_rank]){
-                    builder.add(colex_rank, color_set_id);
-                    iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
-                }
-            }
-
-            // Same for reverse complement
-            string unitig_rc = get_rc(unitig);
-            for(int64_t colex_rank : SBWT.streaming_search(unitig_rc)){
-                if(colex_rank != -1 && cores[colex_rank]){
-                    builder.add(colex_rank, color_set_id);
-                    iterate_unitig_node_samples(cores, backward_support, colex_rank, colorset_sampling_distance, add_color_set_pointer);
-                }
-            }
-        };
-
-        unitig_database.iterate(process_unitig_and_colors);
-
-        coloring.node_id_to_color_set_id = builder.finish();
-        coloring.sets.prepare_for_queries();        
     }
 };

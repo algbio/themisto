@@ -21,8 +21,81 @@
 #include "sbwt/SBWT.hh"
 #include "coloring/Coloring.hh"
 #include "coloring/Coloring_Builder.hh"
+#include "coloring/Coloring_builder_from_ggcat.hh"
 
 using namespace sbwt;
+
+class Colored_Unitig_Stream{
+
+    public:
+
+        vector<string> unitigs;
+        vector<vector<int64_t> > color_sets;
+        int64_t unitig_idx;
+        int64_t color_set_idx;
+
+        Colored_Unitig_Stream(const vector<string>& unitigs, const vector<vector<int64_t>>& color_sets):
+            unitigs(unitigs), color_sets(color_sets), unitig_idx(0), color_set_idx(0) {
+                assert(unitigs.size() == color_sets.size());
+        }
+
+        bool done(){
+            return unitig_idx >= unitigs.size();
+        }
+
+        string next_unitig(){
+            return unitigs[unitig_idx++];
+        }
+
+        bool next_colors_are_different(){
+            return true;
+        }
+
+        vector<int64_t> next_colors(){
+            return color_sets[color_set_idx++];
+        }
+
+};
+
+class Colored_Unitig_Stream_GGCAT{
+
+    vector<string> unitigs;
+    vector<vector<int64_t> > color_sets;
+    int64_t unitig_idx = 0;
+    int64_t color_set_idx = 0;
+
+    public:
+
+        // Always reports canonical bidirected unitigs
+        Colored_Unitig_Stream_GGCAT(GGCAT_unitig_database& db) {
+            auto collect = [&](const string& unitig, const vector<int64_t>& colors, bool same_colors){
+                if(unitig.size() == 0){
+                    cerr << "BUG: EMPTY UNITIG" << endl;
+                    exit(1);
+                }
+                unitigs.push_back(unitig);
+                color_sets.push_back(colors);
+            };
+            db.iterate(collect);
+        }
+
+        bool done(){
+            return unitig_idx >= unitigs.size();
+        }
+
+        bool next_colors_are_different(){
+            return true;
+        }
+
+        string next_unitig(){
+            return unitigs[unitig_idx++];
+        }
+
+        vector<int64_t> next_colors(){
+            return color_sets[color_set_idx++];
+        }
+
+};
 
 // This is designed for k = 30
 void construct_unitig_extraction_test_input(string fastafile, string colorfile){
