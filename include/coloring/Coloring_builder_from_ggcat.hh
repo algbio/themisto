@@ -128,8 +128,7 @@ public:
 
 };
 
-template<typename colorset_t = SDSL_Variant_Color_Set,
-         typename sequence_reader_t = sbwt::SeqIO::Reader<>> 
+template<typename colorset_t = SDSL_Variant_Color_Set> 
 requires Color_Set_Interface<colorset_t>
 class Coloring_Builder_From_GGCAT{
 
@@ -144,7 +143,7 @@ class Coloring_Builder_From_GGCAT{
 
         public:
 
-        struct Context{
+        struct context_t{
 
             // Read-only context
             const plain_matrix_sbwt_t* SBWT;
@@ -159,7 +158,7 @@ class Coloring_Builder_From_GGCAT{
 
         private:
 
-        Context context;
+        context_t context;
 
         void queue_updates(const vector<int64_t>& colex_ranks, int64_t color_set_id){
             int64_t next_sample_counter = 0;
@@ -181,7 +180,7 @@ class Coloring_Builder_From_GGCAT{
         public:
 
 
-        UnitigWorker(std::mutex* mutex, int64_t n_calls_between_flushes, Context context) : BaseWorkerThread<UnitigWorkBatch>(mutex, n_calls_between_flushes), context(context) {}
+        UnitigWorker(context_t context) : context(context) {}
 
 
         // This function should only modify local variables and the updates buffer in the context
@@ -208,7 +207,7 @@ class Coloring_Builder_From_GGCAT{
         }
 
         // A mutex in the thread pool guards this function so that only one worker can be in this function at a time
-        virtual void flush_results(){
+        virtual void critical_section(){
             for(auto [node, pointer] : context.color_set_pointer_updates){
                 context.builder->add(node, pointer);
             }
@@ -217,10 +216,10 @@ class Coloring_Builder_From_GGCAT{
 
     };
 
-    void iterate_unitigs(GGCAT_unitig_database& unitig_database, Coloring<colorset_t>& coloring, ThreadPool<UnitigWorker>& TP){
+    void iterate_unitigs(GGCAT_unitig_database& unitig_database, Coloring<colorset_t>& coloring, ThreadPool<UnitigWorker, UnitigWorkBatch>& TP){
         // Create work batches for the workers
         UnitigWorkBatch work_batch;
-        int64_t work_batch_max_size = 100;
+        int64_t work_batch_max_size = 1000;
         int64_t color_set_id = -1;
         coloring.largest_color_id = -1;
 
@@ -262,7 +261,6 @@ class Coloring_Builder_From_GGCAT{
 
     // Colored unitig stream database produce canonical bidirected unitigs
     void build_from_colored_unitigs(Coloring<colorset_t>& coloring,
-                        sequence_reader_t& sequence_reader, // The original sequences, not the unitigs. Used to mark core k-mers. Should also produce reverse complements
                         const plain_matrix_sbwt_t& SBWT,
                         const std::int64_t ram_bytes,
                         const std::int64_t n_threads,
@@ -273,8 +271,15 @@ class Coloring_Builder_From_GGCAT{
 
         // Set up the worker threads that process the colored unitigs
         Sparse_Uint_Array_Builder builder(SBWT.number_of_subsets(), ram_bytes, n_threads);
-        typename UnitigWorker::Context context = {&SBWT, colorset_sampling_distance, &builder, {}};
-        ThreadPool<UnitigWorker> TP(n_threads, n_threads * 2, 10, context); 
+        typename UnitigWorker::context_t context = {&SBWT, colorset_sampling_distance, &builder, {}};
+        vector<unique_ptr<UnitigWorker>> workers;
+        vector<UnitigWorker*> worker_ptrs;
+        for(int64_t i = 0; i < n_threads; i++){
+            workers.push_back(make_unique<UnitigWorker>(context));
+            worker_ptrs.push_back(workers.back().get());
+        }
+
+        ThreadPool<UnitigWorker,UnitigWorkBatch> TP(worker_ptrs, n_threads * 2); 
 
         iterate_unitigs(unitig_database, coloring, TP);
 
@@ -282,4 +287,5 @@ class Coloring_Builder_From_GGCAT{
         coloring.node_id_to_color_set_id = builder.finish();
         coloring.sets.prepare_for_queries();        
     }
+
 };

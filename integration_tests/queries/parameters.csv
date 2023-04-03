@@ -1,7 +1,7 @@
 threshold,ignore-unknown,reverse-complements
 0.01,yes,yes
 0.7,yes,yes
-1.01,yes,yes
+1.0,yes,yes
 0.5,yes,yes
 0.5,yes,no
 0.5,no,yes

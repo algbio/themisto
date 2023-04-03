@@ -590,23 +590,8 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
 
     sbwt::write_log("Building color structure", sbwt::LogLevel::MAJOR);
     Coloring<color_set_t> coloring;
-    if(gzipped_seq_files){
-        // BAD CODE ALERT: almost all of this code is duplicated in the else-branch. If you change something here,
-        // make the equivalent change to the else-branch
-        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped
-        Coloring_Builder_From_GGCAT<color_set_t, reader_t> cb;
-        reader_t reader(seqfiles);
-        reader.enable_reverse_complements();
-        cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
-    } else{
-        // BAD CODE ALERT: almost all of this code is duplicated in the if-branch. If you change something here,
-        // make the equivalent change to the if-branch
-        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
-        Coloring_Builder_From_GGCAT<color_set_t, reader_t> cb;
-        reader_t reader(seqfiles);
-        reader.enable_reverse_complements();
-        cb.build_from_colored_unitigs(coloring, reader, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
-    }
+    Coloring_Builder_From_GGCAT<color_set_t> cb;
+    cb.build_from_colored_unitigs(coloring, *dbg_ptr, max((int64_t)1, mem_megas * (1 << 20)), n_threads, colorset_sampling_distance, db);
 
     sbwt::write_log("Serializing color structure", sbwt::LogLevel::MAJOR);
     sbwt::throwing_ofstream out(index_color_file, ios::binary);

@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace sbwt;
+using namespace pseudoalignment;
 
 vector<vector<int64_t> > parse_pseudoalignment_output_format_from_disk(string filename){
     vector<pair<int64_t, vector<int64_t>>> results; // Pairs (query id, color set)
@@ -64,4 +65,21 @@ void call_sort_parallel_output_file(const string& outfile, bool gzipped){
         sort_parallel_output_file(instream.stream, outstream.stream);
     }
     std::filesystem::rename(tempfile, outfile);
+}
+
+void pseudoalignment::print_thread(atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written, atomic<bool>* stop_printing){
+    bool first_print = true;
+    int64_t seconds = 0;
+    while(*stop_printing == false){
+        if(!first_print) cerr << '\r' << flush; // Erase current line
+        first_print = false;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        seconds++;
+        std::cerr << "Input: "
+                    << *total_length_of_sequence_processed / 1e6 / seconds << " Mbase/s"
+                    << ", Output: "
+                    << ((double) *total_bytes_written) / (1 << 20) / seconds << " MB/s     " << std::flush;
+        // Added spaces to the end to erase trailing characters from the previous line
+    }
+    cerr << endl;
 }

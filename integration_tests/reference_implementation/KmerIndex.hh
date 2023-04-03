@@ -81,7 +81,7 @@ public:
             write_number_in_ascii(out, query_id);
             if(n_relevant_kmers == 0) continue;
             for(auto [color, count] : counts){
-                if((double) count / n_relevant_kmers > threshold){
+                if((double) count / n_relevant_kmers >= threshold){
                     out.write(&space, 1);
                     write_number_in_ascii(out, color);
                 }

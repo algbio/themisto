@@ -8,119 +8,121 @@
 #include <numeric>
 
 using namespace std;
+
+// This is like the parallel bounded queue in SBWT, but uses move-semantics
+// inside the queue to avoid copies.
+template <typename T>
+class ThreadPoolParallelBoundedQueue
+{
+
+  // Behavior: pop blocks if queue is empty. Push blocks it queue has more load that max_load.
+
+ public:
+ 
+  ThreadPoolParallelBoundedQueue(int64_t max_load) : current_load(0), max_load(max_load)  {
+      assert(max_load > 0);
+  }
+
+  T pop(){
+    std::unique_lock<std::mutex> lock(queueLock);
+    while(queue.empty()) // Check the condition
+        queueEmptyCV.wait(lock);
+
+    // Critical section below
+    pair<T,int64_t> item = std::move(queue.front()); queue.pop();
+    current_load -= item.second;
+    queueFullCV.notify_all();
+    return std::move(item.first);
+  } // Lock is released when leaving this function
+ 
+  void push(T item, int64_t load){
+    std::unique_lock<std::mutex> lock(queueLock);
+    while(current_load > max_load) // Check the condition
+        queueFullCV.wait(lock);
+    
+    // Critical section below
+    queue.push(move(make_pair(move(item),load)));
+    current_load += load;
+    queueEmptyCV.notify_all();
+  } // Lock is released when leaving the function
+ 
+  private:
+  std::queue<pair<T,int64_t> > queue; // (Element, load) pairs
+  std::mutex queueLock;
+  std::condition_variable queueEmptyCV;
+  std::condition_variable queueFullCV;
+
+  int64_t current_load;
+  const int64_t max_load;
+
+};
+
+// Worker threads should inherit from this class.
+// For the ThreadPool to work, the derived worker types must
+// implement the virtual methods `process_work_item` and `critical_section`.
 template<typename work_item_t>
 class BaseWorkerThread{
 
     private:
 
-    std::mutex* mutex;
-    int64_t n_calls_between_flushes;
+    std::mutex* critical_section_mutex;
 
     public:
 
-
-    // Takes in the mutex that protects flush_results
-    BaseWorkerThread(std::mutex* mutex, int64_t n_calls_between_flushes) : n_calls_between_flushes(n_calls_between_flushes){
-        this->mutex = mutex;
+    // Called by the ThreadPool
+    void set_critical_section_mutex(std::mutex* critical_section_mutex){
+        this->critical_section_mutex = critical_section_mutex;
     }
 
-    // This function should only use local variables and no shared state
+    // This function should only use local variables and no unprotected shared state
     virtual void process_work_item(work_item_t item) = 0;
 
-    // This function is protected with a lock and may use shared state.
-    virtual void flush_results() = 0;
+    // This function is called after every work item. It is called so
+    // that only one thread at a time is executing the function.
+    virtual void critical_section() = 0;
 
     
-    void run(sbwt::ParallelBoundedQueue<std::optional<work_item_t>>& Q){
-
-        int64_t calls_to_next_flush = n_calls_between_flushes;
-        while(std::optional<work_item_t> item = Q.pop()){
-            
+    void run(ThreadPoolParallelBoundedQueue<std::optional<work_item_t>>& Q){
+        while(std::optional<work_item_t> item = move(Q.pop())){
             // Process the work item
-            process_work_item(*item);
-
-            // Flush results if needed
-            calls_to_next_flush--;
-            if(calls_to_next_flush == 0){
-                calls_to_next_flush = n_calls_between_flushes;
-                std::lock_guard<std::mutex> lock(*mutex);
-                flush_results();
-            }
+            process_work_item(std::move(*item));
+            std::lock_guard<std::mutex> lock(*critical_section_mutex);
+            critical_section();
         }
-
-        std::lock_guard<std::mutex> lock(*mutex);
-        flush_results();
     }
+
+    virtual ~BaseWorkerThread() = default;
 
 };
 
-/*
-struct ExampleWorkItem{
-    vector<int64_t> data;
-};
-
-class ExampleWorkerThread : public BaseWorkerThread<ExampleWorkItem>{
-
-    private:
-
-    vector<int64_t> results;
-
-    public:
-
-    typedef ExampleWorkItem work_item_t;
-
-    ExampleWorkerThread(std::mutex* mutex, int64_t n_calls_between_flushes) : BaseWorkerThread(mutex, n_calls_between_flushes) {}
-
-    // This function should only use local variables and no shared state
-    virtual void process_work_item(ExampleWorkItem item){
-        // Do some computation on the item
-        int64_t sum = 0;
-        while(item.data.size() > 0){
-            sum += item.data[0];
-            item.data.erase(item.data.begin());
-        }
-        results.push_back(sum);
-    }
-
-    // This function is protected with a lock and may use shared state.
-    virtual void flush_results(){
-        for(int64_t x : results) cout << x << "\n";
-        results.clear();
-    }
-
-};
-*/
-
-template<typename worker_t>
+template<typename worker_t, typename work_item_t>
 class ThreadPool{
 
-    vector<unique_ptr<worker_t>> workers;
     vector<std::thread> threads;
-    sbwt::ParallelBoundedQueue<std::optional<typename worker_t::work_item_t>> work_queue;
-    std::mutex mutex;
+    ThreadPoolParallelBoundedQueue<std::optional<work_item_t>> work_queue;
+    std::mutex critical_section_mutex;
 
     public:
 
-    ThreadPool(int64_t n_workers, int64_t max_work_queue_load, int64_t n_calls_between_output_flushes, typename worker_t::Context context) : work_queue(max_work_queue_load){
-        for(int64_t i = 0; i < n_workers; i++){
-            auto worker = make_unique<worker_t>(&mutex, n_calls_between_output_flushes, context);
-            workers.push_back(std::move(worker));
+    ThreadPool(vector<worker_t*>& workers, int64_t max_work_queue_load) : work_queue(max_work_queue_load){
+        for(worker_t* worker : workers){
+            worker->set_critical_section_mutex(&critical_section_mutex);
             threads.push_back(
-                std::thread([this, i]{
-                    this->workers[i]->run(this->work_queue);
+                std::thread([worker, this]{
+                    worker->run(this->work_queue);
                 })
             );
         }
     }
 
-    void add_work(typename worker_t::work_item_t input, int64_t load){
-        work_queue.push(input, load);
+    void add_work(work_item_t input, int64_t load){
+        work_queue.push(std::move(input), load);
     }
 
     // Waits until the work queue is empty and all threads are finished
     void join_threads(){
         // Add null work items to signify the end of the queue
-        for(int64_t i = 0; i < workers.size(); i++)
+        for(int64_t i = 0; i < threads.size(); i++)
             work_queue.push(std::nullopt, 0);
         for(auto& t : threads) t.join();
     }

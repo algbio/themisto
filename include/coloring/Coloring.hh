@@ -287,7 +287,7 @@ public:
     template<typename T1, typename T2> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 
-    template<typename T1, typename T2> requires Color_Set_Interface<T1>
+    template<typename T1> requires Color_Set_Interface<T1>
     friend class Coloring_Builder_From_GGCAT;
 };
 
