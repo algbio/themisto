@@ -85,6 +85,12 @@ public:
         return v;
     }
 
+    void push_colors_to_vector(std::vector<int64_t>& vec) const{
+        // Todo: implement without get_colors_as_vector
+        for(int64_t color : get_colors_as_vector())
+            vec.push_back(color);
+    }
+
     int64_t size() const {
         return roaring.cardinality();
     }
@@ -162,5 +168,8 @@ class Roaring_Color_Set_View {
         return ptr->get_colors_as_vector();
     }
 
+    void push_colors_to_vector(std::vector<int64_t>& vec) const{
+        return ptr->push_colors_to_vector(vec);
+    }
 
 };

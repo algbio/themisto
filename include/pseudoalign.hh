@@ -207,6 +207,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
     // State used during callback
     vector<int64_t> counts; // counts[i] = number of occurrences of color i
     vector<int64_t> nonzero_count_indices; // Indices in this->counts that have a non-zero value
+    vector<int64_t> color_buffer; // Reused buffer for storing colors
 
     ThresholdWorker(WorkerContext<coloring_t> context) :
         Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
@@ -260,8 +261,11 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
                     }
 
                     bool has_at_least_one_color =false;
+
                     // Add the run length to the counts
-                    for(int64_t color : fw_set.get_colors_as_vector()){
+                    color_buffer.clear();
+                    fw_set.push_colors_to_vector(color_buffer);
+                    for(int64_t color : color_buffer){
                         has_at_least_one_color = true;
                         if(counts[color] == 0) nonzero_count_indices.push_back(color);
                         counts[color] += run_length;

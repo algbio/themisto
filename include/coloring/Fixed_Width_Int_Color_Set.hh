@@ -95,6 +95,11 @@ public:
         return vector<int64_t>(v.begin(), v.end());
     }
 
+    void push_colors_to_vector(std::vector<int64_t>& vec) const{
+        for(int64_t color : v) vec.push_back(color);
+    }
+
+
     int64_t serialize(std::ostream& os) const{
         return v.serialize(os);
     }

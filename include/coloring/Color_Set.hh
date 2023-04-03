@@ -84,7 +84,13 @@ static inline int64_t colorset_size_in_bits(const colorset_t& cs){
 template<typename colorset_t> 
 static inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs){
     std::vector<int64_t> vec;
-    if(colorset_is_bitmap(cs)){    
+    colorset_push_colors_to_vector(cs, vec);
+    return vec;
+}
+
+template<typename colorset_t> 
+static inline void colorset_push_colors_to_vector(const colorset_t& cs, vector<int64_t>& vec){
+    if(colorset_is_bitmap(cs)){
         for(int64_t i = 0; i < cs.length; i++){
             if(colorset_access_bitmap(cs,i)) vec.push_back(i);
         }
@@ -93,7 +99,6 @@ static inline vector<int64_t> colorset_get_colors_as_vector(const colorset_t& cs
             vec.push_back(colorset_access_array(cs,i));
         }
     }
-    return vec;
 }
 
 template<typename colorset_t> 
@@ -174,6 +179,7 @@ public:
     int64_t size_in_bits() const {return colorset_size_in_bits(*this);}
     bool contains(int64_t color) const {return colorset_contains(*this, color);}
     vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
+    void push_colors_to_vector(vector<int64_t>& vec) const {return colorset_push_colors_to_vector(*this, vec);}
 
 };
 
@@ -269,6 +275,7 @@ class SDSL_Variant_Color_Set{
     int64_t size_in_bits() const {return colorset_size_in_bits(*this);}
     bool contains(int64_t color) const {return colorset_contains(*this, color);}
     vector<int64_t> get_colors_as_vector() const {return colorset_get_colors_as_vector(*this);}
+    void push_colors_to_vector(vector<int64_t>& vec) const {return colorset_push_colors_to_vector(*this, vec);}
 
     // Stores the intersection back to to this object
     void intersection(const SDSL_Variant_Color_Set_View& other){
