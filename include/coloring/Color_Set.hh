@@ -190,31 +190,41 @@ class SDSL_Variant_Color_Set{
     typedef SDSL_Variant_Color_Set_View view_t;
 
     std::variant<sdsl::bit_vector*, sdsl::int_vector<>*> data_ptr = (sdsl::bit_vector*) nullptr; // Owning pointer
-    int64_t start = 0;
-    int64_t length = 0; // Number of bits in case of bit vector, number of elements in case of array
+    int64_t start = 0; // Index of first color element in data_ptr
+    int64_t length = 0; // Number of colors stored
 
     SDSL_Variant_Color_Set(){
         data_ptr = new sdsl::bit_vector();
     }
 
+
     const SDSL_Variant_Color_Set& operator=(const SDSL_Variant_Color_Set& other){
-        if(this == &other) return *this; // Assignment to itself
+        if(this == &other) return *this; // Assignment to self does nothing
 
-        // Free existing memory
+        // Free our current owned data
         auto call_delete = [](auto ptr){delete ptr;};
-        std::visit(call_delete, this->data_ptr);
+        std::visit(call_delete, data_ptr);
+        
+        // Construct a new owned set using the constructor that takes a view to
+        // avoid code duplication
+        SDSL_Variant_Color_Set_View view(other);
+        SDSL_Variant_Color_Set new_set(view);
 
-        // Alocate new memory
-        if(std::holds_alternative<sdsl::bit_vector*>(other.data_ptr))
-            this->data_ptr = new sdsl::bit_vector(*(std::get<sdsl::bit_vector*>(other.data_ptr)));
-        else
-            this->data_ptr = new sdsl::int_vector<>(*(std::get<sdsl::int_vector<>*>(other.data_ptr)));
-        this->start = other.start;
-        this->length = other.length;
+        // Steal the data from the copy we just constructed
+        this->data_ptr = new_set.data_ptr;
+        this->start = new_set.start;
+        this->length = new_set.length;
+
+        // Set the data pointer of the new set to nullptr so that we don't get a double
+        // delete when it is destructed at the end of this function
+        new_set.data_ptr = (sdsl::bit_vector*)nullptr; // Doesn't matter which type of null pointer
+        
         return *this;
     }
 
+
     SDSL_Variant_Color_Set(const SDSL_Variant_Color_Set& other){
+        // Forward the task to the assignment operator
         *this = other;
     }
 
@@ -226,7 +236,7 @@ class SDSL_Variant_Color_Set{
             // Copy the bits
             const sdsl::bit_vector* from = std::get<const sdsl::bit_vector*>(view.data_ptr);
             sdsl::bit_vector* to = std::get<sdsl::bit_vector*>(data_ptr);
-            for(int64_t i = 0; i < view.length; i++){
+            for(int64_t i = 0; i < view.length; i++){ // TODO: 64 bits at a time
                 (*to)[i] = (*from)[view.start + i];
             }
         } else{
