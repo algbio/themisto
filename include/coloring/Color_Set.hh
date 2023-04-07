@@ -198,27 +198,34 @@ class SDSL_Variant_Color_Set{
     }
 
 
-    const SDSL_Variant_Color_Set& operator=(const SDSL_Variant_Color_Set& other){
+    // Move assignment operator
+    const SDSL_Variant_Color_Set& operator=(SDSL_Variant_Color_Set&& other){
         if(this == &other) return *this; // Assignment to self does nothing
 
         // Free our current owned data
         auto call_delete = [](auto ptr){delete ptr;};
         std::visit(call_delete, data_ptr);
         
+        // Move the data from other
+        this->data_ptr = other.data_ptr;
+        this->start = other.start;
+        this->length = other.length;
+
+        // Take ownership of the data pointer by setting the data pointer of the other to null
+        other.data_ptr = (sdsl::bit_vector*)nullptr; // Doesn't matter which type of null pointer
+        
+        return *this;        
+    }
+
+    const SDSL_Variant_Color_Set& operator=(const SDSL_Variant_Color_Set& other){
+        if(this == &other) return *this; // Assignment to self does nothing
+        
         // Construct a new owned set using the constructor that takes a view to
         // avoid code duplication
         SDSL_Variant_Color_Set_View view(other);
         SDSL_Variant_Color_Set new_set(view);
 
-        // Steal the data from the copy we just constructed
-        this->data_ptr = new_set.data_ptr;
-        this->start = new_set.start;
-        this->length = new_set.length;
-
-        // Set the data pointer of the new set to nullptr so that we don't get a double
-        // delete when it is destructed at the end of this function
-        new_set.data_ptr = (sdsl::bit_vector*)nullptr; // Doesn't matter which type of null pointer
-        
+        *this = std::move(new_set);      
         return *this;
     }
 
@@ -306,15 +313,8 @@ class SDSL_Variant_Color_Set{
                                                                   this->start, 
                                                                   this->length);
 
-            // Free our own data
-            auto call_delete = [](auto ptr){delete ptr;};
-            std::visit(call_delete, data_ptr);
+            *this = std::move(new_set);
 
-            // Steal the data from the new set to this set and take ownership of the data pointer
-            this->data_ptr = new_set.data_ptr; // *this will own this pointer now
-            this->length = iv_copy_length; // Length *after* intersection
-            this->start = new_set.start;
-            new_set.data_ptr = (sdsl::int_vector<>*)nullptr; // Avoid double free at the end of this scope
         } else{ // Array vs Array
             this->length = array_vs_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
         }
