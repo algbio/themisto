@@ -77,6 +77,21 @@ public:
         }
     }
 
+    void report_results_for_seq(int64_t seq_id, const vector<int64_t>& hits){
+        char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
+        char newline = '\n';
+        char space = ' ';
+
+        int64_t len = fast_int_to_string(seq_id, string_to_int_buffer);
+        add_to_output(string_to_int_buffer, len);
+        for(color_t x : hits){
+            len = fast_int_to_string(x, string_to_int_buffer);
+            add_to_output(&space, 1);
+            add_to_output(string_to_int_buffer, len);
+        }
+        add_to_output(&newline, 1);
+    }
+
     // -1 if node is not found at all.
     void push_color_set_ids_to_buffer(const vector<int64_t>& colex_ranks, vector<int64_t>& buffer){
 
@@ -204,10 +219,12 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
     double count_threshold; // Fraction of k-mers that need to be found to report pseudoalignment to a color
     bool ignore_unknown_kmers = false; // Ignore k-mers that do not exist in the de Bruijn graph or have no colors
 
+
     // State used during callback
     vector<int64_t> counts; // counts[i] = number of occurrences of color i
     vector<int64_t> nonzero_count_indices; // Indices in this->counts that have a non-zero value
     vector<int64_t> color_buffer; // Reused buffer for storing colors
+    vector<int64_t> hits; // Pseudoalignment hits to report
 
     ThresholdWorker(WorkerContext<coloring_t> context) :
         Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
@@ -217,18 +234,13 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
 
     void process_sequence(const char* S, int64_t S_size, int64_t string_id){
 
-        char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
-        char newline = '\n';
-        char space = ' ';
-
         Base::color_set_id_buffer.resize(0);
         Base::rc_color_set_id_buffer.resize(0);
 
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
-            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-            Base::add_to_output(string_to_int_buffer, len);
-            Base::add_to_output(&newline, 1);
+            hits.clear();
+            Base::report_results_for_seq(string_id, hits);
         } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
             Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
@@ -278,19 +290,16 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
             }
 
             // Print the colors of all counters that are above threshold
-            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-            Base::add_to_output(string_to_int_buffer, len); // String id
+            hits.clear();
             for(int64_t color : nonzero_count_indices){
                 int64_t count = counts[color];
                 int64_t effective_kmers = ignore_unknown_kmers ? n_kmers_with_at_least_1_color : n_kmers;
                 if(count >= effective_kmers * count_threshold){
-                    // Report color
-                    len = fast_int_to_string(color, string_to_int_buffer);
-                    Base::add_to_output(&space, 1);
-                    Base::add_to_output(string_to_int_buffer, len);
+                    // Add to list of reported colors
+                    hits.push_back(color);
                 }
             }
-            Base::add_to_output(&newline, 1);
+            Base::report_results_for_seq(string_id, hits);
 
             // Reset counts
             for(int64_t idx : nonzero_count_indices){
@@ -331,10 +340,6 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
 
     void process_sequence(const char* S, int64_t S_size, int64_t string_id){
 
-        char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
-        char newline = '\n';
-        char space = ' ';
-
         Base::color_set_id_buffer.resize(0);
         Base::rc_color_set_id_buffer.resize(0);
         // Clearing the buffers like this might look bad for performance at first glance because
@@ -347,9 +352,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
 
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
-            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-            Base::add_to_output(string_to_int_buffer, len);
-            Base::add_to_output(&newline, 1);
+            Base::report_results_for_seq(string_id, {});
         }
         else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
@@ -362,14 +365,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
             if(Base::reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
             else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
-            int64_t len = fast_int_to_string(string_id, string_to_int_buffer);
-            Base::add_to_output(string_to_int_buffer, len);
-            for(color_t x : intersection){
-                len = fast_int_to_string(x, string_to_int_buffer);
-                Base::add_to_output(&space, 1);
-                Base::add_to_output(string_to_int_buffer, len);
-            }
-            Base::add_to_output(&newline, 1);
+            Base::report_results_for_seq(string_id, intersection);
         }
     }
 
