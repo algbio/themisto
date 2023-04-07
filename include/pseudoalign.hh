@@ -52,6 +52,12 @@ public:
     atomic<int64_t>* total_length_of_sequence_processed;
     atomic<int64_t>* total_bytes_written;
 
+    // For output writing
+    char int_to_string_buffer[32]; // Enough space for a 64-bit integer in ascii
+    char newline = '\n';
+    char space = ' ';
+    char semicolon = ';';
+
     Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written){
         this->SBWT = SBWT;
         this->coloring = coloring;
@@ -77,17 +83,20 @@ public:
         }
     }
 
-    void report_results_for_seq(int64_t seq_id, const vector<int64_t>& hits){
-        char string_to_int_buffer[32]; // Enough space for a 64-bit integer in ascii
-        char newline = '\n';
-        char space = ' ';
-
-        int64_t len = fast_int_to_string(seq_id, string_to_int_buffer);
-        add_to_output(string_to_int_buffer, len);
+    // If n_kmers_found_in_index is given, then also reports that
+    void report_results_for_seq(int64_t seq_id, const vector<int64_t>& hits, std::optional<int64_t> n_kmers_found_in_index){
+        int64_t len = fast_int_to_string(seq_id, int_to_string_buffer);
+        add_to_output(int_to_string_buffer, len);
         for(color_t x : hits){
-            len = fast_int_to_string(x, string_to_int_buffer);
+            len = fast_int_to_string(x, int_to_string_buffer);
             add_to_output(&space, 1);
-            add_to_output(string_to_int_buffer, len);
+            add_to_output(int_to_string_buffer, len);
+        }
+        if(n_kmers_found_in_index){
+            len = fast_int_to_string(*n_kmers_found_in_index, int_to_string_buffer);
+            add_to_output(&semicolon, 1);
+            add_to_output(&space, 1);
+            add_to_output(int_to_string_buffer, len);
         }
         add_to_output(&newline, 1);
     }
@@ -240,7 +249,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
             hits.clear();
-            Base::report_results_for_seq(string_id, hits);
+            Base::report_results_for_seq(string_id, hits, std::nullopt);
         } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
             Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
@@ -299,7 +308,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
                     hits.push_back(color);
                 }
             }
-            Base::report_results_for_seq(string_id, hits);
+            Base::report_results_for_seq(string_id, hits, std::nullopt);
 
             // Reset counts
             for(int64_t idx : nonzero_count_indices){
@@ -352,7 +361,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
 
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
-            Base::report_results_for_seq(string_id, {});
+            Base::report_results_for_seq(string_id, {}, std::nullopt);
         }
         else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
@@ -365,7 +374,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
             if(Base::reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
             else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
 
-            Base::report_results_for_seq(string_id, intersection);
+            Base::report_results_for_seq(string_id, intersection, std::nullopt);
         }
     }
 
