@@ -31,6 +31,7 @@ struct Pseudoalign_Config{
     double threshold = -1;
     bool ignore_unknown = false;
     bool report_relevant = false;
+    double relevant_kmers_fraction = 0;
 
     void check_valid(){
         for(string query_file : query_files){
@@ -79,10 +80,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(SeqIO::figure_out_file_format(inputfile).gzipped){
         SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     } else{
         SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     }
 }
 
@@ -119,6 +120,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("threshold", "Fraction of k-mer matches required to report a color. If this is equal to 1, the algorithm is implemented with a specialized set intersection method.", cxxopts::value<double>()->default_value("1"))
         ("include-unknown-kmers", "Include all k-mers in the pseudoalignment, even those which do not occur in the index.", cxxopts::value<bool>()->default_value("false"))
         ("report-relevant-kmer-count", "Appends to each output line a semicolon followed by a space and then the number of k-mers of the query that had at least 1 color.", cxxopts::value<bool>()->default_value("false"))
+        ("relevant-kmers-fraction", "Accept a pseudoalignment only if at least this fraction of k-mers of the read had at least 1 color.", cxxopts::value<double>()->default_value("0.0"))
     ;
 
     options.add_options("Computational resources")
@@ -171,6 +173,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
     C.threshold = opts["threshold"].as<double>();
     C.ignore_unknown = !opts["include-unknown-kmers"].as<bool>();
     C.report_relevant = opts["report-relevant-kmer-count"].as<bool>();
+    C.relevant_kmers_fraction = opts["relevant-kmers-fraction"].as<double>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
