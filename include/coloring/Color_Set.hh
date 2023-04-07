@@ -306,6 +306,10 @@ class SDSL_Variant_Color_Set{
                                                                   this->start, 
                                                                   this->length);
 
+            // Free our own data
+            auto call_delete = [](auto ptr){delete ptr;};
+            std::visit(call_delete, data_ptr);
+
             // Steal the data from the new set to this set and take ownership of the data pointer
             this->data_ptr = new_set.data_ptr; // *this will own this pointer now
             this->length = iv_copy_length; // Length *after* intersection
