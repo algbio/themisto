@@ -295,16 +295,22 @@ class SDSL_Variant_Color_Set{
             this->length = array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::bit_vector*>(other.data_ptr), other.start, other.length);
         } else if(is_bitmap() && !other.is_bitmap()){
             // The result will be sparse, so this will turn our representation into an array
-            sdsl::int_vector<> iv_copy(*std::get<const sdsl::int_vector<>*>(other.data_ptr)); // Make a mutable copy
+
+            // Make a mutable copy
+            SDSL_Variant_Color_Set new_set(other);
 
             // Intersect into the mutable copy
-            int64_t iv_copy_length = array_vs_bitmap_intersection(iv_copy, other.length, *std::get<sdsl::bit_vector*>(this->data_ptr), this->start, this->length);
+            int64_t iv_copy_length = array_vs_bitmap_intersection(*std::get<sdsl::int_vector<>*>(new_set.data_ptr), 
+                                                                  new_set.length, 
+                                                                  *std::get<sdsl::bit_vector*>(this->data_ptr), 
+                                                                  this->start, 
+                                                                  this->length);
 
-            // Replace our data with the mutable copy
-            auto call_delete = [](auto ptr){delete ptr;}; // Free current data
-            std::visit(call_delete, this->data_ptr);
-            this->data_ptr = new sdsl::int_vector<>(iv_copy);
-            this->length = iv_copy_length;
+            // Steal the data from the new set to this set and take ownership of the data pointer
+            this->data_ptr = new_set.data_ptr; // *this will own this pointer now
+            this->length = iv_copy_length; // Length *after* intersection
+            this->start = new_set.start;
+            new_set.data_ptr = (sdsl::int_vector<>*)nullptr; // Avoid double free at the end of this scope
         } else{ // Array vs Array
             this->length = array_vs_array_intersection(*std::get<sdsl::int_vector<>*>(data_ptr), this->length, *std::get<const sdsl::int_vector<>*>(other.data_ptr), other.start, other.length);
         }
