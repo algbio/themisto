@@ -34,6 +34,7 @@ public:
     ParallelBaseWriter* out;
     bool reverse_complements;
     int64_t k;
+    bool report_relevant;
 
     // Buffer for reverse-complementing strings
     vector<char> rc_buffer;
@@ -58,7 +59,7 @@ public:
     char space = ' ';
     char semicolon = ';';
 
-    Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written){
+    Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written, bool report_relevant){
         this->SBWT = SBWT;
         this->coloring = coloring;
         this->out = out;
@@ -67,6 +68,7 @@ public:
         this->k = SBWT->get_k();
         this->total_length_of_sequence_processed = total_length_of_sequence_processed;
         this->total_bytes_written = total_bytes_written;
+        this->report_relevant = report_relevant;
         rc_buffer.resize(1 << 10); // 1 kb. Will be resized if needed
         output_buffer.reserve(output_buffer_capacity);
     }
@@ -84,7 +86,7 @@ public:
     }
 
     // If n_kmers_found_in_index is given, then also reports that
-    void report_results_for_seq(int64_t seq_id, const vector<int64_t>& hits, std::optional<int64_t> n_kmers_found_in_index){
+    void report_results_for_seq(int64_t seq_id, const vector<int64_t>& hits, int64_t n_kmers_found_in_index){
         int64_t len = fast_int_to_string(seq_id, int_to_string_buffer);
         add_to_output(int_to_string_buffer, len);
         for(color_t x : hits){
@@ -92,8 +94,8 @@ public:
             add_to_output(&space, 1);
             add_to_output(int_to_string_buffer, len);
         }
-        if(n_kmers_found_in_index){
-            len = fast_int_to_string(*n_kmers_found_in_index, int_to_string_buffer);
+        if(report_relevant){
+            len = fast_int_to_string(n_kmers_found_in_index, int_to_string_buffer);
             add_to_output(&semicolon, 1);
             add_to_output(&space, 1);
             add_to_output(int_to_string_buffer, len);
@@ -215,6 +217,8 @@ struct WorkerContext{
 
     ParallelBaseWriter* writer;
 
+    bool report_relevant; // Don't move this field up because we're using the struct initializer list syntax which depends on the order
+
 };
 
 template <typename coloring_t>
@@ -236,7 +240,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
     vector<int64_t> hits; // Pseudoalignment hits to report
 
     ThresholdWorker(WorkerContext<coloring_t> context) :
-        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
+        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.report_relevant), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
         counts.resize(context.coloring->largest_color() + 1); // Initializes counts to zeroes
     }
 
@@ -249,7 +253,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
             hits.clear();
-            Base::report_results_for_seq(string_id, hits, std::nullopt);
+            Base::report_results_for_seq(string_id, hits, 0);
         } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
             Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
@@ -308,7 +312,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
                     hits.push_back(color);
                 }
             }
-            Base::report_results_for_seq(string_id, hits, std::nullopt);
+            Base::report_results_for_seq(string_id, hits, n_kmers_with_at_least_1_color);
 
             // Reset counts
             for(int64_t idx : nonzero_count_indices){
@@ -345,7 +349,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
     typedef Pseudoaligner_Base<coloring_t> Base;
 
     IntersectionWorker(WorkerContext<coloring_t> context) :
-        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written){}
+        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.report_relevant){}
 
     void process_sequence(const char* S, int64_t S_size, int64_t string_id){
 
@@ -361,7 +365,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
 
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
-            Base::report_results_for_seq(string_id, {}, std::nullopt);
+            Base::report_results_for_seq(string_id, {}, 0);
         }
         else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
@@ -370,33 +374,39 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
                 Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
             }
 
-            vector<int64_t> intersection;
-            if(Base::reverse_complements) intersection = do_intersections_on_color_id_buffers_with_reverse_complements();
-            else intersection = do_intersections_on_color_id_buffers_without_reverse_complements();
+            vector<int64_t> intersection; int64_t n_nonempty;
+            if(Base::reverse_complements) tie(intersection, n_nonempty) = do_intersections_on_color_id_buffers_with_reverse_complements();
+            else tie(intersection, n_nonempty) = do_intersections_on_color_id_buffers_without_reverse_complements();
 
-            Base::report_results_for_seq(string_id, intersection, std::nullopt);
+            Base::report_results_for_seq(string_id, intersection, n_nonempty);
         }
     }
 
-
-    // Returns the color set
-    vector<int64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
+    // Returns the color set and the number of non-empty colorsets in the query
+    pair<vector<int64_t>, int64_t> do_intersections_on_color_id_buffers_with_reverse_complements(){
         int64_t n_kmers = Base::color_set_id_buffer.size();
 
-        bool first_nonempty_union_found = false;
+        int64_t prev_colorset_size = 0;
+        int64_t n_nonempty = 0;
+        
         typename coloring_t::colorset_type result;
         for(int64_t i = 0; i < n_kmers; i++){
             if(i > 0
             && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])
             && (Base::rc_color_set_id_buffer[n_kmers-1-i] == Base::rc_color_set_id_buffer[n_kmers-1-i+1])){
+                if(prev_colorset_size > 0) n_nonempty++;
                 continue; // This pair of color set ids was already intersected in the previous iteration
             }
 
             int64_t fw_id = Base::color_set_id_buffer[i];
             int64_t rc_id = Base::rc_color_set_id_buffer[n_kmers-1-i];
 
+            // Figure out the color set
             typename coloring_t::colorset_type cs; // For union. TODO: Reuse a union buffer
-            if(fw_id == -1 && rc_id == -1) continue; // Neither direction is found
+            if(fw_id == -1 && rc_id == -1){
+                prev_colorset_size = 0;
+                continue; // Neither direction is found
+            }
             else if(fw_id == -1 && rc_id >= 0) cs = Base::coloring->get_color_set_by_color_set_id(rc_id);
             else if(fw_id >= 0 && rc_id == -1) cs = Base::coloring->get_color_set_by_color_set_id(fw_id);
             else if(fw_id >= 0 && rc_id >= 0){
@@ -405,41 +415,43 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
                 cs.do_union(Base::coloring->get_color_set_by_color_set_id(rc_id));
             }
 
-            if(!cs.empty()){
-                if(!first_nonempty_union_found){
-                    result = cs; // This is the first nonempty union
-                    first_nonempty_union_found = true;
-                }
-                else
-                    result.intersection(cs); // Intersection
+            if(cs.size() > 0){
+                if(n_nonempty == 0) result = cs; // This is the first nonempty color set
+                else result.intersection(cs); // Intersection
+                n_nonempty++;
             }
+            prev_colorset_size = cs.size();
         }
-        return result.get_colors_as_vector();
+        return {result.get_colors_as_vector(), n_nonempty};
     }
 
-    // Returns the color se
-    vector<int64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
+    // Returns the color set and the number of non-empty colorsets in the query
+    pair<vector<int64_t>, int64_t> do_intersections_on_color_id_buffers_without_reverse_complements(){
         int64_t n_kmers = Base::color_set_id_buffer.size();
 
-        bool first_nonempty_color_set_found = false;
+        int64_t prev_colorset_size = 0;
+        int64_t n_nonempty = 0;
         typename coloring_t::colorset_type result;
         for(int64_t i = 0; i < n_kmers; i++){
             if(i > 0  && (Base::color_set_id_buffer[i] == Base::color_set_id_buffer[i-1])){
-                continue; // This color set was already intersected in the previous iteration
-            }
-            if(Base::color_set_id_buffer[i] == -1) continue; // k-mer not found
-
-            const typename coloring_t::colorset_type& cs = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[i]);
-            if(cs.size() > 0){
-                if(!first_nonempty_color_set_found){
-                    result = cs; // This is the first nonempty color set
-                    first_nonempty_color_set_found = true;
+                // This color set was already intersected in the previous iteration
+                if(prev_colorset_size > 0) n_nonempty++;
+                // prev_colorset_size unchanged
+            } else if(Base::color_set_id_buffer[i] == -1){
+                // k-mer not found
+                prev_colorset_size = 0;
+            } else{
+                // k-mer is found and it has a different color set from the previous one
+                const typename coloring_t::colorset_type::view_t cs = Base::coloring->get_color_set_by_color_set_id(Base::color_set_id_buffer[i]);
+                if(cs.size() > 0){
+                    if(n_nonempty == 0) result = cs; // This is the first nonempty color set
+                    else result.intersection(cs); // Intersection
+                    n_nonempty++;
                 }
-                else
-                    result.intersection(cs); // Intersection
+                prev_colorset_size = cs.size();
             }
         }
-        return result.get_colors_as_vector();
+        return {result.get_colors_as_vector(), n_nonempty};
     }
 
     // This function should only use local variables and protected shared variables
@@ -530,7 +542,7 @@ void push_work_batches(int64_t buffer_size, sequence_reader_t& reader, ThreadPoo
 } // End namespace pseudoalignment
 
 template<typename coloring_t, typename sequence_reader_t>
-void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown){
+void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown, bool report_relevant){
 
     using namespace pseudoalignment;
 
@@ -538,7 +550,7 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
     std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
     atomic<int64_t> total_length_of_sequence_processed = 0; // For printing progress
     atomic<int64_t> total_bytes_written = 0; // For printing progress
-    WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out.get()};
+    WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out.get(), report_relevant};
 
     // Create workers
     vector<unique_ptr<Worker<coloring_t>>> workers;
