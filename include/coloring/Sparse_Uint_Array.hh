@@ -143,11 +143,11 @@ class Sparse_Uint_Array_Builder{
 
     // If multiple values are added to the same index, the *smallest* value to that index is kept
     void add(uint64_t index, uint64_t value){
+        if(marks[index] == 0) n_values++;
         marks[index] = 1;
         write_big_endian_LL(out_stream, index);
         write_big_endian_LL(out_stream, value);
         max_value = max(max_value, value);
-        n_values++;
     }    
 
     Sparse_Uint_Array finish(){
@@ -160,7 +160,11 @@ class Sparse_Uint_Array_Builder{
         vector<char> buffer(8+8);
         uint64_t rank = 0;
         int64_t prev_index = -1;
-        sdsl::int_vector<> values(n_values, 0, ceil(log2(max_value+1))); // +1 because 0..max_value is max_value+1 distinct values
+
+        int64_t bit_width = ceil(log2(max_value+1)); // +1 because 0..max_value is max_value+1 distinct values        
+        if(bit_width == 0) bit_width = 1; // Need at least one bit to represent one value
+
+        sdsl::int_vector<> values(n_values, 0, bit_width);
         while(true){
             sorted_in.read(buffer.data(), 8+8);
             if(sorted_in.eof()) break;
