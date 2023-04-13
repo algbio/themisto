@@ -75,10 +75,14 @@ void pseudoalignment::print_thread(atomic<int64_t>* total_length_of_sequence_pro
         first_print = false;
         std::this_thread::sleep_for(std::chrono::seconds(1));
         seconds++;
-        std::cerr << "Input: "
-                    << *total_length_of_sequence_processed / 1e6 / seconds << " Mbase/s"
-                    << ", Output: "
-                    << ((double) *total_bytes_written) / (1 << 20) / seconds << " MB/s     " << std::flush;
+
+        std::cerr << "Input: " << *total_length_of_sequence_processed / 1e6 / seconds << " Mbase/s";
+
+        if(*total_bytes_written > 0){
+            std::cerr << ", Output: " << ((double) *total_bytes_written) / (1 << 20) / seconds << " MB/s"; 
+        }
+
+        std::cerr << "          " << std::flush;
         // Added spaces to the end to erase trailing characters from the previous line
     }
     cerr << endl;
