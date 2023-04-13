@@ -1,9 +1,10 @@
-# NEWS 25.2. 2023
 
-The [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v1) for Themisto v3 is out. A compiled executable file for Linux is available [here](https://github.com/algbio/themisto/releases/download/3.0.0/themisto_linux-v3.0.0.tar.gz). Tested to work at least on Ubuntu 18.04, Ubuntu 20.4, CentOS 7 and Red Hat 8.6.
+# NEWS 13.4. 2023
+
+Themisto version 3.1.0 is out. See the [release notes](https://github.com/algbio/themisto/releases/tag/3.1.0) for more information and pre-compiled Linux binaries.
 
 # About Themisto
-Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v1).
+Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3).
 
 ## Requirements
 
@@ -213,6 +214,15 @@ Usage:
                                set intersection method. (default: 0.7)
       --include-unknown-kmers  Include all k-mers in the pseudoalignment, 
                                even those which do not occur in the index.
+      --report-relevant-kmer-count
+                                Appends to each output line a semicolon
+                                followed by a space and then the number of
+                                k-mers of the query that had at least 1
+                                color.
+      --relevant-kmers-fraction arg
+                                Accept a pseudoalignment only if at least 
+                                this fraction of k-mers of the read had at 
+                                least 1 color. (default: 0.0)
 
  Computational resources options:
   -t, --n-threads arg  Number of parallel execution threads. Default: 1 
