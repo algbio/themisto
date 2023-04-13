@@ -312,7 +312,7 @@ class SDSL_Variant_Color_Set{
                                                                   *std::get<sdsl::bit_vector*>(this->data_ptr), 
                                                                   this->start, 
                                                                   this->length);
-
+            new_set.length = iv_copy_length;
             *this = std::move(new_set);
 
         } else{ // Array vs Array
