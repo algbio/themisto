@@ -1,7 +1,7 @@
 
 # NEWS 13.4. 2023
 
-Themisto version 3.1.2 is out. This release contains concurrency-related bugfixes to GGCAT, which made the construction get stuck sometimes. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.1.2) for pre-compiled Linux binaries.
+Themisto version 3.1.2 is out. This patch together with 3.1.1 contain concurrency-related bugfixes to GGCAT, which made the construction get stuck sometimes. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.1.2) for pre-compiled Linux binaries.
 
 
 # About Themisto
