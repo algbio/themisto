@@ -1,7 +1,8 @@
 
 # NEWS 13.4. 2023
 
-Themisto version 3.1.0 is out. See the [release notes](https://github.com/algbio/themisto/releases/tag/v3.1.0) for more information and pre-compiled Linux binaries.
+Themisto version 3.1.1 is out. This release contains two concurrency-related bugfixes to GGCAT, which made the construction get stuck sometimes. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.1.1) for pre-compiled Linux binaries.
+
 
 # About Themisto
 Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3).
