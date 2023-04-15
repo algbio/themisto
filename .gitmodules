@@ -1,9 +1,9 @@
 [submodule "googletest"]
 	path = googletest
 	url = https://github.com/iosfwd/googletest
-[submodule "ggcat"]
-	path = ggcat
-	url = https://github.com/algbio/ggcat
 [submodule "SBWT"]
 	path = SBWT
 	url = https://github.com/iosfwd/SBWT
+[submodule "ggcat"]
+	path = ggcat
+	url = https://github.com/jnalanko/ggcat
