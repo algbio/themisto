@@ -30,27 +30,16 @@ If there is a linking error at the very end, try runnning `make` again. Where 31
 
 ## MacOS
 
-We are aware that there are problems with compiling on ARM-based Macbooks due to x86 instructions in the dependency KMC. Currently, we have no fix for this.
-
-Compiling Themisto on macOS requires users to first install gcc-10 or newer from homebrew with
-
-```
-brew install gcc@10
-```
-
-Afterwards, Themisto can be compiled by entering the directory and running
+The MacOS build only works with the gcc and g++ compilers. Install those compilers on the system and make sure that CXX environment variable is set to the g++ compiler. Also make sure that the g++ executable is actually the GCC g++ compiler and not just a link to Clang.
 
 ```
 git submodule update --init --recursive
-cd ggcat/crates/capi/ggcat-cpp-api/
-make
-cd ../../../..
 cd build
-cmake -DCMAKE_C_COMPILER=$(which gcc-10) -DCMAKE_CXX_COMPILER=$(which g++-10) -DMAX_KMER_LENGTH=31 ..
+cmake -DCMAKE_C_COMPILER=$(which gcc) -DCMAKE_CXX_COMPILER=$(which g++) -DMAX_KMER_LENGTH=31 ..
 make
 ```
 
-Where 31 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. If you run into problems involving zlib or bzip2, add `-DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1` into the cmake command.
+Here 31 is the maximum k-mer length to support, up to 255. The larger the k-mer length, the more time and memory the index construction takes. If you run into problems involving zlib or bzip2, add `-DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1` into the cmake command.
 
 Note that macOS has a very small limit for the number of concurrently opened files. Themisto can use temporary files to conserve RAM, and may run into this limit. To increase the limit, run the command
 
