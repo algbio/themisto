@@ -87,7 +87,7 @@ int dump_distinct_color_sets_to_binary_main(int argc, char** argv){
         dump_distinct_color_sets_to_binary(obj, outfile);
     };
 
-    write_log("Dumping color matrix to " + outfile, LogLevel::MAJOR);
+    write_log("Dumping distinct color sets to " + outfile, LogLevel::MAJOR);
     std::visit(call_dump_colors, coloring);
 
     return 0;
