@@ -53,6 +53,7 @@ int dump_distinct_color_sets_to_binary_main(int argc, char** argv){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("o,output-file", "The output file for the dump.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
+        ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
     ;
 
