@@ -52,7 +52,7 @@ int main(int argc, char** argv){
         else if(command == "dump-color-matrix") return dump_color_matrix_main(argc, argv); // Undocumented developer feature
         else if(command == "color-set-diagnostics") return color_set_diagnostics_main(argc, argv); // Undocumented developer feature
         else if(command == "make-d-equal-1") return make_d_equal_1_main(argc, argv); // Undocumented developer feature
-        else if(command == "dump-distinct-color-sets-to-binary") return dump_distinct_color_sets_to_binary(argc, argv); // Undocumented developer feature
+        else if(command == "dump-distinct-color-sets-to-binary") return dump_distinct_color_sets_to_binary_main(argc, argv); // Undocumented developer feature
         else{
             throw std::runtime_error("Invalid command: " + command);
             return 1;
