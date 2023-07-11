@@ -11,7 +11,7 @@ using namespace std;
 
 int make_d_equal_1_main(int argc, char** argv){
 
-    cxxopts::Options options(argv[0], "Prints stuff avoid the coloring data structure. For developers.");
+    cxxopts::Options options(argv[0], "Makes d = 1. For developers.");
 
     options.add_options()
         ("i", "The index prefix that was given to the build command.", cxxopts::value<string>())
