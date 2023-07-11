@@ -6,4 +6,4 @@
 	url = https://github.com/algbio/SBWT
 [submodule "ggcat"]
 	path = ggcat
-	url = https://github.com/jnalanko/ggcat
+	url = https://github.com/algbio/ggcat
