@@ -26,7 +26,7 @@ endif()
 
 # -Wno-deprecated-copy is for warnings in Roaring.
 # -Wno-deprecated-declarations is for warnings in SDSL.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy -Wno-deprecated-declarations") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-deprecated-copy -Wno-deprecated-declarations")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -86,40 +86,6 @@ if(NOT ZLIB)
       UPDATE_COMMAND    ""
       )
     include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/zlib)
-  endif()
-endif()
-
-## Require bzip2
-if(NOT BZIP2)
-  if(NOT CMAKE_BUILD_BZIP2)
-    find_library(BZIP2 NAMES bz2 REQUIRED)
-  endif()
-
-  if(CMAKE_BUILD_BZIP2 OR BZIP2 MATCHES NOTFOUND)
-    configure_file(CMakeLists_bzip2.txt.in ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download/CMakeLists.txt)
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download )
-    if(result)
-      message(FATAL_ERROR "CMake step for bzip2 failed: ${result}")
-    endif()
-    execute_process(COMMAND ${CMAKE_COMMAND} --build .
-      RESULT_VARIABLE result
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2-download )
-    if(result)
-      message(FATAL_ERROR "Build step for bzip2 failed: ${result}")
-    endif()
-    set(BZIP2 ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/libbz2.a)
-    ExternalProject_Add(bzip2
-      SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/external/bzip2"
-      BUILD_IN_SOURCE   1
-      BUILD_COMMAND     $(MAKE) -f ${CMAKE_CURRENT_BINARY_DIR}/external/bzip2/Makefile CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS}
-      CONFIGURE_COMMAND ""
-      INSTALL_COMMAND   ""
-      TEST_COMMAND      ""
-      UPDATE_COMMAND    ""
-      )
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/bzip2)
   endif()
 endif()
 
@@ -233,7 +199,6 @@ if(NOT BUILD_THEMISTO_TESTS)
     OpenMP::OpenMP_CXX
     sbwt_static
     ${GGCAT}
-    ${BZIP2}
     ${ZLIB}
     ${CXX_FILESYSTEM_LIBRARIES}
     kmc_tools
@@ -260,7 +225,6 @@ if (BUILD_THEMISTO_TESTS)
     OpenMP::OpenMP_CXX
     sbwt_static
     ${GGCAT}
-    ${BZIP2}
     ${ZLIB}
     ${CXX_FILESYSTEM_LIBRARIES}
     kmc_tools
@@ -278,7 +242,6 @@ if(BUILD_IO_BENCHMARK)
   target_link_libraries(benchmark_io PRIVATE sdsl
     Threads::Threads
     OpenMP::OpenMP_CXX
-    ${BZIP2}
     ${ZLIB}
     ${CXX_FILESYSTEM_LIBRARIES}
     kmc_tools
