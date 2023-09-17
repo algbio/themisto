@@ -262,12 +262,13 @@ TEST(COLORING_TESTS, coli3) {
     SBWT.load(indexprefix + ".tdbg");
 
     // Read the sequences
-    seq_io::Unbuffered_Reader sr(filename);
+    seq_io::Reader sr(filename);
     vector<string> seqs;
     vector<int64_t> seq_to_color;
     int64_t seq_idx = 0;
-    while(!sr.done()){
-        string S = sr.get_next_query_stream().get_all();
+    while(true){
+        string S = sr.get_next_read();
+        if(S == "") break;
         seqs.push_back(S);
         seqs.push_back(get_rc(S));
         seq_to_color.push_back(seq_idx);
