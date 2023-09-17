@@ -16,11 +16,11 @@
 #include "Sparse_Uint_Array.hh"
 #include "Coloring.hh"
 
-#include "sbwt/buffered_streams.hh"
+#include "SeqIO/buffered_streams.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
 #include "sbwt/EM_sort/EM_sort.hh"
 #include "sbwt/globals.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 
 #include "WorkDispatcher.hh"
 #include "hybrid_color_set.hh"
@@ -84,7 +84,7 @@ void iterate_unitig_node_samples(const sdsl::bit_vector& cores, const SBWT_backw
 
 
 template<typename colorset_t = SDSL_Variant_Color_Set,
-         typename sequence_reader_t = sbwt::SeqIO::Reader<>> 
+         typename sequence_reader_t = seq_io::Reader<>> 
 requires Color_Set_Interface<colorset_t>
 class Coloring_Builder{
 
@@ -201,8 +201,8 @@ private:
     std::string delete_duplicate_pairs(const std::string& infile) {
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream<> in(infile, std::ios::binary);
-        Buffered_ofstream<> out(outfile, std::ios::binary);
+        seq_io::Buffered_ifstream<> in(infile, std::ios::binary);
+        seq_io::Buffered_ofstream<> out(outfile, std::ios::binary);
 
         char prev[8+8]; // two long longs
         char cur[8+8]; // two long longs
@@ -226,8 +226,8 @@ private:
     std::string collect_colorsets(const std::string& infile){
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream<> in(infile, ios::binary);
-        Buffered_ofstream<> out(outfile, ios::binary);
+        seq_io::Buffered_ifstream<> in(infile, ios::binary);
+        seq_io::Buffered_ofstream<> out(outfile, ios::binary);
 
         std::int64_t active_key = -1;
         std::vector<std::int64_t> cur_value_list;
@@ -303,8 +303,8 @@ private:
     std::string collect_nodes_by_colorset(const std::string& infile){
         std::string outfile = get_temp_file_manager().create_filename();
 
-        Buffered_ifstream<> in(infile, ios::binary);
-        Buffered_ofstream<> out(outfile, ios::binary);
+        seq_io::Buffered_ifstream<> in(infile, ios::binary);
+        seq_io::Buffered_ofstream<> out(outfile, ios::binary);
 
         std::vector<std::int64_t> active_key;
         std::vector<std::int64_t> cur_value_list;
@@ -385,7 +385,7 @@ private:
 
         SBWT_backward_traversal_support backward_support(coloring.index_ptr);
 
-        Buffered_ifstream<> in(infile, ios::binary);
+        seq_io::Buffered_ifstream<> in(infile, ios::binary);
         vector<char> buffer(16);
 
         vector<std::int64_t> node_set; // Reusable space

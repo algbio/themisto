@@ -59,7 +59,7 @@ int extract_unitigs_main(int argc, char** argv){
 
     // Prepare output streams
 
-    sbwt::SeqIO::NullStream null_stream;
+    seq_io::NullStream null_stream;
     throwing_ofstream unitigs_ofstream;
     throwing_ofstream gfa_ofstream;
     throwing_ofstream colors_ofstream;

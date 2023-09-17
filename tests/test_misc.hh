@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include "sbwt/stdlib_printing.hh"
 #include "sbwt/globals.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "globals.hh"
 #include "setup_tests.hh"
 #include "test_tools.hh"
@@ -26,7 +26,7 @@ TEST(MISC_TEST, randomize_non_ACGT){
     string fastafile = get_temp_file_manager().create_filename(".",".fna");
     write_as_fasta(seqs, fastafile);
     string fixedfile = fix_alphabet(fastafile);
-    sbwt::SeqIO::Reader<> sr(fixedfile);
+    seq_io::Reader<> sr(fixedfile);
     int64_t seqs_read = 0;
 
     auto is_dna = [](char c){
@@ -84,7 +84,7 @@ TEST(MISC_TEST, delete_non_ACGT){
     while(getline(colors_stream, line))
         out_colors.push_back(stoll(line));
     vector<string> out_seqs;
-    SeqIO::Reader<> sr(fasta2);
+    seq_io::Reader<> sr(fasta2);
     while(true){
         string read = sr.get_next_read();
         if(read.size() > 0) out_seqs.push_back(read);

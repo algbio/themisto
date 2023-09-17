@@ -20,7 +20,7 @@ void dump_distinct_color_sets_to_binary(const coloring_t& coloring, const string
 
     int64_t n = coloring.number_of_distinct_color_sets();
 
-    Buffered_ofstream<> out(outfile);
+    seq_io::Buffered_ofstream<> out(outfile);
 
     vector<int64_t> color_buf;
     sbwt::Progress_printer pp(n, 100);

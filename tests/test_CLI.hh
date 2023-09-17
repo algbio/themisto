@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "sbwt/stdlib_printing.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "globals.hh"
 #include "sbwt/globals.hh"
 #include "setup_tests.hh"
@@ -184,7 +184,7 @@ TEST_F(CLI_TEST, gzip_input_in_building){
 
     string gzip_outfile = get_temp_file_manager().create_filename("", ".fna.gz");
     { // Artifical scope to make the gz writer go out of scope to flush the stream. The flush method in the class does not actually flush
-        sbwt::SeqIO::Writer<zstr::ofstream> gzip_out(gzip_outfile);
+        seq_io::Writer<seq_io::zstr::ofstream> gzip_out(gzip_outfile);
         for(string seq : seqs){
             gzip_out.write_sequence(seq.c_str(), seq.size());
         }

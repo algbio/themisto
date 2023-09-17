@@ -190,7 +190,7 @@ TEST(TEST_PSEUDOALIGN, intersection_random_testcases){
 
         sbwt::throwing_ofstream queries_out(queries_outfilename);
         
-        zstr::ofstream* queries_out_gzip = new zstr::ofstream(queries_gzip_outfilename);
+        seq_io::zstr::ofstream* queries_out_gzip = new seq_io::zstr::ofstream(queries_gzip_outfilename);
         for(string query : tcase.queries){
             queries_out << ">\n" << query << "\n";
             *queries_out_gzip << ">\n" << query << "\n";

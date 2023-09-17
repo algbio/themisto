@@ -16,11 +16,11 @@
 #include "Sparse_Uint_Array.hh"
 #include "Coloring.hh"
 
-#include "sbwt/buffered_streams.hh"
+#include "SeqIO/buffered_streams.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
 #include "sbwt/EM_sort/EM_sort.hh"
 #include "sbwt/globals.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 
 #include "WorkDispatcher.hh"
 #include "hybrid_color_set.hh"

@@ -3,7 +3,7 @@
 #include <string>
 #include "sbwt/SBWT.hh"
 #include "coloring/Coloring.hh"
-#include "SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "ThreadPool.hh"
 #include "variants.hh"
 

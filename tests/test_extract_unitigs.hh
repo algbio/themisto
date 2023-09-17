@@ -437,7 +437,7 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
     sbwt::throwing_ofstream unitigs_out(unitigs_outfile);
     sbwt::throwing_ofstream unitig_colors_out(unitig_colors_outfile);
 
-    sbwt::SeqIO::NullStream gfa_null_stream;
+    seq_io::NullStream gfa_null_stream;
     UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
 
     unitigs_out.close();
@@ -446,7 +446,7 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
     // Parse unitigs and colors from disk
     vector<string> unitigs;
     vector<vector<int64_t> > color_sets;
-    SeqIO::Reader<> unitigs_in(unitigs_outfile);
+    seq_io::Reader<> unitigs_in(unitigs_outfile);
     while(true){ // Read unitigs
         string S = unitigs_in.get_next_read();
         if(S == "") break;

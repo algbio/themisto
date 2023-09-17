@@ -1,4 +1,4 @@
-#include "SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include <algorithm>
 
 namespace SeqIO{

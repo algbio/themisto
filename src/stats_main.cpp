@@ -107,7 +107,7 @@ int stats_main(int argc, char** argv){
             cout << component << ": " << human_readable_bytes(space) << endl;
         }
         cout << "== Space taken for the de Bruijn graph ==" << endl;
-        sbwt::SeqIO::NullStream ns;
+        seq_io::NullStream ns;
         int64_t bytes = SBWT.serialize(ns);
         cout << "SBWT: " << human_readable_bytes(bytes) << endl;
         cout << "==" << endl;
@@ -119,7 +119,7 @@ int stats_main(int argc, char** argv){
 
         string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
         throwing_ofstream unitigs_out(unitigs_file);
-        sbwt::SeqIO::NullStream null_stream;
+        seq_io::NullStream null_stream;
 
         auto call_extract_unitigs = [&](auto& obj) {
             UnitigExtractor<decltype(obj)> UE;
@@ -130,7 +130,7 @@ int stats_main(int argc, char** argv){
         unitigs_out.close();
 
         int64_t unitig_count = 0;
-        sbwt::SeqIO::Reader<> sr(unitigs_file);
+        seq_io::Reader<> sr(unitigs_file);
         int64_t min_unitig_len = 1e18;
         int64_t max_unitig_len = 0;
         int64_t unitig_len_sum = 0;

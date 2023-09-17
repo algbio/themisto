@@ -8,7 +8,7 @@
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
 #include "sbwt/variants.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
 
 using namespace std;
@@ -78,11 +78,11 @@ vector<string> read_lines(string filename){
 // If outputfile is an empty string, prints to stdout
 template<typename coloring_t> 
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
-    if(SeqIO::figure_out_file_format(inputfile).gzipped){
-        SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> reader(inputfile);
+    if(seq_io::figure_out_file_format(inputfile).gzipped){
+        seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> reader(inputfile);
         pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     } else{
-        SeqIO::Reader<Buffered_ifstream<std::ifstream>> reader(inputfile);
+        seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>> reader(inputfile);
         pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     }
 }

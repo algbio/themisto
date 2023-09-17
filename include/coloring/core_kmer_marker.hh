@@ -6,7 +6,7 @@
 #include <sdsl/bit_vectors.hpp>
 
 #include "sbwt/SBWT.hh"
-#include "SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "sbwt/variants.hh"
 #include "globals.hh"
 
@@ -26,7 +26,7 @@ using namespace sbwt;
     its successor in the graph (the successor exists due to case 2 and is unique due to case 4).
 */
 
-template<typename sequence_reader_t = SeqIO::Reader<>>
+template<typename sequence_reader_t = seq_io::Reader<>>
 class core_kmer_marker {
     static constexpr char int_to_dna[] = { 'A', 'C', 'G', 'T' };
 public:

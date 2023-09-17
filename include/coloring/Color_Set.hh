@@ -4,7 +4,7 @@
 #include "sdsl/bit_vectors.hpp"
 #include "sdsl/int_vector.hpp"
 #include "Color_Set_Interface.hh"
-#include "SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include <variant>
 
 /*

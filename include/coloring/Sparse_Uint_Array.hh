@@ -2,7 +2,7 @@
 
 #include "globals.hh"
 #include "sbwt/globals.hh"
-#include "sbwt/buffered_streams.hh"
+#include "SeqIO/buffered_streams.hh"
 #include "sbwt/EM_sort/EM_sort.hh"
 #include "sbwt/EM_sort/bit_level_stuff.hh"
 #include "sdsl/bit_vectors.hpp"
@@ -103,7 +103,7 @@ class Sparse_Uint_Array_Builder{
     private:
 
     string temp_filename;
-    sbwt::Buffered_ofstream<> out_stream;
+    seq_io::Buffered_ofstream<> out_stream;
     sdsl::bit_vector marks; // Marks which indices have been set
     uint64_t array_length;
     uint64_t max_value;
@@ -156,7 +156,7 @@ class Sparse_Uint_Array_Builder{
 
         string sorted_out = EM_sort_big_endian_LL_pairs(temp_filename, ram_bytes, 0, n_threads);
         sbwt::get_temp_file_manager().delete_file(temp_filename);
-        sbwt::Buffered_ifstream<> sorted_in(sorted_out);
+        seq_io::Buffered_ifstream<> sorted_in(sorted_out);
         vector<char> buffer(8+8);
         uint64_t rank = 0;
         int64_t prev_index = -1;

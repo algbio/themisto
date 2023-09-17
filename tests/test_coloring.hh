@@ -103,7 +103,7 @@ TEST(COLORING_TESTS, random_testcases){
 
         Coloring<> coloring;
         Coloring_Builder<> cb;
-        sbwt::SeqIO::Reader<> reader(fastafilename);
+        seq_io::Reader<> reader(fastafilename);
         cb.build_coloring(coloring, SBWT, reader, tcase.seq_id_to_color_id, 2048, 3, rand() % 3);
 
         for(int64_t kmer_id = 0; kmer_id < tcase.colex_kmers.size(); kmer_id++){
@@ -158,7 +158,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 
     Coloring<color_set_t> c;
     Coloring_Builder<color_set_t> cb;
-    sbwt::SeqIO::Reader reader(filename); reader.enable_reverse_complements();
+    seq_io::Reader reader(filename); reader.enable_reverse_complements();
     cb.build_coloring(c, matrix, reader, seq_to_color, 1<<30, 3, 3);
 
     write_log("Checking colors", LogLevel::MAJOR);
@@ -185,7 +185,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
 
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
-    sbwt::SeqIO::Reader reader(filename); reader.enable_reverse_complements();
+    seq_io::Reader reader(filename); reader.enable_reverse_complements();
     cb.build_coloring(coloring, SBWT, reader, seq_to_color, 1<<30, 3, 3);
 
     UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
@@ -197,7 +197,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     sbwt::throwing_ofstream unitigs_out(unitigs_outfile);
     sbwt::throwing_ofstream unitig_colors_out(unitig_colors_outfile);
 
-    sbwt::SeqIO::NullStream gfa_null_stream;
+    seq_io::NullStream gfa_null_stream;
     UE.extract_unitigs(dbg, coloring, unitigs_out.stream, true, unitig_colors_out.stream, gfa_null_stream, 0);
 
     unitigs_out.close();
@@ -206,7 +206,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vec
     // Parse unitigs and colors from disk
     vector<string> unitigs;
     vector<vector<int64_t> > color_sets;
-    SeqIO::Reader<> unitigs_in(unitigs_outfile);
+    seq_io::Reader<> unitigs_in(unitigs_outfile);
     while(true){ // Read unitigs
         string S = unitigs_in.get_next_read();
         if(S == "") break;
@@ -262,7 +262,7 @@ TEST(COLORING_TESTS, coli3) {
     SBWT.load(indexprefix + ".tdbg");
 
     // Read the sequences
-    SeqIO::Unbuffered_Reader sr(filename);
+    seq_io::Unbuffered_Reader sr(filename);
     vector<string> seqs;
     vector<int64_t> seq_to_color;
     int64_t seq_idx = 0;

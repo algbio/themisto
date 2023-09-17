@@ -6,7 +6,7 @@
 #include "setup_tests.hh"
 #include "globals.hh"
 #include "WorkDispatcher.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 
 class DispatcherConsumerTestCallback : DispatcherConsumerCallback{
 
@@ -70,7 +70,7 @@ TEST(WORK_DISPATCHER, basic_test){
     string fastafile = get_temp_file_manager().create_filename("",".fna");
     write_as_fasta(seqs, fastafile);
 
-    sbwt::SeqIO::Reader<> sr(fastafile);
+    seq_io::Reader<> sr(fastafile);
     int64_t buffer_size = 1024; // Small buffer so that not just one thread gets all the work
     
     vector<DispatcherConsumerCallback*> callbacks;

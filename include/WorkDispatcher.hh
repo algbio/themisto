@@ -5,7 +5,7 @@
 #include <array>
 
 #include "globals.hh"
-#include "zstr.hpp"
+#include "SeqIO/SeqIO.hh"
 #include "old_buffered_streams.hh"
 #include "sbwt/EM_sort/ParallelBoundedQueue.hh"
 
@@ -58,16 +58,16 @@ class ParallelGzipWriter : public  ParallelBaseWriter{
     public:
 
     string outfile;
-    unique_ptr<zstr::ostream> gzip_outstream;
+    unique_ptr<seq_io::zstr::ostream> gzip_outstream;
     std::mutex mutex;
 
     ParallelGzipWriter(string outfile) : outfile(outfile){
         check_writable(outfile);
-	gzip_outstream = unique_ptr<zstr::ostream>(reinterpret_cast<zstr::ostream*>(new zstr::ofstream(outfile)));
+	gzip_outstream = unique_ptr<seq_io::zstr::ostream>(reinterpret_cast<seq_io::zstr::ostream*>(new seq_io::zstr::ofstream(outfile)));
     }
 
     ParallelGzipWriter(ostream &ostream) {
-	gzip_outstream = unique_ptr<zstr::ostream>(new zstr::ostream(ostream.rdbuf()));
+	gzip_outstream = unique_ptr<seq_io::zstr::ostream>(new seq_io::zstr::ostream(ostream.rdbuf()));
     }
 
     virtual void write(const string& data){

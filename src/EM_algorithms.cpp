@@ -29,8 +29,8 @@ string EM_sort_big_endian_LL_pairs(string infile, int64_t ram_bytes, int64_t key
 string EM_delete_duplicate_LL_pair_records(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    Buffered_ifstream in(infile, ios::binary);
-    Buffered_ofstream out(outfile, ios::binary);
+    seq_io::Buffered_ifstream in(infile, ios::binary);
+    seq_io::Buffered_ofstream out(outfile, ios::binary);
 
     char prev[8+8]; // two long longs
     char cur[8+8]; // two long longs
@@ -54,8 +54,8 @@ string EM_delete_duplicate_LL_pair_records(string infile){
 string EM_collect_colorsets_binary(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    Buffered_ifstream in(infile, ios::binary);
-    Buffered_ofstream out(outfile, ios::binary);
+    seq_io::Buffered_ifstream in(infile, ios::binary);
+    seq_io::Buffered_ofstream out(outfile, ios::binary);
 
     int64_t active_key = -1;
     vector<int64_t> cur_value_list;
@@ -123,8 +123,8 @@ string EM_sort_by_colorsets_binary(string infile, int64_t ram_bytes, int64_t n_t
 string EM_collect_nodes_by_colorset_binary(string infile){
     string outfile = get_temp_file_manager().create_filename();
 
-    Buffered_ifstream in(infile, ios::binary);
-    Buffered_ofstream out(outfile, ios::binary);
+    seq_io::Buffered_ifstream in(infile, ios::binary);
+    seq_io::Buffered_ofstream out(outfile, ios::binary);
 
     vector<int64_t> active_key;
     vector<int64_t> cur_value_list;

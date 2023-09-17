@@ -1,6 +1,6 @@
 #include <string>
 #include <vector>
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "globals.hh"
 #include "zstr.hpp"
 #include "WorkDispatcher.hh"

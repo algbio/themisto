@@ -163,7 +163,7 @@ vector<string> dump_node_labels(sbwt::plain_matrix_sbwt_t& SBWT){
 }
 
 vector<string> split_seqs_to_separate_files(string infile){
-    sbwt::SeqIO::Reader<> in(infile);
+    seq_io::Reader<> in(infile);
     vector<string> outfiles;
     while(true){ // Read unitigs
         string S = in.get_next_read();

@@ -7,7 +7,7 @@
 #include "sbwt/variants.hh"
 #include "coloring/Coloring.hh"
 #include "globals.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/SeqIO.hh"
 #include "sbwt/cxxopts.hpp"
 #include "coloring/Coloring_Builder.hh"
 #include "coloring/Coloring_builder_from_ggcat.hh"
@@ -21,7 +21,7 @@ class Colorfile_Stream : public Metadata_Stream{
 
 public:
 
-    std::unique_ptr<Buffered_ifstream<>> in;
+    std::unique_ptr<seq_io::Buffered_ifstream<>> in;
     string line; // Buffer for reading lines
     vector<string> filenames;
     int64_t current_file_idx = 0;
@@ -33,7 +33,7 @@ public:
         if(filenames.size() == 0){
             throw std::runtime_error("Error: empty color file list");
         }
-        in = make_unique<Buffered_ifstream<>>(filenames[0]);
+        in = make_unique<seq_io::Buffered_ifstream<>>(filenames[0]);
     }
 
     virtual std::array<uint8_t, 8> next(){
@@ -45,7 +45,7 @@ public:
                 current_file_idx++;
                 if(current_file_idx >= filenames.size())
                     throw std::runtime_error("Error: more colors than sequences.");
-                in = make_unique<Buffered_ifstream<>>(filenames[current_file_idx]);
+                in = make_unique<seq_io::Buffered_ifstream<>>(filenames[current_file_idx]);
             }
             x = fast_string_to_int(line.c_str(), line.size()); // Parse
         }
@@ -77,7 +77,7 @@ public:
     Unique_For_Each_File_Color_Stream(const vector<string>& filenames, bool reverse_complements) : reverse_complements(reverse_complements){
         write_log("Counting sequences in input files", sbwt::LogLevel::MAJOR);
         for(const string& filename : filenames){
-            seq_count_in_file.push_back(sbwt::SeqIO::count_sequences(filename));
+            seq_count_in_file.push_back(seq_io::count_sequences(filename));
             if(reverse_complements) seq_count_in_file.back() *= 2;
         }
     }
@@ -138,7 +138,7 @@ struct Build_Config{
     string temp_dir;
     string coloring_structure_type;
     string from_index;
-    sbwt::SeqIO::FileFormat input_format;
+    seq_io::FileFormat input_format;
     bool load_dbg = false;
     int64_t memory_megas = 2048;
     bool no_colors = false;
@@ -235,7 +235,7 @@ struct Build_Config{
 template<typename sequence_reader_t>
 string generate_default_colorfile(sequence_reader_t& reader, bool reverse_complements){
     string colorfile = sbwt::get_temp_file_manager().create_filename();
-    sbwt::Buffered_ofstream<> out(colorfile);
+    seq_io::Buffered_ofstream<> out(colorfile);
     stringstream ss;
     int64_t seq_id = 0;
     while(true){
@@ -256,13 +256,13 @@ void build_coloring(plain_matrix_sbwt_t& dbg, Metadata_Stream* cfs, const Build_
 
     Coloring<colorset_t> coloring;
     if(C.input_format.gzipped){
-        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<zstr::ifstream>>> reader_t; // gzipped
+        typedef seq_io::Multi_File_Reader<seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>>> reader_t; // gzipped
         Coloring_Builder<colorset_t, reader_t> cb;
         reader_t reader(C.seqfiles);
         if(C.reverse_complements) reader.enable_reverse_complements();
         cb.build_coloring(coloring, dbg, reader, cfs, C.memory_megas * (1 << 20), C.n_threads, C.colorset_sampling_distance);
     } else{
-        typedef sbwt::SeqIO::Multi_File_Reader<sbwt::SeqIO::Reader<Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
+        typedef seq_io::Multi_File_Reader<seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>>> reader_t; // not gzipped
         Coloring_Builder<colorset_t, reader_t> cb; // Builder without gzipped input
         reader_t reader(C.seqfiles);
         if(C.reverse_complements) reader.enable_reverse_complements();
@@ -421,7 +421,7 @@ Build_Config parse_build_options(int argc_given, char** argv_given){
     }
 
     if(C.seqfiles.size() > 0) // If not --from-index
-        C.input_format = sbwt::SeqIO::figure_out_file_format(C.seqfiles[0]);
+        C.input_format = seq_io::figure_out_file_format(C.seqfiles[0]);
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(sbwt::LogLevel::MINOR);
@@ -475,7 +475,7 @@ int build_index_main(int argc, char** argv){
         write_log("Replacing non-ACGT characters with random nucleotides", LogLevel::MAJOR);
         for(string& S : C.seqfiles){
             S = fix_alphabet(S); // Turns the file into fasta format also
-            C.input_format = sbwt::SeqIO::figure_out_file_format(S);
+            C.input_format = seq_io::figure_out_file_format(S);
         }
     }
 
@@ -506,14 +506,17 @@ int build_index_main(int argc, char** argv){
         if(C.reverse_complements){
             write_log("Creating reverse complemented copies of sequence files to " + sbwt::get_temp_file_manager().get_dir(), LogLevel::MAJOR);
             vector<string> rc_files;
+            for(string f : C.seqfiles){
+                rc_files.push_back(get_temp_file_manager().create_filename("",C.input_format.extension));
+            }
             if(C.input_format.gzipped){
-                rc_files = sbwt::SeqIO::create_reverse_complement_files<
-                    sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<sbwt::zstr::ifstream>>,
-                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<sbwt::zstr::ofstream>>>(C.seqfiles);
+                seq_io::create_reverse_complement_files<
+                    seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>>,
+                    seq_io::Writer<seq_io::Buffered_ofstream<seq_io::zstr::ofstream>>>(C.seqfiles, rc_files);
             } else{
-                rc_files = (sbwt::SeqIO::create_reverse_complement_files<
-                    sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
-                    sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(C.seqfiles));
+                seq_io::create_reverse_complement_files<
+                    seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>>,
+                    seq_io::Writer<seq_io::Buffered_ofstream<std::ofstream>>>(C.seqfiles, rc_files);
             }
             for(string S : rc_files) KMC_input_files.push_back(S);
         }
@@ -561,9 +564,10 @@ int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, 
     GGCAT_unitig_database db(seqfiles, max(1LL, mem_megas / (1LL << 10)), k, n_threads, true); // Canonical unitigs
 
     string unitigfile = db.get_unitig_filename();
-    string rev_unitigfile = sbwt::SeqIO::create_reverse_complement_file<
-            sbwt::SeqIO::Reader<sbwt::Buffered_ifstream<std::ifstream>>,
-            sbwt::SeqIO::Writer<sbwt::Buffered_ofstream<std::ofstream>>>(unitigfile);
+    string rev_unitigfile = get_temp_file_manager().create_filename("", seq_io::figure_out_file_format(unitigfile).extension);
+    seq_io::create_reverse_complement_file<
+            seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>>,
+            seq_io::Writer<seq_io::Buffered_ofstream<std::ofstream>>>(unitigfile, rev_unitigfile);
 
     std::unique_ptr<sbwt::plain_matrix_sbwt_t> dbg_ptr;
     if(load_dbg){

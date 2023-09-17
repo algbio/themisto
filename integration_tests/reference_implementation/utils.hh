@@ -48,7 +48,7 @@ vector<int64_t> read_colorfile(string filename){
 }
 
 int64_t count_sequences(string filename){
-    SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> in(filename);
+    seq_io::Reader<Buffered_ifstream<seq_io::zstr::ifstream>> in(filename);
     int64_t count = 0;
     while(in.get_next_read_to_buffer() > 0) count++;
     return count;
@@ -58,7 +58,7 @@ int64_t count_sequences(string filename){
 vector<string> read_sequences(vector<string> filenames){
     vector<string> seqs;
     for(const string& f : filenames){
-        SeqIO::Reader<Buffered_ifstream<zstr::ifstream>> in(f);
+        seq_io::Reader<Buffered_ifstream<seq_io::zstr::ifstream>> in(f);
         while(true){
             int64_t len = in.get_next_read_to_buffer();
             if(len == 0) break;

@@ -56,8 +56,8 @@ void call_sort_parallel_output_file(const string& outfile, bool gzipped){
     write_log("Sorting output file", LogLevel::MAJOR);
     string tempfile = get_temp_file_manager().create_filename("results_temp");
     if (gzipped) {
-        zstr::ifstream instream(outfile);
-        zstr::ofstream outstream(tempfile);
+        seq_io::zstr::ifstream instream(outfile);
+        seq_io::zstr::ofstream outstream(tempfile);
         sort_parallel_output_file(instream, outstream);
     } else {
         throwing_ifstream instream(outfile);

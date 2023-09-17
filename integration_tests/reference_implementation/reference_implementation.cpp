@@ -21,7 +21,7 @@ void run_queries(const vector<string>& seqs, const vector<int64_t> colors, const
     KmerIndex<kmer_t> index(seqs, colors, k);
     cerr << "Indexing done" << endl;
 
-    Buffered_ofstream<> out(out_file);
+    seq_io::Buffered_ofstream<> out(out_file);
     cerr << "Querying" << endl;
     index.threshold_pseudoalign(queries, out, threshold, ignore_unknown, revcomps);
     cerr << "Querying done" << endl;    
@@ -33,7 +33,7 @@ void run_dump_color_matrix(const vector<string>& seqs, const vector<int64_t> col
     KmerIndex<kmer_t> index(seqs, colors, k);
     cerr << "Indexing done" << endl;
     cerr << "Dumping the color matrix" << endl;
-    Buffered_ofstream<> out(out_file);
+    seq_io::Buffered_ofstream<> out(out_file);
     index.dump_color_matrix(out);
     cerr << "Done" << endl;
 }

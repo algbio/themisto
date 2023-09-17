@@ -17,7 +17,7 @@ using namespace std;
 
 // Assumes the row has been initialized with enough space for all colors
 template<typename coloring_t> 
-void print_color_set_as_bitmap(int64_t node_id, const coloring_t& coloring, Buffered_ofstream<>& out){
+void print_color_set_as_bitmap(int64_t node_id, const coloring_t& coloring, seq_io::Buffered_ofstream<>& out){
 
     char space = ' '; out.write(&space, 1); // Write a space
 
@@ -33,7 +33,7 @@ void print_color_set_as_bitmap(int64_t node_id, const coloring_t& coloring, Buff
 
 // Assumes the row has been initialized with enough space for all colors
 template<typename coloring_t> 
-void print_color_set_as_integers(int64_t node_id, const coloring_t& coloring, Buffered_ofstream<>& out){
+void print_color_set_as_integers(int64_t node_id, const coloring_t& coloring, seq_io::Buffered_ofstream<>& out){
     char string_buf[32]; // Enough space to represent a 64-bit integer in ascii
     for(int64_t color : coloring.get_color_set_of_node(node_id).get_colors_as_vector()){
         int64_t len = fast_int_to_string(color, string_buf);
@@ -48,7 +48,7 @@ void dump_colors(const DBG& dbg, const coloring_t& coloring, string outfile, boo
 
     int64_t n_colors = coloring.largest_color() + 1;
 
-    Buffered_ofstream<> out(outfile);
+    seq_io::Buffered_ofstream<> out(outfile);
     vector<bool> matrix_row(n_colors, 0);
     vector<char> matrix_row_as_ASCII(n_colors, '0');
 

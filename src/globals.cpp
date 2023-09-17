@@ -3,9 +3,10 @@
 #include <iostream>
 #include <sstream>
 #include <iterator>
-#include "sbwt/buffered_streams.hh"
-#include "sbwt/SeqIO.hh"
+#include "SeqIO/buffered_streams.hh"
+#include "SeqIO/SeqIO.hh"
 #include "sbwt/globals.hh"
+#include "sbwt/throwing_streams.hh"
 #include <csignal>
 
 void create_directory_if_does_not_exist(string path){
@@ -56,7 +57,7 @@ int64_t string_to_integer_safe(const string& S){
 
 vector<int64_t> read_colorfile(string filename){
     vector<int64_t> seq_to_color;
-    sbwt::Buffered_ifstream<> colors_in(filename);
+    seq_io::Buffered_ifstream<> colors_in(filename);
     string line;
     while(colors_in.getline(line)){
         seq_to_color.push_back(string_to_integer_safe(line));
@@ -76,16 +77,16 @@ pair<string,string> split_all_seqs_at_non_ACGT(string inputfile, string inputfil
     string new_seqfile = sbwt::get_temp_file_manager().create_filename("",".fna");
 
     vector<int64_t> colors;
-    sbwt::Buffered_ofstream<> colors_out;
+    seq_io::Buffered_ofstream<> colors_out;
 
     if(colorfile != "") {
         colors = read_colorfile(colorfile);
         colors_out.open(new_colorfile);
     }
 
-    sbwt::Buffered_ofstream<> sequences_out(new_seqfile);
+    seq_io::Buffered_ofstream<> sequences_out(new_seqfile);
 
-    sbwt::SeqIO::Reader<> sr(inputfile);
+    seq_io::Reader<> sr(inputfile);
     int64_t seq_id = 0;
     int64_t n_written = 0;
     stringstream ss;
@@ -180,10 +181,10 @@ char fix_char(char c){
 // The new file is in fasta format
 std::string fix_alphabet(const std::string& input_file){
     const std::string output_file = sbwt::get_temp_file_manager().create_filename("seqs-",".fna");
-    sbwt::Buffered_ofstream<> out(output_file);
+    seq_io::Buffered_ofstream<> out(output_file);
 
     int64_t n_replaced = 0;
-    sbwt::SeqIO::Reader<> sr(input_file);
+    seq_io::Reader<> sr(input_file);
     string header = ">\n";
     string newline = "\n";
     while(true){

@@ -3,6 +3,7 @@
 #include <vector>
 #include "Color_Set_Interface.hh"
 #include "Color_Set.hh"
+#include "SeqIO/SeqIO.hh"
 #include <iostream>
 #include <map>
 
@@ -73,7 +74,7 @@ public:
     // Returns map: component -> number of bytes
     map<string, int64_t> space_breakdown() const{
         map<string, int64_t> breakdown;
-        sbwt::SeqIO::NullStream ns;
+        seq_io::NullStream ns;
         int64_t total_set_byte_size = 0;
         for(int64_t i = 0; i < sets.size(); i++){
             total_set_byte_size += sets[i].serialize(ns);
@@ -281,7 +282,7 @@ class Color_Set_Storage<SDSL_Variant_Color_Set>{
     map<string, int64_t> space_breakdown() const{
         map<string, int64_t> breakdown;
 
-        sbwt::SeqIO::NullStream ns;
+        seq_io::NullStream ns;
 
         breakdown["bitmaps-concat"] = bitmap_concat.serialize(ns);
         breakdown["bitmaps-starts"] = bitmap_starts.serialize(ns);
