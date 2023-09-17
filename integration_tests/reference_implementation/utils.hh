@@ -31,8 +31,9 @@ static constexpr unsigned char rc_table[256] =
 vector<string> readlines(string filename){
     vector<string> lines;
     string line;
-    throwing_ifstream in(filename);
-    while(getline(in.stream,line)){
+    ifstream in(filename);
+    if(!in.good()) throw runtime_error("Could not open file " + filename);
+    while(getline(in,line)){
         lines.push_back(line);
     }
     return lines;
@@ -48,7 +49,7 @@ vector<int64_t> read_colorfile(string filename){
 }
 
 int64_t count_sequences(string filename){
-    seq_io::Reader<Buffered_ifstream<seq_io::zstr::ifstream>> in(filename);
+    seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> in(filename);
     int64_t count = 0;
     while(in.get_next_read_to_buffer() > 0) count++;
     return count;
@@ -58,7 +59,7 @@ int64_t count_sequences(string filename){
 vector<string> read_sequences(vector<string> filenames){
     vector<string> seqs;
     for(const string& f : filenames){
-        seq_io::Reader<Buffered_ifstream<seq_io::zstr::ifstream>> in(f);
+        seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> in(f);
         while(true){
             int64_t len = in.get_next_read_to_buffer();
             if(len == 0) break;
