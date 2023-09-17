@@ -27,7 +27,7 @@ RUN rustup default nightly
 RUN git clone https://github.com/algbio/themisto --recursive
 WORKDIR /themisto
 WORKDIR /themisto/build
-RUN cmake .. -DCMAKE_CXX_COMPILER=g++-10 -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1
+RUN cmake .. -DCMAKE_CXX_COMPILER=g++-10 -DMAX_KMER_LENGTH=31 -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_ZLIB=1
 RUN make -j8
 
 # Check that the compiled executable runs
