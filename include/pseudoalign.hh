@@ -572,7 +572,12 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
     // Create a worker thread pool
     ThreadPool<Worker<coloring_t>, WorkBatch> TP(worker_ptrs, buffer_size);
 
-    push_work_batches(buffer_size, reader, TP);
+    try{ // For some reason exceptions are not propagates up to main from here, so we catch them and terminate the program here
+        push_work_batches(buffer_size, reader, TP);
+    } catch (const std::runtime_error &e){
+        std::cerr << "Runtime error: " << e.what() << '\n';
+        std::terminate();
+    }
 
     TP.join_threads();
     workers.clear(); // This will delete the workers, which will flush their internal buffers to the common output buffer
