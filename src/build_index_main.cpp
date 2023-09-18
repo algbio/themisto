@@ -278,7 +278,7 @@ bool has_suffix_dot_txt(const string& S){
 }
 
 template<typename color_set_t>
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg);
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool load_dbg);
 
 Build_Config parse_build_options(int argc_given, char** argv_given){
 
@@ -461,9 +461,9 @@ int build_index_main(int argc, char** argv){
         }
 
         if(C.coloring_structure_type == "sdsl-hybrid"){
-            build_index_with_ggcat<SDSL_Variant_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped, C.load_dbg);
+            build_index_with_ggcat<SDSL_Variant_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.load_dbg);
         } else if(C.coloring_structure_type == "roaring"){
-            build_index_with_ggcat<Roaring_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.input_format.gzipped, C.load_dbg); 
+            build_index_with_ggcat<Roaring_Color_Set>(C.k, C.n_threads, C.index_dbg_file, C.index_color_file, C.temp_dir, C.memory_megas, C.colorset_sampling_distance, C.seqfiles, C.load_dbg); 
         }
         return 0;
     }
@@ -554,7 +554,7 @@ int build_index_main(int argc, char** argv){
 }
 
 template<typename color_set_t>
-int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool gzipped_seq_files, bool load_dbg){
+int build_index_with_ggcat(int64_t k, int64_t n_threads, string index_dbg_file, string index_color_file, string temp_dir, int64_t mem_megas, int64_t colorset_sampling_distance, vector<string>& seqfiles, bool load_dbg){
 
     create_directory_if_does_not_exist(temp_dir);
     sbwt::get_temp_file_manager().set_dir(temp_dir);
