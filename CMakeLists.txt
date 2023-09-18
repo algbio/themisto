@@ -187,30 +187,28 @@ set(GGCAT_CPP_BINDINGS ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/l
 set(GGCAT_CXX_INTEROP ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_cxx_interop.a)
 set(GGCAT_API ${CMAKE_SOURCE_DIR}/ggcat/crates/capi/ggcat-cpp-api/lib/libggcat_api.a)
 
-# Build main executable if not building for tests
-if(NOT BUILD_THEMISTO_TESTS)
-  add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
-  target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
-  # Fix compilation order
-  add_dependencies(sdsl divsufsort64)
-  add_dependencies(themisto ggcat_cpp_api sbwt_static)
-  ## Link
-  target_link_libraries(themisto PRIVATE
-    sdsl
-    Threads::Threads
-    OpenMP::OpenMP_CXX
-    sbwt_static
-    ${GGCAT}
-    ${ZLIB}
-    ${CXX_FILESYSTEM_LIBRARIES}
-    kmc_tools
-    kmc_core
-    roaring
-    ${GGCAT_API}
-    ${GGCAT_CPP_BINDINGS}
-    ${GGCAT_CXX_INTEROP}
-    ${CMAKE_DL_LIBS})
-endif()
+# Build main executable
+add_executable(themisto src/themisto_main.cpp ${THEMISTO_SOURCES})
+target_compile_definitions(themisto PUBLIC MAX_KMER_LENGTH=${MAX_KMER_LENGTH}) # Define for compiler.
+# Fix compilation order
+add_dependencies(sdsl divsufsort64)
+add_dependencies(themisto ggcat_cpp_api sbwt_static)
+## Link
+target_link_libraries(themisto PRIVATE
+  sdsl
+  Threads::Threads
+  OpenMP::OpenMP_CXX
+  sbwt_static
+  ${GGCAT}
+  ${ZLIB}
+  ${CXX_FILESYSTEM_LIBRARIES}
+  kmc_tools
+  kmc_core
+  roaring
+  ${GGCAT_API}
+  ${GGCAT_CPP_BINDINGS}
+  ${GGCAT_CXX_INTEROP}
+  ${CMAKE_DL_LIBS})
 
 # Build tests if requested
 if (BUILD_THEMISTO_TESTS)
