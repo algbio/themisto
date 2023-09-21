@@ -357,6 +357,12 @@ make
 
 This builds the tests to `build/bin/themisto_tests`. The test executable must be ran at the root of the repository, or otherwise it wont find the test input files at `example_input`.
 
+To build release binaries for Linux, use a machine with as old of a libc as possible for maximum compatibility. It's also important to disable architecture-specific optimizations in Roaring, so use the following cmake command:
+
+```
+cmake .. -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 -DROARING_DISABLE_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
+```
+
 # License
 
 This software is licensed under GPLv2. See LICENSE.txt.
