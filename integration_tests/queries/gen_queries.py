@@ -2,6 +2,8 @@ import gzip
 import random
 import sys
 
+random.seed(42)
+
 rhinovirus_C = open("rhinovirus_C.txt").read().strip()
 # ^ This is the first virus genome from ../ref_sequences/rhinovirus_c.fasta.gz
 
