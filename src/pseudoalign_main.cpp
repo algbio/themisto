@@ -24,6 +24,7 @@ struct Pseudoalign_Config{
     bool gzipped_output = false;
     bool reverse_complements = false;
     bool sort_output_lines = false;
+    bool sort_hits = false;
     int64_t n_threads = 1;
     double buffer_size_megas = 8;
     bool verbose = false;
@@ -80,10 +81,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(seq_io::figure_out_file_format(inputfile).gzipped){
         seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
     } else{
         seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
     }
 }
 
@@ -113,8 +114,8 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
-        ("sort-output-lines", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
-        ("sort-output-color-ids", "Sort the color identifiers on each output line.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-output-lines", "Sort the the lines in the output files by sequence rank in the input files. To sort the color ids *within* the lines, use --sort-hits.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-hits", "Sort the color ids within each line of the output.", cxxopts::value<bool>()->default_value("false"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -169,6 +170,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
     C.n_threads = opts["n-threads"].as<int64_t>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
     C.sort_output_lines = opts["sort-output-lines"].as<bool>();
+    C.sort_hits = opts["sort-hits"].as<bool>();
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
