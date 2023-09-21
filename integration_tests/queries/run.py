@@ -54,7 +54,7 @@ assert(run("echo -n > file_list.txt") == 0) # Clear file
 assert(run("find ../ref_sequences -type f | grep fasta.gz >> file_list.txt") == 0)
 
 # Build index
-assert(run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5".format(
+assert(run("{} build -k {} -i {} -o {} --temp-dir {} --sequence-colors -d 5 --forward-strand-only".format(
     themisto_binary, k, "file_list.txt", index_prefix, temp_dir)) 
 == 0)
 
