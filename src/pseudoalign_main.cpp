@@ -117,7 +117,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
-        ("sort-output-lines", "Sort the the lines in the output files by sequence rank in the input files. To sort the color ids *within* the lines, use --sort-hits.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-output-lines", "Sort the lines in the output files by sequence rank in the input files. To sort the color ids *within* the lines, use --sort-hits.", cxxopts::value<bool>()->default_value("false"))
         ("sort-hits", "Sort the color ids within each line of the output.", cxxopts::value<bool>()->default_value("false"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
     ;
