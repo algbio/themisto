@@ -23,7 +23,7 @@ struct Pseudoalign_Config{
 
     bool gzipped_output = false;
     bool reverse_complements = false;
-    bool sort_output = false;
+    bool sort_output_lines = false;
     int64_t n_threads = 1;
     double buffer_size_megas = 8;
     bool verbose = false;
@@ -55,7 +55,7 @@ struct Pseudoalign_Config{
         check_true(query_files.size() == outfiles.size(), "Number of query files and outfiles do not match");
     }
 
-    if (sort_output) {
+    if (sort_output_lines) {
         check_true(outfiles.size() > 0, "Can't sort output when printing results");
     }
 
@@ -80,10 +80,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(seq_io::figure_out_file_format(inputfile).gzipped){
         seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     } else{
         seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction); // Buffer size 8 MB
     }
 }
 
@@ -93,10 +93,11 @@ int pseudoalign_main(int argc_given, char** argv_given){
     char** argv = (char**)malloc(sizeof(char*) * argc_given); // Freed and the and of the function
     argv[0] = argv_given[0];
     int64_t argc = 1;
-    static char legacy_support_fix[] = "--out-file";
-    static char legacy_support_fix2[] = "--ignore-unknown-kmers"; // This is now the default
+    char legacy_support_fix[] = "--out-file";
+    char legacy_support_fix2[] = "--sort-output-lines"; // --sort-output is now this
     for(int64_t i = 1; i < argc_given; i++){
         if(string(argv_given[i]) == "--outfile") argv[argc++] = legacy_support_fix;
+        else if(string(argv_given[i]) == "--sort-output") argv[argc++] = legacy_support_fix2;
         else if(string(argv_given[i]) == "--ignore-unknown-kmers"){
             // This is now the default. Remove (ignore) the flag.
         } else argv[argc++] = argv_given[i];
@@ -112,7 +113,8 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
-        ("sort-output", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-output-lines", "Sort the lines of the out files by sequence rank in the input files.", cxxopts::value<bool>()->default_value("false"))
+        ("sort-output-color-ids", "Sort the color identifiers on each output line.", cxxopts::value<bool>()->default_value("false"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
     ;
 
@@ -166,7 +168,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
     C.reverse_complements = opts["rc"].as<bool>();
     C.n_threads = opts["n-threads"].as<int64_t>();
     C.gzipped_output = opts["gzip-output"].as<bool>();
-    C.sort_output = opts["sort-output"].as<bool>();
+    C.sort_output_lines = opts["sort-output-lines"].as<bool>();
     C.verbose = opts["verbose"].as<bool>();
     C.silent = opts["silent"].as<bool>();
     C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
