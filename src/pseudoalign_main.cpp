@@ -98,7 +98,10 @@ int pseudoalign_main(int argc_given, char** argv_given){
     char legacy_support_fix2[] = "--sort-output-lines"; // --sort-output is now this
     for(int64_t i = 1; i < argc_given; i++){
         if(string(argv_given[i]) == "--outfile") argv[argc++] = legacy_support_fix;
-        else if(string(argv_given[i]) == "--sort-output") argv[argc++] = legacy_support_fix2;
+        else if(string(argv_given[i]) == "--sort-output"){
+            cerr << "Note: --sort-output is now called " + string(legacy_support_fix2) << ", but the old option name still works." <<  endl;
+            argv[argc++] = legacy_support_fix2;
+        }
         else if(string(argv_given[i]) == "--ignore-unknown-kmers"){
             // This is now the default. Remove (ignore) the flag.
         } else argv[argc++] = argv_given[i];

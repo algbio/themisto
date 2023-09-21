@@ -28,16 +28,19 @@ def check_outputs(themisto_outfile, ref_outfile):
     for i in range(len(themisto_lines)):
         T = themisto_lines[i]
         R = ref_lines[i]
+        print(T)
+        print(R)
+        print("--")
         assert(len(T) == len(R))
-        assert(T[0] == R[0]) # Sequence id
-        T_hits = map(int, T.split()[1:])
-        R_hits = map(int, R.split()[1:])
-        #assert(sorted(T_hits) == sorted(R_hits)) # The hits are in arbitrary order so we sort
+        assert(T.split()[0] == R.split()[0]) # Sequence id
+        T_hits = list(map(int, T.split()[1:]))
+        R_hits = list(map(int, R.split()[1:]))
+        assert(T_hits == sorted(R_hits)) # The reference hits are in arbitrary order so we sort
     print("OK:", themisto_outfile)
 
 themisto_binary = "../../build/bin/themisto"
 ref_binary = "../reference_implementation/themisto_reference_implementation"
-k = 30
+k = 9
 temp_dir = "./temp"
 index_prefix = temp_dir + "/index"
 query_file = "generated_queries.fasta.gz"
@@ -65,10 +68,11 @@ with open('parameters.csv') as csvfile:
         ref_outfile = out_dir + "/ref-" + run_id + ".txt"
 
         # Query Themisto
-        assert(run("{} pseudoalign -q {} -i {} -o {} --temp-dir {} --threshold {} {} {}".format(
-            themisto_binary, query_file, index_prefix, themisto_outfile, temp_dir, threshold,
+        assert(run("{} pseudoalign -q {} -i {} -o {} --temp-dir {} --threshold {} {} {} --sort-hits --sort-output-lines -t {} --buffer-size-megas {}".format(
+            themisto_binary, query_file, index_prefix, themisto_outfile, temp_dir, threshold, # Very small buffer to expose parallelism bugs
             "--include-unknown-kmers" if ignore == "no" else "", 
-            "--rc" if revcomp == "yes" else ""))
+            "--rc" if revcomp == "yes" else "",
+             4, 0.00001))
         == 0)
 
         # Query reference implementation
