@@ -186,7 +186,6 @@ int pseudoalign_main(int argc_given, char** argv_given){
         // No aux file given -> ok.
     }
 
-
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
     if(C.silent) set_log_level(LogLevel::OFF);

@@ -82,7 +82,7 @@ public:
         this->SBWT = SBWT;
         this->coloring = coloring;
         this->out = out;
-        this->aux_out = out;
+        this->aux_out = aux_out;
         this->reverse_complements = reverse_complements;
         this->output_buffer_flush_threshold = output_buffer_capacity;
         this->k = SBWT->get_k();
@@ -92,6 +92,7 @@ public:
         this->sort_hits = sort_hits;
         rc_buffer.resize(1 << 10); // 1 kb. Will be resized if needed
         output_buffer.reserve(output_buffer_capacity);
+        aux_output_buffer.reserve(output_buffer_capacity);
     }
 
     // Flushes at the next newline when output_buffer_flush_threshold is exceeded
@@ -104,22 +105,45 @@ public:
     }
 
     // If n_kmers_found_in_index is given, then also reports that
-    void report_results_for_seq(int64_t seq_id, vector<int64_t>& hits, int64_t n_kmers_found_in_index){
+    void report_results_for_seq(int64_t seq_id, int64_t seq_len, vector<int64_t>& hits, int64_t n_kmers_found_in_index){
         if(sort_hits) std::sort(hits.begin(), hits.end());
+
+        // Add the sequence id
         int64_t len = fast_int_to_string(seq_id, int_to_string_buffer);
         add_to_output(int_to_string_buffer, len);
+
+        // Add the color hits
         for(color_t x : hits){
             len = fast_int_to_string(x, int_to_string_buffer);
             add_to_output(&space, 1);
             add_to_output(int_to_string_buffer, len);
         }
-        if(this->aux_out.has_value()){
-            len = fast_int_to_string(n_kmers_found_in_index, int_to_string_buffer);
-            add_to_output(&semicolon, 1);
-            add_to_output(&space, 1);
-            add_to_output(int_to_string_buffer, len);
-        }
         add_to_output(&newline, 1);
+
+        // Write the aux info, if needed
+        if(this->aux_out.has_value()){
+            // Sequence id
+            len = fast_int_to_string(seq_id, int_to_string_buffer);
+            add_to_aux_output(int_to_string_buffer, len);
+
+            // Space
+            add_to_aux_output(&space, 1);
+
+            // Number of relevant k-mers
+            len = fast_int_to_string(n_kmers_found_in_index, int_to_string_buffer);
+            add_to_aux_output(int_to_string_buffer, len);
+
+            // Space
+            add_to_aux_output(&space, 1);
+
+            // Total number of k-mers
+            int64_t total_kmers = max((int64_t)0, seq_len - k + 1);
+            len = fast_int_to_string(total_kmers, int_to_string_buffer);
+            add_to_aux_output(int_to_string_buffer, len);
+
+            // Newline
+            add_to_aux_output(&newline, 1);
+        }
     }
 
     // -1 if node is not found at all.
@@ -166,6 +190,11 @@ public:
         // Flush remaining output
         out->write(output_buffer.data(), output_buffer.size());
         *total_bytes_written += output_buffer.size();
+
+        if(aux_out.has_value()){
+            aux_out.value()->write(aux_output_buffer.data(), aux_output_buffer.size());
+            *total_bytes_written += aux_output_buffer.size();
+        }
     }
 
 };
@@ -275,7 +304,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
             hits.clear();
-            Base::report_results_for_seq(string_id, hits, 0);
+            Base::report_results_for_seq(string_id, S_size, hits, 0);
         } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
             Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
@@ -334,7 +363,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
                     hits.push_back(color);
                 }
             }
-            Base::report_results_for_seq(string_id, hits, n_kmers_with_at_least_1_color);
+            Base::report_results_for_seq(string_id, S_size, hits, n_kmers_with_at_least_1_color);
 
             // Reset counts
             for(int64_t idx : nonzero_count_indices){
@@ -388,7 +417,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
         if(S_size < Base::k){
             write_log("Warning: query is shorter than k", LogLevel::MINOR);
             vector<color_t> empty;
-            Base::report_results_for_seq(string_id, empty, 0);
+            Base::report_results_for_seq(string_id, S_size, empty, 0);
         }
         else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
@@ -402,7 +431,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
             else tie(intersection, n_nonempty) = do_intersections_on_color_id_buffers_without_reverse_complements();
 
             if((double)n_nonempty / (S_size - Base::k + 1) >= Base::relevant_kmers_fraction)
-                Base::report_results_for_seq(string_id, intersection, n_nonempty);
+                Base::report_results_for_seq(string_id, S_size, intersection, n_nonempty);
         }
     }
 
@@ -606,13 +635,15 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
     TP.join_threads();
     workers.clear(); // This will delete the workers, which will flush their internal buffers to the common output buffer
 
-    // Flush the common output buffer
+    // Flush the common output buffers
     out->flush();
+    if(aux_out.has_value()) aux_out.value()->flush();
 
     // Terminate the print thread
     stop_printing = true;
     print_thread.join();
 
     if (sorted_output) call_sort_parallel_output_file(outfile, gzipped);
+    if (sorted_output && aux_out.has_value()) call_sort_parallel_output_file(aux_info_file, gzipped);
     
 }

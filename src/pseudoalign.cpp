@@ -53,7 +53,7 @@ std::unique_ptr<ParallelBaseWriter> create_writer(const string& outfile, bool gz
 void call_sort_parallel_output_file(const string& outfile, bool gzipped){
     if(outfile == "") throw std::runtime_error("Can't sort stdout output");
 
-    write_log("Sorting output file", LogLevel::MAJOR);
+    write_log("Sorting output file " + outfile, LogLevel::MAJOR);
     string tempfile = get_temp_file_manager().create_filename("results_temp");
     if (gzipped) {
         seq_io::zstr::ifstream instream(outfile);
