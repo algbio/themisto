@@ -20,6 +20,7 @@ struct Pseudoalign_Config{
     string index_dbg_file;
     string index_color_file;
     string temp_dir;
+    string aux_info_file;
 
     bool gzipped_output = false;
     bool reverse_complements = false;
@@ -31,7 +32,6 @@ struct Pseudoalign_Config{
     bool silent = false;
     double threshold = -1;
     bool ignore_unknown = false;
-    bool report_relevant = false;
     double relevant_kmers_fraction = 0;
 
     void check_valid(){
@@ -81,10 +81,10 @@ template<typename coloring_t>
 void call_pseudoalign(plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, Pseudoalign_Config& C, string inputfile, string outputfile){
     if(seq_io::figure_out_file_format(inputfile).gzipped){
         seq_io::Reader<seq_io::Buffered_ifstream<seq_io::zstr::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.aux_info_file, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
     } else{
         seq_io::Reader<seq_io::Buffered_ifstream<std::ifstream>> reader(inputfile);
-        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.report_relevant, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
+        pseudoalign(SBWT, coloring, C.n_threads, reader, outputfile, C.aux_info_file, C.reverse_complements, C.buffer_size_megas * (1 << 20), C.gzipped_output, C.sort_output_lines, C.threshold, C.ignore_unknown, C.relevant_kmers_fraction, C.sort_hits); // Buffer size 8 MB
     }
 }
 
@@ -114,6 +114,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
         ("o,out-file", "Output filename. Print results if no output filename is given.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
+        ("auxiliary-info-file", "Optional: Write to this file auxiliary information for each read. On each line, three space-separated integers: read rank, number of relevant k-mers and number of k-mers.", cxxopts::value<string>())
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
@@ -125,7 +126,6 @@ int pseudoalign_main(int argc_given, char** argv_given){
     options.add_options("Algorithm")
         ("threshold", "Fraction of k-mer matches required to report a color. If this is equal to 1, the algorithm is implemented with a specialized set intersection method.", cxxopts::value<double>()->default_value("1"))
         ("include-unknown-kmers", "Include all k-mers in the pseudoalignment, even those which do not occur in the index.", cxxopts::value<bool>()->default_value("false"))
-        ("report-relevant-kmer-count", "Appends to each output line a semicolon followed by a space and then the number of k-mers of the query that had at least 1 color.", cxxopts::value<bool>()->default_value("false"))
         ("relevant-kmers-fraction", "Accept a pseudoalignment only if at least this fraction of k-mers of the read had at least 1 color.", cxxopts::value<double>()->default_value("0.0"))
     ;
 
@@ -179,8 +179,8 @@ int pseudoalign_main(int argc_given, char** argv_given){
     C.buffer_size_megas = opts["buffer-size-megas"].as<double>();
     C.threshold = opts["threshold"].as<double>();
     C.ignore_unknown = !opts["include-unknown-kmers"].as<bool>();
-    C.report_relevant = opts["report-relevant-kmer-count"].as<bool>();
     C.relevant_kmers_fraction = opts["relevant-kmers-fraction"].as<double>();
+    C.aux_info_file = opts["auxiliary-info-file"].as<string>();
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);

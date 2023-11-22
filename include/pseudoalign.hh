@@ -27,24 +27,41 @@ class Pseudoaligner_Base{
 
     // This class contains code that is common to both the intersection and threshold pseudualigners
 
+private:
+
+    // Flushes at the next newline when output_buffer_flush_threshold is exceeded
+    template<typename output_stream_t>
+    void write_out(char* data, int64_t data_length, output_stream_t& output_writer, vector<char>& buffer){
+        for(int64_t i = 0; i < data_length; i++){
+            buffer.push_back(data[i]);
+            if(buffer.size() > output_buffer_flush_threshold && data[i] == '\n'){
+                output_writer->write(buffer.data(), buffer.size());
+                *total_bytes_written += buffer.size();
+                buffer.clear(); // Let's hope this keeps the reserved capacity of the vector intact
+            }
+        }
+    }
+
 public:
 
     const plain_matrix_sbwt_t* SBWT; // Not owned by this class
     const coloring_t* coloring; // Not owned by this class
-    ParallelBaseWriter* out;
+    shared_ptr<ParallelBaseWriter> out;
+    optional<shared_ptr<ParallelBaseWriter>> aux_out;
+
     bool reverse_complements;
     int64_t k;
-    bool report_relevant;
     double relevant_kmers_fraction;
     bool sort_hits;
 
     // Buffer for reverse-complementing strings
     vector<char> rc_buffer;
 
-    // Buffer for printing. We want to have a local buffer for each thread to avoid having to call the
-    // parallel writer so often to avoid locking the writer from other threads.
+    // Buffers for printing. We want to have local buffers for each thread to avoid having to call the
+    // parallel writer so often to avoid locking the writers from other threads.
     vector<char> output_buffer;
-    int64_t output_buffer_flush_threshold;
+    vector<char> aux_output_buffer;
+    int64_t output_buffer_flush_threshold; // Used also as a threshold for aux output buffer
 
     // Buffer for storing color set ids
     vector<int64_t> color_set_id_buffer;
@@ -61,16 +78,16 @@ public:
     char space = ' ';
     char semicolon = ';';
 
-    Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, ParallelBaseWriter* out, bool reverse_complements, int64_t output_buffer_capacity, atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written, bool report_relevant, double relevant_kmers_fraction, bool sort_hits){
+    Pseudoaligner_Base(const plain_matrix_sbwt_t* SBWT, const coloring_t* coloring, shared_ptr<ParallelBaseWriter> out, optional<shared_ptr<ParallelBaseWriter>> aux_out, bool reverse_complements, int64_t output_buffer_capacity, atomic<int64_t>* total_length_of_sequence_processed, atomic<int64_t>* total_bytes_written, double relevant_kmers_fraction, bool sort_hits){
         this->SBWT = SBWT;
         this->coloring = coloring;
         this->out = out;
+        this->aux_out = out;
         this->reverse_complements = reverse_complements;
         this->output_buffer_flush_threshold = output_buffer_capacity;
         this->k = SBWT->get_k();
         this->total_length_of_sequence_processed = total_length_of_sequence_processed;
         this->total_bytes_written = total_bytes_written;
-        this->report_relevant = report_relevant;
         this->relevant_kmers_fraction = relevant_kmers_fraction;
         this->sort_hits = sort_hits;
         rc_buffer.resize(1 << 10); // 1 kb. Will be resized if needed
@@ -79,14 +96,11 @@ public:
 
     // Flushes at the next newline when output_buffer_flush_threshold is exceeded
     void add_to_output(char* data, int64_t data_length){
-        for(int64_t i = 0; i < data_length; i++){
-            output_buffer.push_back(data[i]);
-            if(output_buffer.size() > output_buffer_flush_threshold && data[i] == '\n'){
-                out->write(output_buffer.data(), output_buffer.size());
-                *total_bytes_written += output_buffer.size();
-                output_buffer.clear(); // Let's hope this keeps the reserved capacity of the vector intact
-            }
-        }
+        write_out(data, data_length, out, output_buffer);
+    }
+
+    void add_to_aux_output(char* data, int64_t data_length){
+        if(aux_out.has_value()) write_out(data, data_length, aux_out.value(), aux_output_buffer);
     }
 
     // If n_kmers_found_in_index is given, then also reports that
@@ -99,7 +113,7 @@ public:
             add_to_output(&space, 1);
             add_to_output(int_to_string_buffer, len);
         }
-        if(report_relevant){
+        if(this->aux_out.has_value()){
             len = fast_int_to_string(n_kmers_found_in_index, int_to_string_buffer);
             add_to_output(&semicolon, 1);
             add_to_output(&space, 1);
@@ -221,10 +235,10 @@ struct WorkerContext{
     atomic<int64_t>* total_length_of_sequence_processed = 0;
     atomic<int64_t>* total_bytes_written = 0;
 
-    ParallelBaseWriter* writer;
+    shared_ptr<ParallelBaseWriter> writer;
+    std::optional<shared_ptr<ParallelBaseWriter>> aux_writer;
 
     // Don't move these fields up because we're using the struct initializer list syntax which depends on the order
-    bool report_relevant; 
     double relevant_kmers_fraction;
 
 };
@@ -248,7 +262,7 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
     vector<int64_t> hits; // Pseudoalignment hits to report
 
     ThresholdWorker(WorkerContext<coloring_t> context) :
-        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.report_relevant, context.relevant_kmers_fraction, context.sort_hits), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
+        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.aux_writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.relevant_kmers_fraction, context.sort_hits), count_threshold(context.threshold), ignore_unknown_kmers(context.ignore_unknown){
         counts.resize(context.coloring->largest_color() + 1); // Initializes counts to zeroes
     }
 
@@ -357,7 +371,7 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
     typedef Pseudoaligner_Base<coloring_t> Base;
 
     IntersectionWorker(WorkerContext<coloring_t> context) :
-        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.report_relevant, context.relevant_kmers_fraction, context.sort_hits){}
+        Pseudoaligner_Base<coloring_t>(context.SBWT, context.coloring, context.writer, context.aux_writer, context.reverse_complements, context.output_buffer_size, context.total_length_of_sequence_processed, context.total_bytes_written, context.relevant_kmers_fraction, context.sort_hits){}
 
     void process_sequence(const char* S, int64_t S_size, int64_t string_id){
 
@@ -552,15 +566,20 @@ void push_work_batches(int64_t buffer_size, sequence_reader_t& reader, ThreadPoo
 } // End namespace pseudoalignment
 
 template<typename coloring_t, typename sequence_reader_t>
-void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown, bool report_relevant, double relevant_kmers_fraction, bool sort_hits){
+void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, std::string aux_info_file, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown, double relevant_kmers_fraction, bool sort_hits){
 
     using namespace pseudoalignment;
 
     // Set up context (= commmon variables for all workers).
-    std::unique_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
+
+    std::shared_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
+
+    std::optional<std::shared_ptr<ParallelBaseWriter>> aux_out;
+    if(aux_info_file != "") aux_out = create_writer(aux_info_file, gzipped);
+
     atomic<int64_t> total_length_of_sequence_processed = 0; // For printing progress
     atomic<int64_t> total_bytes_written = 0; // For printing progress
-    WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, sort_hits, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out.get(), report_relevant, relevant_kmers_fraction};
+    WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, sort_hits, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out, aux_out, relevant_kmers_fraction};
 
     // Create workers
     vector<unique_ptr<Worker<coloring_t>>> workers;
