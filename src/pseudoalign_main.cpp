@@ -180,7 +180,12 @@ int pseudoalign_main(int argc_given, char** argv_given){
     C.threshold = opts["threshold"].as<double>();
     C.ignore_unknown = !opts["include-unknown-kmers"].as<bool>();
     C.relevant_kmers_fraction = opts["relevant-kmers-fraction"].as<double>();
-    C.aux_info_file = opts["auxiliary-info-file"].as<string>();
+    try {
+        C.aux_info_file = opts["auxiliary-info-file"].as<string>();
+    } catch(cxxopts::option_has_no_value_exception& e){
+        // No aux file given -> ok.
+    }
+
 
     if(C.verbose && C.silent) throw runtime_error("Can not give both --verbose and --silent");
     if(C.verbose) set_log_level(LogLevel::MINOR);
