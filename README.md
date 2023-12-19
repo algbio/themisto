@@ -8,7 +8,7 @@ Themisto is a succinct colored k-mer index supporting pseudo-alignment against a
 
 ## Requirements
 
-We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install). If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
+We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and Nightly [Rust](https://www.rust-lang.org/tools/install). If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ## Compiling
 
