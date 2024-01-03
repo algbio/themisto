@@ -4,7 +4,7 @@ Themisto version 3.2.1 is out. This release contains two minor bugfixes. See [re
 
 
 # About Themisto
-Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3).
+Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3). This software is currently developed by the [Compressed Data Structures group](https://www.helsinki.fi/en/researchgroups/algorithmic-bioinformatics/teams/compressed-data-structures) at the University of Helsinki.
 
 ## Requirements
 
