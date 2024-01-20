@@ -24,5 +24,6 @@ class RunTracker{
     void add_run(const std::vector<int64_t>& colors, int64_t run_length);
     const std::vector<int64_t>& get_run_counts() const;
     const std::vector<int64_t>& get_max_runs() const;
+    const std::vector<int64_t>& get_seen_colors() const;
 
 };

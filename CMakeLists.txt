@@ -44,6 +44,7 @@ set(THEMISTO_SOURCES
   src/pseudoalign_main.cpp
   src/pseudoalign.cpp
   src/globals.cpp
+  src/run_tracker.cpp
   src/test_tools.cpp
   src/WorkDispatcher.cpp
   src/zpipe.cpp

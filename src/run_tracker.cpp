@@ -59,7 +59,6 @@ void RunTracker::add_run(const std::vector<int64_t>& colors, int64_t run_length)
             i++; j++;
         }
     }
-    for(auto x : cur_runs) std::cout << x << " "; std::cout << std::endl;
     active_colors_list = colors;
 }
 
@@ -69,6 +68,10 @@ const std::vector<int64_t>& RunTracker::get_run_counts() const{
 
 const std::vector<int64_t>& RunTracker::get_max_runs() const{
     return max_runs;
+}
+
+const std::vector<int64_t>& RunTracker::get_seen_colors() const{
+    return seen_colors_list;
 }
 
 int test_run_tracker(){
@@ -96,9 +99,13 @@ int test_run_tracker(){
     std::vector<int64_t> true_max_runs = {12,12,17,9};
     std::vector<int64_t> true_run_counts = {3,3,4,3};
 
-    for(auto x : run_counts) std::cout << x << " "; std::cout << std::endl;
-    for(auto x : true_run_counts) std::cout << x << " "; std::cout << std::endl;
+    for(auto x : run_counts) std::cout << x << " "; 
+    std::cout << std::endl;
+    for(auto x : true_run_counts) std::cout << x << " "; 
+    std::cout << std::endl;
 
-    for(auto x : max_runs) std::cout << x << " "; std::cout << std::endl;
-    for(auto x : true_max_runs) std::cout << x << " "; std::cout << std::endl;
+    for(auto x : max_runs) std::cout << x << " ";
+    std::cout << std::endl;
+    for(auto x : true_max_runs) std::cout << x << " ";
+    std::cout << std::endl;
 }
