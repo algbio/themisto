@@ -114,7 +114,7 @@ int pseudoalign_main(int argc_given, char** argv_given){
         ("query-file-list", "A list of query filenames, one line per filename", cxxopts::value<string>()->default_value(""))
         ("o,out-file", "Output filename. Print results if no output filename is given.", cxxopts::value<string>()->default_value(""))
         ("out-file-list", "A file containing a list of output filenames, one per line.", cxxopts::value<string>()->default_value(""))
-        ("auxiliary-info-file", "Optional: Write to this file auxiliary information for each read. On each line, three space-separated integers: read rank, number of relevant k-mers and number of k-mers.", cxxopts::value<string>())
+        ("aux-info-file", "Optional: a json output file with extra information on the pseudoalignments (todo: document)", cxxopts::value<string>())
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("gzip-output", "Compress the output files with gzip.", cxxopts::value<bool>()->default_value("false"))
