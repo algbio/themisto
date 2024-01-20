@@ -547,7 +547,9 @@ class Worker : public BaseWorkerThread<WorkBatch>{
 
         Worker(WorkerContext<coloring_t> context){
             // Initialize the correct inner worker
-            if(context.threshold == 1)
+            // If there is an aux writer then we can't use the intersection worker because
+            // It does not keep track of the counts which should be reported in the aux file.
+            if(context.threshold == 1 && !(context.aux_writer.has_value()))
                 inner_worker = make_unique<IntersectionWorker<coloring_t>>(context);
             else
                 inner_worker = make_unique<ThresholdWorker<coloring_t>>(context);
