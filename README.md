@@ -363,6 +363,8 @@ To build release binaries for Linux, use a machine with as old of a libc as poss
 cmake .. -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 -DROARING_DISABLE_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
 ```
 
+See the Wiki in Github for instructions on how to set up the build environment.
+
 # License
 
 This software is licensed under GPLv2. See LICENSE.txt.
