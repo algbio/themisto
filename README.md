@@ -1,6 +1,6 @@
 # NEWS 19. December 2023
 
-Themisto version 3.2.1 is out. This release contains two minor bugfixes. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.2.1) for details and pre-compiled Linux binaries.
+Themisto version 3.2.2 is out, fixing a bug where the output was sometimes not fully flushed to disk when using gzipped sorted output. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.2.2) for details and pre-compiled Linux binaries.
 
 
 # About Themisto
