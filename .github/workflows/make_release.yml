@@ -21,7 +21,7 @@ jobs:
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/linux/build.sh
+        run: wget https://raw.githubusercontent.com/algbio/themisto/${{ github.ref_name }}/deploy/linux/build.sh
 
       - name: Compile binary in Holy Build Box container
         id: compile-in-container
@@ -48,11 +48,11 @@ jobs:
 
       - name: Download x86_64 toolchain file
         id: dl-toolchain-file
-        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /io/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /x86-64-toolchain_GNU.cmake
+        run: wget https://raw.githubusercontent.com/algbio/themisto/${{ github.ref_name }}/deploy/macOS/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /io/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /x86-64-toolchain_GNU.cmake
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
+        run: wget https://raw.githubusercontent.com/algbio/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
 
       - name: Compile binary in macOS Cross Compiler container
         id: compile-in-container
@@ -79,11 +79,11 @@ jobs:
 
       - name: Download arm64 toolchain file
         id: dl-toolchain-file
-        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /io/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /arm64-toolchain_GNU.cmake
+        run: wget https://raw.githubusercontent.com/algbio/themisto/${{ github.ref_name }}/deploy/macOS/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /io/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /arm64-toolchain_GNU.cmake
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
+        run: wget https://raw.githubusercontent.com/algbio/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
 
       - name: Compile binary in macOS Cross Compiler container
         id: compile-in-container
