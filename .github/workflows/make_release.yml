@@ -21,7 +21,7 @@ jobs:
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/biobins/master/linux/Themisto/build.sh
+        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/linux/build.sh
 
       - name: Compile binary in Holy Build Box container
         id: compile-in-container
@@ -46,13 +46,13 @@ jobs:
         id: mkdir-io
         run: mkdir /io && cd /io
 
-      - name: Download toolchain file
+      - name: Download x86_64 toolchain file
         id: dl-toolchain-file
-        run: wget https://raw.githubusercontent.com/tmaklin/biobins/master/macOS/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /io/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /x86-64-toolchain_GNU.cmake
+        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /io/x86-64-toolchain_GNU.cmake && cp x86-64-toolchain_GNU.cmake /x86-64-toolchain_GNU.cmake
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/biobins/master/macOS/Themisto/build.sh
+        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
 
       - name: Compile binary in macOS Cross Compiler container
         id: compile-in-container
@@ -77,13 +77,13 @@ jobs:
         id: mkdir-io
         run: mkdir /io && cd /io
 
-      - name: Download toolchain file
+      - name: Download arm64 toolchain file
         id: dl-toolchain-file
-        run: wget https://raw.githubusercontent.com/tmaklin/biobins/master/macOS/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /io/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /arm64-toolchain_GNU.cmake
+        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /io/arm64-toolchain_GNU.cmake && cp arm64-toolchain_GNU.cmake /arm64-toolchain_GNU.cmake
 
       - name: Download build script
         id: dl-build-script
-        run: wget https://raw.githubusercontent.com/tmaklin/biobins/master/macOS/Themisto/build.sh
+        run: wget https://raw.githubusercontent.com/tmaklin/themisto/${{ github.ref_name }}/deploy/macOS/build.sh
 
       - name: Compile binary in macOS Cross Compiler container
         id: compile-in-container
@@ -93,8 +93,8 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: themisto-${{ github.ref_name }}-arm64-apple-darwin22
-          path: /io/themisto-${{ github.ref_name }}-arm64-apple-darwin22.tar.gz
+          name: themisto-${{ github.ref_name }}-aarch64-apple-darwin22
+          path: /io/themisto-${{ github.ref_name }}-aarch64-apple-darwin22.tar.gz
 
   create-release:
     runs-on: ubuntu-latest
@@ -111,7 +111,7 @@ jobs:
       - name: Organise files
         shell: bash
         run: |
-          cp build/themisto-${{ github.ref_name }}-arm64-apple-darwin22/themisto-${{ github.ref_name }}-aarch64-apple-darwin22.tar.gz .
+          cp build/themisto-${{ github.ref_name }}-aarch64-apple-darwin22/themisto-${{ github.ref_name }}-aarch64-apple-darwin22.tar.gz .
           cp build/themisto-${{ github.ref_name }}-x86_64-apple-darwin22/themisto-${{ github.ref_name }}-x86_64-apple-darwin22.tar.gz .
           cp build/themisto-${{ github.ref_name }}-x86_64-redhat-linux/themisto-${{ github.ref_name }}-x86_64-redhat-linux.tar.gz .
 
