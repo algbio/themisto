@@ -47,7 +47,7 @@ export RUSTUP_HOME="/.rustup"
 rustup target add x86_64-unknown-linux-gnu
 
 ## Clone Themisto
-git clone https://github.com/tmaklin/Themisto
+git clone https://github.com/algbio/Themisto
 cd Themisto
 git checkout ${VER}
 git submodule update --init --recursive

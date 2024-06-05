@@ -25,7 +25,7 @@ mkdir /io/tmp
 cd /io/tmp
 
 # Extract and enter source
-git clone https://github.com/tmaklin/Themisto.git
+git clone https://github.com/algbio/Themisto.git
 cd Themisto
 git checkout ${VER}
 git submodule update --init --recursive
