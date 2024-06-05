@@ -6,7 +6,15 @@ Themisto version 3.2.2 is out, fixing a bug where the output was sometimes not f
 # About Themisto
 Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3). This software is currently developed by the [Compressed Data Structures group](https://www.helsinki.fi/en/researchgroups/algorithmic-bioinformatics/teams/compressed-data-structures) at the University of Helsinki.
 
-## Requirements
+## Installation
+Precompiled binaries are available for
+- Linux x86_64
+- macOS arm64
+- macOS x86_64
+
+Visit the [Releases page](https://github.com/algbio/themisto/releases) to download a binary.
+
+## Compiling requirements
 
 We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install) 1.77. If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
