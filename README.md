@@ -14,11 +14,10 @@ Precompiled binaries are available for
 
 Visit the [Releases page](https://github.com/algbio/themisto/releases) to download a binary.
 
-## Compiling requirements
+## Compiling
+### Requirements
 
 We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install) 1.77. If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
-
-## Compiling
 
 ### Linux
 
