@@ -50,8 +50,12 @@ if [ "$ARCH" = "x86-64" ]; then
     export CXX="x86_64-apple-darwin22-g++"
 
     ## Setup ggcat-cpp-api cargo config files for cross compilation
-    sed "s/cargo build/RUSTFLAGS='-L \/osxcross\/SDK\/MacOSX13.0.sdk\/usr\/lib' cargo build --target x86_64-apple-darwin/g" ../ggcat/crates/capi/ggcat-cpp-api/Makefile | sed 's/target\/release/target\/x86_64-apple-darwin\/release/g' | sed 's/fPIE/fPIE -march=x86-64 -mtune=generic -m64 -fPIC/g' | sed 's/ar cr/\/gcc\/bin\/x86_64-apple-darwin22-gcc-ar cr/g' > Makefile.tmp
+    sed "s/cargo build/RUSTFLAGS='-L \/osxcross\/SDK\/MacOSX13.0.sdk\/usr\/lib' cargo build --target x86_64-apple-darwin/g" ../ggcat/crates/capi/ggcat-cpp-api/Makefile | sed 's/target\/release/target\/x86_64-apple-darwin\/release/g' | sed 's/fPIE/fPIE -march=x86-64 -mtune=generic -m64 -fPIC -static-libstdc++ -static-libgcc/g' | sed 's/ar cr/\/gcc\/bin\/x86_64-apple-darwin22-gcc-ar cr/g' > Makefile.tmp
     mv Makefile.tmp ../ggcat/crates/capi/ggcat-cpp-api/Makefile
+
+    ## Prevent KMC from linking statically
+    sed 's/-static-libgcc//g' ../SBWT/KMC/CMakeLists.txt | sed 's/-static-libstdc++//g' | sed 's/-static//g' > CMakeLists.txt.tmp
+    mv CMakeLists.txt.tmp ../SBWT/KMC/CMakeLists.txt
 
     ## Prevent sdsl-lite from building with native instructions
     sed 's/-march=native/-march=x86-64/g' ../SBWT/sdsl-lite/CMakeLists.txt > CMakeLists.txt.tmp
@@ -63,8 +67,8 @@ if [ "$ARCH" = "x86-64" ]; then
 
     # compile x86_64
     cmake -DCMAKE_TOOLCHAIN_FILE="/io/$ARCH-toolchain_GNU.cmake" \
-          -DCMAKE_C_FLAGS="-march=$ARCH -mtune=generic -m64 -fPIC -fPIE" \
-          -DCMAKE_CXX_FLAGS="-march=$ARCH -mtune=generic -m64 -fPIC -fPIE" \
+          -DCMAKE_C_FLAGS="-march=$ARCH -mtune=generic -m64 -fPIC -fPIE -static-libstdc++ -static-libgcc" \
+          -DCMAKE_CXX_FLAGS="-march=$ARCH -mtune=generic -m64 -fPIC -fPIE -static-libstdc++ -static-libgcc" \
 	  -DROARING_DISABLE_NATIVE=ON \
           -DBZIP2_LIBRARIES="/osxcross/SDK/MacOSX13.0.sdk/usr/lib/libbz2.tbd" -DBZIP2_INCLUDE_DIR="/osxcross/SDK/MacOSX13.0.sdk/usr/include" \
           -DZLIB="/osxcross/SDK/MacOSX13.0.sdk/usr/lib/libz.tbd" -DZLIB_INCLUDE_DIR="/osxcross/SDK/MacOSX13.0.sdk/usr/include" \
@@ -90,18 +94,22 @@ elif [ "$ARCH" = "arm64" ]; then
     mv Makefile.tmp ../SBWT/KMC/Makefile
     mv CMakeLists.txt.tmp ../SBWT/KMC/CMakeLists.txt
 
+    ## Prevent KMC from linking statically
+    sed 's/-static-libgcc//g' ../SBWT/KMC/CMakeLists.txt | sed 's/-static-libstdc++//g' | sed 's/-static//g' > CMakeLists.txt.tmp
+    mv CMakeLists.txt.tmp ../SBWT/KMC/CMakeLists.txt
+
     ## Prevent sdsl-lite from building with native instructions
     sed 's/-msse4.2[[:space:]]*-march=native/-march=armv8-a/g' ../SBWT/sdsl-lite/CMakeLists.txt > CMakeLists.txt.tmp
     mv CMakeLists.txt.tmp ../SBWT/sdsl-lite/CMakeLists.txt
 
     ## Setup ggcat-cpp-api cargo config files for cross compilation
-    sed "s/cargo build/RUSTFLAGS='-L \/osxcross\/SDK\/MacOSX13.0.sdk\/usr\/lib' cargo build --target aarch64-apple-darwin/g" ../ggcat/crates/capi/ggcat-cpp-api/Makefile | sed 's/target\/release/target\/aarch64-apple-darwin\/release/g' | sed 's/fPIE/fPIE -march=armv8-a -mtune=generic -m64 -fPIC/g' | sed 's/ar cr/\/gcc\/bin\/aarch64-apple-darwin22-gcc-ar cr/g' > Makefile.tmp
+    sed "s/cargo build/RUSTFLAGS='-L \/osxcross\/SDK\/MacOSX13.0.sdk\/usr\/lib' cargo build --target aarch64-apple-darwin/g" ../ggcat/crates/capi/ggcat-cpp-api/Makefile | sed 's/target\/release/target\/aarch64-apple-darwin\/release/g' | sed 's/fPIE/fPIE -march=armv8-a -mtune=generic -m64 -fPIC -static-libstdc++ -static-libgcc/g' | sed 's/ar cr/\/gcc\/bin\/aarch64-apple-darwin22-gcc-ar cr/g' > Makefile.tmp
     mv Makefile.tmp ../ggcat/crates/capi/ggcat-cpp-api/Makefile
 
     # compile aarch64
     cmake -DCMAKE_TOOLCHAIN_FILE="/io/$ARCH-toolchain_GNU.cmake" \
-          -DCMAKE_C_FLAGS="-march=armv8-a -mtune=generic -m64 -fPIC -fPIE" \
-          -DCMAKE_CXX_FLAGS="-march=armv8-a -mtune=generic -m64 -fPIC -fPIE" \
+          -DCMAKE_C_FLAGS="-march=armv8-a -mtune=generic -m64 -fPIC -fPIE -static-libstdc++ -static-libgcc" \
+          -DCMAKE_CXX_FLAGS="-march=armv8-a -mtune=generic -m64 -fPIC -fPIE -static-libstdc++ -static-libgcc" \
 	  -DAPPLE=1 \
 	  -DCMAKE_SYSTEM_PROCESSOR="arm64" \
 	  -DROARING_DISABLE_NATIVE=ON \
