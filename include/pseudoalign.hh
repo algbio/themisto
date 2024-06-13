@@ -652,6 +652,8 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
 
     using namespace pseudoalignment;
 
+    bool write_aux_data = aux_info_file != "";
+
     // Artificial scope to free the output writer before sorting output. This is needed because
     // zstr is stupid and the flush function does not actually flush. It's only flushes when the
     // object is freed.
@@ -661,7 +663,7 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
         std::shared_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
         
         std::optional<std::shared_ptr<ParallelBaseWriter>> aux_out;
-        if(aux_info_file != "") aux_out = create_writer(aux_info_file, gzipped);
+        if(write_aux_data) aux_out = create_writer(aux_info_file, gzipped);
 
         atomic<int64_t> total_length_of_sequence_processed = 0; // For printing progress
         atomic<int64_t> total_bytes_written = 0; // For printing progress
@@ -698,6 +700,8 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
     } // Flushes output
 
     if (sorted_output) call_sort_parallel_output_file(outfile, gzipped);
-    if (sorted_output && aux_out.has_value()) call_sort_parallel_output_file(aux_info_file, gzipped);
+    if (sorted_output && write_aux_data) {
+        write_log("WARNING: AUX INFO FILE NOT SORTED BY SEQUENCE RANK (NOT IMPLEMENTED)", LogLevel::MAJOR);
+    }
     
 }
