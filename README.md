@@ -1,16 +1,23 @@
-# NEWS 21. September 2023
+# NEWS 1. May 2024
 
-Themisto version 3.2.0 is out. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.2.0) for details and pre-compiled Linux binaries.
+Themisto version 3.2.2 is out, fixing a bug where the output was sometimes not fully flushed to disk when using gzipped sorted output. See [release notes](https://github.com/algbio/themisto/releases/tag/v3.2.2) for details and pre-compiled Linux binaries.
 
 
 # About Themisto
-Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3).
+Themisto is a succinct colored k-mer index supporting pseudo-alignment against a database of reference sequences similar to the tool Kallisto, Bifrost and Metagraph. For more information, see the [preprint](https://www.biorxiv.org/content/10.1101/2023.02.24.529942v3). This software is currently developed by the [Compressed Data Structures group](https://www.helsinki.fi/en/researchgroups/algorithmic-bioinformatics/teams/compressed-data-structures) at the University of Helsinki.
 
-## Requirements
+## Installation
+Precompiled binaries are available for
+- Linux x86_64
+- macOS arm64
+- macOS x86_64
 
-We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install). If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
+Visit the [Releases page](https://github.com/algbio/themisto/releases) to download a binary.
 
 ## Compiling
+### Requirements
+
+We currently support only Linux and macOS. For compilation, you will need a C++20 compliant compiler with OpenMP support, CMake v3.1 or newer, and [Rust](https://www.rust-lang.org/tools/install) 1.77. If compiling with g++, make sure that the version is at least g++-10, or you might run into compilation errors with the standard library &lt;filesystem&gt; header.
 
 ### Linux
 
@@ -362,6 +369,8 @@ To build release binaries for Linux, use a machine with as old of a libc as poss
 ```
 cmake .. -DCMAKE_BUILD_ZLIB=1 -DCMAKE_BUILD_BZIP2=1 -DROARING_DISABLE_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
 ```
+
+See the Wiki in Github for instructions on how to set up the build environment.
 
 # License
 

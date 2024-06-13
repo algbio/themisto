@@ -652,49 +652,50 @@ void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, in
 
     using namespace pseudoalignment;
 
-    // Set up context (= commmon variables for all workers).
+    // Artificial scope to free the output writer before sorting output. This is needed because
+    // zstr is stupid and the flush function does not actually flush. It's only flushes when the
+    // object is freed.
+    {
+        // Set up context (= commmon variables for all workers).
+    
+        std::shared_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
+        
+        std::optional<std::shared_ptr<ParallelBaseWriter>> aux_out;
+        if(aux_info_file != "") aux_out = create_writer(aux_info_file, gzipped);
 
-    std::shared_ptr<ParallelBaseWriter> out = create_writer(outfile, gzipped);
+        atomic<int64_t> total_length_of_sequence_processed = 0; // For printing progress
+        atomic<int64_t> total_bytes_written = 0; // For printing progress
+        WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, sort_hits, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out, aux_out, relevant_kmers_fraction};
 
-    std::optional<std::shared_ptr<ParallelBaseWriter>> aux_out;
-    if(aux_info_file != "") aux_out = create_writer(aux_info_file, gzipped);
+        // Create workers
+        vector<unique_ptr<Worker<coloring_t>>> workers;
+        vector<Worker<coloring_t>*> worker_ptrs;
+        for(int64_t i = 0; i < n_threads; i++){
+            workers.push_back(make_unique<Worker<coloring_t>>(context));
+            worker_ptrs.push_back(workers.back().get());
+        }
 
-    atomic<int64_t> total_length_of_sequence_processed = 0; // For printing progress
-    atomic<int64_t> total_bytes_written = 0; // For printing progress
-    WorkerContext<coloring_t> context = {&SBWT, &coloring, reverse_complements, threshold, ignore_unknown, sort_hits, buffer_size, &total_length_of_sequence_processed, &total_bytes_written, out, aux_out, relevant_kmers_fraction};
+        // Launch a thread that prints progress every second until done
+        atomic<bool> stop_printing = false; // The thread will stop when this is set to true
+        std::thread print_thread(pseudoalignment::print_thread, &total_length_of_sequence_processed, &total_bytes_written, &stop_printing);
 
-    // Create workers
-    vector<unique_ptr<Worker<coloring_t>>> workers;
-    vector<Worker<coloring_t>*> worker_ptrs;
-    for(int64_t i = 0; i < n_threads; i++){
-        workers.push_back(make_unique<Worker<coloring_t>>(context));
-        worker_ptrs.push_back(workers.back().get());
-    }
+        // Create a worker thread pool
+        ThreadPool<Worker<coloring_t>, WorkBatch> TP(worker_ptrs, buffer_size);
 
-    // Launch a thread that prints progress every second until done
-    atomic<bool> stop_printing = false; // The thread will stop when this is set to true
-    std::thread print_thread(pseudoalignment::print_thread, &total_length_of_sequence_processed, &total_bytes_written, &stop_printing);
+        try{ // For some reason exceptions are not propagates up to main from here, so we catch them and terminate the program here
+            push_work_batches(buffer_size, reader, TP);
+        } catch (const std::runtime_error &e){
+            std::cerr << "Runtime error: " << e.what() << '\n';
+            std::terminate();
+        }
 
-    // Create a worker thread pool
-    ThreadPool<Worker<coloring_t>, WorkBatch> TP(worker_ptrs, buffer_size);
+        TP.join_threads();
+        workers.clear(); // This will delete the workers, which will flush their internal buffers to the common output buffer
 
-    try{ // For some reason exceptions are not propagates up to main from here, so we catch them and terminate the program here
-        push_work_batches(buffer_size, reader, TP);
-    } catch (const std::runtime_error &e){
-        std::cerr << "Runtime error: " << e.what() << '\n';
-        std::terminate();
-    }
-
-    TP.join_threads();
-    workers.clear(); // This will delete the workers, which will flush their internal buffers to the common output buffer
-
-    // Flush the common output buffers
-    out->flush();
-    if(aux_out.has_value()) aux_out.value()->flush();
-
-    // Terminate the print thread
-    stop_printing = true;
-    print_thread.join();
+        // Terminate the print thread
+        stop_printing = true;
+        print_thread.join();
+    } // Flushes output
 
     if (sorted_output) call_sort_parallel_output_file(outfile, gzipped);
     if (sorted_output && aux_out.has_value()) call_sort_parallel_output_file(aux_info_file, gzipped);
