@@ -26,6 +26,27 @@
 
 using namespace sbwt;
 
+
+// Returns true if the first and last (k-1)-mers of S are the same
+bool is_cyclic_unitig(const string& S, int64_t k){
+    return S.substr(0,k-1) == S.substr((int64_t)S.size()-(k-1));
+}
+
+// NOT the same thing as plain string rotation.
+// For example for k = 3, we have 
+//  ACGTAC ->
+//   CGTACG
+// That is, a rotation drops the first character and appends the k-th character.
+string smallest_unitig_rotation(const string& S, int64_t k){
+    vector<string> rots = {S};
+    for(int64_t i = 0; i < S.size()-1; i++){
+        string prev = rots.back();
+        rots.push_back(prev.substr(1) + prev[k-1]);
+    }
+    std::sort(rots.begin(), rots.end());
+    return rots[0];
+}
+
 class Colored_Unitig_Stream{
 
     public:
@@ -429,6 +450,20 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
     }
 }
 
+TEST_F(EXTRACT_UNITIGS_TEST, check_new_algo){
+    vector<string> old_unitigs = unitigs_without_colorsplit;
+    vector<string> new_unitigs = unitigs_without_colorsplit_new_algo;
+
+    // Canonicalize unitigs
+    for(string& S : old_unitigs) S = smallest_unitig_rotation(S, dbg->get_k());
+    for(string& S : new_unitigs) S = smallest_unitig_rotation(S, dbg->get_k());
+
+    sort(old_unitigs.begin(), old_unitigs.end());
+    sort(new_unitigs.begin(), new_unitigs.end());
+
+    ASSERT_EQ(old_unitigs, new_unitigs);
+}
+
 // Returns pair (unitigs, color sets)
 pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(string input_file_listfile, int64_t k){
     // Build Themisto with file colors
@@ -478,26 +513,6 @@ pair<vector<string>, vector<vector<int64_t>>> get_colored_unitigs_with_themisto(
     }
 
     return {unitigs, color_sets};
-}
-
-// Returns true if the first and last (k-1)-mers of S are the same
-bool is_cyclic_unitig(const string& S, int64_t k){
-    return S.substr(0,k-1) == S.substr((int64_t)S.size()-(k-1));
-}
-
-// NOT the same thing as plain string rotation.
-// For example for k = 3, we have 
-//  ACGTAC ->
-//   CGTACG
-// That is, a rotation drops the first character and appends the k-th character.
-string smallest_unitig_rotation(const string& S, int64_t k){
-    vector<string> rots = {S};
-    for(int64_t i = 0; i < S.size()-1; i++){
-        string prev = rots.back();
-        rots.push_back(prev.substr(1) + prev[k-1]);
-    }
-    std::sort(rots.begin(), rots.end());
-    return rots[0];
 }
 
 TEST(TEST_GGCAT, check_vs_themisto){
