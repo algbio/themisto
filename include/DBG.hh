@@ -202,11 +202,13 @@ public:
     struct end_iterator{}; // Dummy end iterator
     struct iterator{
 
-        int64_t node_idx;
+        int64_t source_node; // For reporting the source node in the edge
+        int64_t suffix_group_start;
         int64_t sbwt_row;
         const plain_matrix_sbwt_t* SBWT;
 
-        iterator(int64_t node_idx, const plain_matrix_sbwt_t* SBWT) : node_idx(node_idx), sbwt_row(-1), SBWT(SBWT){
+        iterator(int64_t node_idx, const plain_matrix_sbwt_t* SBWT) : source_node(node_idx), suffix_group_start(node_idx), sbwt_row(-1), SBWT(SBWT){
+            while(SBWT->get_streaming_support()[suffix_group_start] == 0) suffix_group_start--; // Walk back to the start of the suffix group
             operator++(); // Rewind to the first outedge
         }
 
@@ -221,15 +223,14 @@ public:
 
         iterator operator++(){
             sbwt_row++;
-            while(sbwt_row < 4 && matrixboss_access(sbwt_row, node_idx) == 0) sbwt_row++;
+            while(sbwt_row < 4 && matrixboss_access(sbwt_row, suffix_group_start) == 0) sbwt_row++;
             return *this;
         }
 
         Edge operator*(){
-            int64_t source = node_idx;
             char label = sbwt::char_idx_to_DNA(sbwt_row);
-            int64_t dest = SBWT->forward(source, label);
-            return {.source = source, .dest = dest, .label = label};
+            int64_t dest = SBWT->forward(suffix_group_start, label);
+            return {.source = source_node, .dest = dest, .label = label};
         }
 
         bool operator!=(const end_iterator& other){
