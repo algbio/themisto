@@ -108,4 +108,6 @@ int test_run_tracker(){
     std::cout << std::endl;
     for(auto x : true_max_runs) std::cout << x << " ";
     std::cout << std::endl;
+
+    return 0;
 }

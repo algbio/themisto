@@ -38,49 +38,43 @@ pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node
     return {nodes, label};
 }
 
+void process_unitig_from(const DBG& dbg, DBG::Node v, vector<bool>& visited, ostream& unitigs_out, int64_t unitig_id) {
+    vector<DBG::Node> nodes;
+    vector<char> label;
+    std::tie(nodes, label) = walk_unitig_from(dbg, v);
+
+    for(DBG::Node u : nodes){
+        assert(!visited[u.id]);
+        visited[u.id] = true;
+    }
+
+    label.push_back(0); // Make it a C string
+    unitigs_out << ">" << unitig_id << label.data() << "\n";
+
+    // TODO: break by color sets
+
+}
+
 template<typename coloring_t>
 void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& unitigs_out,
                          bool split_by_colorset_runs, ostream& colorsets_out,
                          ostream& gfa_out, int64_t min_colors = 0) {
 
     int64_t unitig_id = 0;
-    vector<bool> visited(dbg.SBWT->n_nodes());
+    vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
     write_log("Listing acyclic unitigs", LogLevel::MAJOR);
     for(DBG::Node v : dbg.all_nodes()){
         if(!is_first_kmer_of_unitig(dbg, v)) continue;
-        vector<int64_t> nodes;
-        vector<char> label;
-        std::tie(nodes,label) = walk_unitig_from(dbg, v);
-        for(int64_t u : nodes){
-            assert(!visited[u]);
-            visited[u] = true;
-        }
-        label.push(0); // Make it a C string
-        unitigs_out << ">" << unitig_id++ << label.data() << "\n";
-
-        // TODO: break by color sets
+        process_unitig_from(dbg, v, visited, unitigs_out, unitig_id++);
     }
 
     // Only disjoint cyclic unitigs remain
     write_log("Listing cyclic unitigs", LogLevel::MAJOR);
 
     for(DBG::Node v : dbg.all_nodes()) {
-        if(visited[v]) continue;
-
-        vector<int64_t> nodes;
-        vector<char> label;
-        std::tie(nodes,label) = walk_unitig_from(dbg, v);
-
-        for(int64_t u : nodes){
-            assert(!visited[u]);
-            visited[u] = true;
-        }
-
-        label.push(0); // Make it a C string
-        unitigs_out << ">" << unitig_id++ << label.data() << "\n";
-
-        // TODO: break by color sets
+        if(visited[v.id]) continue;
+        process_unitig_from(dbg, v, visited, unitigs_out, unitig_id++);
     }
 
     write_log("Done writing unitigs", LogLevel::MAJOR);

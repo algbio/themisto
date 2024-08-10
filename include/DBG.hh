@@ -142,6 +142,10 @@ public:
         return v.id - dummy_node_rs.rank(v.id); // Subtract dummy nodes
     }
 
+    int64_t number_of_sets_in_sbwt() const {
+        return SBWT->number_of_subsets();
+    }
+
     ~DBG(){
         delete backward_support;
     }

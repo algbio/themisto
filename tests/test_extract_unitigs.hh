@@ -22,6 +22,7 @@
 #include "coloring/Coloring.hh"
 #include "coloring/Coloring_Builder.hh"
 #include "coloring/Coloring_builder_from_ggcat.hh"
+#include "new_extract_unitigs.hh"
 
 using namespace sbwt;
 
@@ -221,6 +222,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     vector<string> unitigs_with_colorsplit;
     vector<vector<color_t>> unitig_colors;
     vector<string> unitigs_without_colorsplit;
+    vector<string> unitigs_without_colorsplit_new_algo;
     DBG* dbg = nullptr;
 
     void SetUp() override {
@@ -252,6 +254,18 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         is_dummy = SBWT.compute_dummy_node_marks();
 
         dbg = new DBG(&SBWT);
+
+        // Compute unitigs with new algorithm
+        string fastafile = get_temp_file_manager().create_filename();
+        throwing_ofstream fasta_out(fastafile);
+        seq_io::NullStream nullstream;
+        new_extract_unitigs(*dbg, coloring, fasta_out.stream, false, nullstream, nullstream, 0);
+        seq_io::Reader<> sr(fastafile);
+        while(true){
+            string read = sr.get_next_read();
+            if(read.size() == 0) break;
+            unitigs_without_colorsplit_new_algo.push_back(read);
+        }
 
         set_log_level(LogLevel::MAJOR);
 
