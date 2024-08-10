@@ -49,7 +49,7 @@ void process_unitig_from(const DBG& dbg, DBG::Node v, vector<bool>& visited, ost
     }
 
     label.push_back(0); // Make it a C string
-    unitigs_out << ">" << unitig_id << label.data() << "\n";
+    unitigs_out << ">" << unitig_id << "\n" << label.data() << "\n";
 
     // TODO: break by color sets
 
@@ -77,6 +77,7 @@ void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& un
         process_unitig_from(dbg, v, visited, unitigs_out, unitig_id++);
     }
 
+    unitigs_out.flush();
     write_log("Done writing unitigs", LogLevel::MAJOR);
 
 }

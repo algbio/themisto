@@ -277,7 +277,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         dbg = new DBG(&SBWT);
 
         // Compute unitigs with new algorithm
-        string fastafile = get_temp_file_manager().create_filename();
+        string fastafile = get_temp_file_manager().create_filename("", ".fna");
         throwing_ofstream fasta_out(fastafile);
         seq_io::NullStream nullstream;
         new_extract_unitigs(*dbg, coloring, fasta_out.stream, false, nullstream, nullstream, 0);
