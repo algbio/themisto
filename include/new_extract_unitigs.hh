@@ -72,9 +72,10 @@ void process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v
         subunitig_ends = {0, nodes.size()}; // One big unitig
     }
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
-        int64_t len = subunitig_ends[i] - subunitig_ends[i-1];
+        int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
+        int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
         unitigs_out << ">" << unitig_id << "\n";
-        unitigs_out.write(label.data() + subunitig_ends[i-1], len);
+        unitigs_out.write(label.data() + subunitig_ends[i-1], string_len);
         unitigs_out.write("\n", 1);
     }
 
