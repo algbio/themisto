@@ -241,6 +241,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
     Coloring<> coloring;
     sdsl::bit_vector is_dummy;
     vector<string> unitigs_with_colorsplit;
+    vector<string> unitigs_with_colorsplit_new_algo;
     vector<vector<color_t>> unitig_colors;
     vector<string> unitigs_without_colorsplit;
     vector<string> unitigs_without_colorsplit_new_algo;
@@ -277,15 +278,30 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         dbg = new DBG(&SBWT);
 
         // Compute unitigs with new algorithm
-        string fastafile = get_temp_file_manager().create_filename("", ".fna");
-        throwing_ofstream fasta_out(fastafile);
-        seq_io::NullStream nullstream;
-        new_extract_unitigs(*dbg, coloring, fasta_out.stream, false, nullstream, nullstream, 0);
-        seq_io::Reader<> sr(fastafile);
-        while(true){
-            string read = sr.get_next_read();
-            if(read.size() == 0) break;
-            unitigs_without_colorsplit_new_algo.push_back(read);
+        {
+            string fastafile = get_temp_file_manager().create_filename("", ".fna");
+            throwing_ofstream fasta_out(fastafile);
+            seq_io::NullStream nullstream;
+            new_extract_unitigs(*dbg, coloring, fasta_out.stream, false, nullstream, nullstream, 0);
+            seq_io::Reader<> sr(fastafile);
+            while(true){
+                string read = sr.get_next_read();
+                if(read.size() == 0) break;
+                unitigs_without_colorsplit_new_algo.push_back(read);
+            }
+        }
+
+        {
+            string fastafile = get_temp_file_manager().create_filename("", ".fna");
+            throwing_ofstream fasta_out(fastafile);
+            seq_io::NullStream nullstream;
+            new_extract_unitigs(*dbg, coloring, fasta_out.stream, true, nullstream, nullstream, 0);
+            seq_io::Reader<> sr(fastafile);
+            while(true){
+                string read = sr.get_next_read();
+                if(read.size() == 0) break;
+                unitigs_with_colorsplit_new_algo.push_back(read);
+            }
         }
 
         set_log_level(LogLevel::MAJOR);
@@ -450,18 +466,22 @@ TEST_F(EXTRACT_UNITIGS_TEST, partition_with_colorsplit){
     }
 }
 
-TEST_F(EXTRACT_UNITIGS_TEST, check_new_algo){
-    vector<string> old_unitigs = unitigs_without_colorsplit;
-    vector<string> new_unitigs = unitigs_without_colorsplit_new_algo;
+void compare_unitigs(vector<string> A, vector<string> B, int64_t k) {
 
     // Canonicalize unitigs
-    for(string& S : old_unitigs) S = smallest_unitig_rotation(S, dbg->get_k());
-    for(string& S : new_unitigs) S = smallest_unitig_rotation(S, dbg->get_k());
+    for(string& S : A) S = smallest_unitig_rotation(S, k);
+    for(string& S : B) S = smallest_unitig_rotation(S, k);
 
-    sort(old_unitigs.begin(), old_unitigs.end());
-    sort(new_unitigs.begin(), new_unitigs.end());
+    sort(A.begin(), A.end());
+    sort(B.begin(), B.end());
 
-    ASSERT_EQ(old_unitigs, new_unitigs);
+    ASSERT_EQ(A, B);
+
+}
+
+TEST_F(EXTRACT_UNITIGS_TEST, check_new_algo){
+    compare_unitigs(unitigs_without_colorsplit, unitigs_without_colorsplit_new_algo, dbg->get_k());
+    compare_unitigs(unitigs_with_colorsplit, unitigs_with_colorsplit_new_algo, dbg->get_k());
 }
 
 // Returns pair (unitigs, color sets)
