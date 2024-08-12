@@ -55,19 +55,23 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     char color_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
+        vector<char> unitig_fasta; // Buffer of data that has to be written atomically: fasta header and sequence
 
         int64_t unitig_id = nodes[subunitig_ends[i-1]].id; // Unitig id is the colex rank of the first k-mer of the subunitig
         int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
-        unitigs_out.write(">", 1);
-        unitigs_out.write(unitig_id_buf, unitig_id_string_len);
-        unitigs_out.write("\n", 1);
+        unitig_fasta.push_back('>');
+        unitig_fasta.insert(unitig_fasta.end(), unitig_id_buf, unitig_id_buf + unitig_id_string_len); // Push the unitig id
+        unitig_fasta.push_back('\n');
 
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
-        unitigs_out.write(label.data() + subunitig_ends[i-1], string_len);
-        unitigs_out.write("\n", 1);
+        unitig_fasta.insert(unitig_fasta.end(), label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + string_len);
+        unitig_fasta.push_back('\n');
+
+        unitigs_out.write(unitig_fasta.data(), unitig_fasta.size());
 
         if(colors_out.has_value()) { // Write color set
+            // TODO: write atomically
             colors_out->write(unitig_id_buf, unitig_id_string_len); // Write unitig id
             typename coloring_t::colorset_view_type colorset = (*coloring)->get_color_set_by_color_set_id(color_set_ids[i]);
             for (int64_t color : colorset.get_colors_as_vector()) {
