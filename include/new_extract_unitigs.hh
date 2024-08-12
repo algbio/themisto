@@ -96,12 +96,9 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
 
 template<typename coloring_t>
 void new_extract_unitigs(int64_t n_threads, const DBG& dbg, string unitigs_outfile, optional<coloring_t*> coloring,
-                         optional<string> colorsets_outfile,
-                         int64_t min_colors = 0) {
+                         optional<string> colorsets_outfile) {
 
     using namespace new_extract_unitigs_internals;
-
-    // TODO: min_colors
 
     ParallelOutputWriter unitigs_out(unitigs_outfile); // Thread-safe output writer
 
