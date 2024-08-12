@@ -17,7 +17,7 @@ void write_unitig(const char* unitig_id_chars, int64_t unitig_id_length, const c
 
 template<typename colorset_view_t> 
 void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, colorset_view_t& colorset, ParallelOutputWriter& colors_out){
-    vector<char> color_set_line; // ASCII line that will be written 
+    vector<char> color_set_line; // ASCII line that will be written. Needs to be written in one go to avoid interleaved writing with other threads!
     char color_id_buf[32]; // Enough space to encode 64-bit integers in ascii
 
     color_set_line.insert(color_set_line.end(), unitig_id_chars, unitig_id_chars + unitig_id_length); // Push the unitig id
