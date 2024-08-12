@@ -10,8 +10,9 @@ bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node);
 // Returns the sequence of nodes and the label of the unitig
 pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node v);
 
-template<typename coloring_t>
-void process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, vector<bool>& visited, ostream& unitigs_out, int64_t unitig_id, bool split_by_colorset_runs) {
+// If coloring is given, splits unitigs by colorset runs
+template<typename coloring_t, typename out_stream_t>
+void process_unitig_from(const DBG& dbg, optional<const coloring_t&> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
     vector<char> label;
@@ -23,10 +24,10 @@ void process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v
     for(int64_t pos = (int64_t)nodes.size()-1; pos >= 0; pos--){
         const DBG::Node& u = nodes[pos];
 
-        if(split_by_colorset_runs){
+        if(coloring.has_value()){
             // Color sets can change only at core k-mers. Otherwise the color set is the same as that
             // of the successor in the DBG.
-            int64_t new_color_set_id = coloring.is_core_kmer(u.id) ? coloring.get_color_set_id(u.id) : color_set_id;
+            int64_t new_color_set_id = coloring->is_core_kmer(u.id) ? coloring->get_color_set_id(u.id) : color_set_id;
             if(pos == (int64_t)nodes.size()-1 || new_color_set_id != color_set_id) {
                 subunitig_ends.push_back(pos+1); // Start a new subunitig
             }
@@ -37,7 +38,7 @@ void process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v
         visited[u.id] = true;
     }
 
-    if(split_by_colorset_runs){
+    if(coloring.has_value()){
         subunitig_ends.push_back(0); // Sentinel
         std::reverse(subunitig_ends.begin(), subunitig_ends.end());
     } else {
@@ -53,10 +54,10 @@ void process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v
 
 }
 
-template<typename coloring_t>
-void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& unitigs_out,
-                         bool split_by_colorset_runs, ostream& colorsets_out,
-                         ostream& gfa_out, int64_t min_colors = 0) {
+template<typename coloring_t, typename out_stream_t>
+void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<const coloring_t>& coloring,
+                         optional<out_stream_t>& colorsets_out, 
+                         int64_t min_colors = 0) {
 
     int64_t unitig_id = 0;
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
@@ -66,7 +67,7 @@ void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& un
     for(DBG::Node v : dbg.all_nodes()){
         pp_acyclic.job_done();
         if(!is_first_kmer_of_unitig(dbg, v)) continue;
-        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++, split_by_colorset_runs);
+        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++);
     }
 
     // Only disjoint cyclic unitigs remain
@@ -75,7 +76,7 @@ void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& un
     for(DBG::Node v : dbg.all_nodes()) {
         pp_cyclic.job_done();
         if(visited[v.id]) continue;
-        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++, split_by_colorset_runs);
+        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++);
     }
 
     unitigs_out.flush();

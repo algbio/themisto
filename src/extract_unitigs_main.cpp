@@ -55,34 +55,26 @@ int extract_unitigs_main(int argc, char** argv){
         throw std::runtime_error("Error: no output files given");
     }
     if (colors_outfile != "" && min_colors != 0) { // Colors may not make sense for --min-colors
-    throw std::runtime_error("Error: Colorset extraction not allowed when --min-colors is given");
+        throw std::runtime_error("Error: Colorset extraction not allowed when --min-colors is given");
     }
 
     // Prepare output streams
 
     seq_io::NullStream null_stream;
-    throwing_ofstream unitigs_ofstream;
-    throwing_ofstream gfa_ofstream;
-    throwing_ofstream colors_ofstream;
-
-    ostream* unitigs_out = &null_stream;
-    ostream* gfa_out = &null_stream;
-    ostream* colors_out = &null_stream;
+    seq_io::Buffered_ofstream<> unitigs_out;
+    optional<seq_io::Buffered_ofstream<>> colors_out;
 
     if(unitigs_outfile != ""){
-        unitigs_ofstream.open(unitigs_outfile);
-        unitigs_out = &(unitigs_ofstream.stream);
+        throw runtime_error("Unitigs output file not given"); // TODO: GFA support for new unitig algo
+        unitigs_out.open(unitigs_outfile);
     }
 
     if(gfa_outfile != ""){
         throw runtime_error("GFA support not implemented"); // TODO: GFA support for new unitig algo
-        gfa_ofstream.open(gfa_outfile);
-        gfa_out = &(gfa_ofstream.stream);
     }
 
     if(colors_outfile != ""){
-        colors_ofstream.open(colors_outfile);
-        colors_out = &(colors_ofstream.stream);
+        colors_out = seq_io::Buffered_ofstream(unitigs_outfile);
     }
 
     // Start
@@ -93,20 +85,27 @@ int extract_unitigs_main(int argc, char** argv){
     sbwt::plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> coloring;
+    optional<std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>>> coloring({}); // Default-initialize the variant so we can load it below
     if(do_colors){
         // Load whichever coloring data structure type is stored on disk
-        load_coloring(index_color_file, SBWT, coloring);
+        load_coloring(index_color_file, SBWT, coloring.value());
+    } else {
+        coloring.reset(); // Take the default-initialized variant out of the option so it's null
     }
 
     DBG dbg(&SBWT);
 
     write_log("Building unitigs", LogLevel::MAJOR);
 
-    std::visit([&](const auto& coloring){ // Wrapper to unwrap the std::variant
-        new_extract_unitigs(dbg, coloring, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
-    }, coloring);
+    // This is terrible code: std::variant: never again. std::option and std::variant do not mix well.
+    if(coloring.has_value()){
+        if(std::holds_alternative<SDSL_Variant_Color_Set>(coloring.value())) {
+            const Coloring<SDSL_Variant_Color_Set> asdasd = std::get<Coloring<SDSL_Variant_Color_Set>>(coloring.value()); // TODO TERRIBLE: COPIES EVERYTHING 
+            optional<const Coloring<SDSL_Variant_Color_Set>> optional_asdasd = asdasd;
+            new_extract_unitigs(dbg, unitigs_out, optional_asdasd, colors_out, min_colors);
+        }
 
+    }
     return 0;
 
 }

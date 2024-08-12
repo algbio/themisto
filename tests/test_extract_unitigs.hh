@@ -281,8 +281,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         {
             string fastafile = get_temp_file_manager().create_filename("", ".fna");
             throwing_ofstream fasta_out(fastafile);
-            seq_io::NullStream nullstream;
-            new_extract_unitigs(*dbg, coloring, fasta_out.stream, false, nullstream, nullstream, 0);
+            new_extract_unitigs<Coloring<>, ofstream>(*dbg, fasta_out.stream, nullopt, nullopt, 0);
             seq_io::Reader<> sr(fastafile);
             while(true){
                 string read = sr.get_next_read();
@@ -293,9 +292,10 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
 
         {
             string fastafile = get_temp_file_manager().create_filename("", ".fna");
+            string color_outfile = get_temp_file_manager().create_filename("", ".fna");
             throwing_ofstream fasta_out(fastafile);
-            seq_io::NullStream nullstream;
-            new_extract_unitigs(*dbg, coloring, fasta_out.stream, true, nullstream, nullstream, 0);
+            throwing_ofstream colors_out(color_outfile);
+            new_extract_unitigs<Coloring<>, ofstream>(*dbg, fasta_out.stream, coloring, colors_out.stream, 0);
             seq_io::Reader<> sr(fastafile);
             while(true){
                 string read = sr.get_next_read();
