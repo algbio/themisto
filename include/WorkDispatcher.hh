@@ -48,6 +48,7 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     }
 
     virtual void flush(){
+        std::lock_guard<std::mutex> lg(mutex);
         outstream.flush();
     }
     

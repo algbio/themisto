@@ -60,23 +60,13 @@ int extract_unitigs_main(int argc, char** argv){
 
     // Prepare output streams
 
-    seq_io::NullStream null_stream;
-    seq_io::Buffered_ofstream<> unitigs_out;
-    seq_io::Buffered_ofstream<> colors_out;
-
-    if(unitigs_outfile != ""){
-        unitigs_out.open(unitigs_outfile);
-    } else {
+    if(unitigs_outfile == ""){
         throw runtime_error("Unitigs output file not given");
     }
 
     if(gfa_outfile != ""){
         cerr << "WARNING: GFA support not implemented, will not write GFA" << endl;
         //throw runtime_error("GFA support not implemented"); // TODO: GFA support for new unitig algo
-    }
-
-    if(colors_outfile != ""){
-        colors_out = seq_io::Buffered_ofstream(colors_outfile);
     }
 
     // Start
@@ -101,11 +91,11 @@ int extract_unitigs_main(int argc, char** argv){
     // But that does not mix well with std::variant, so we have this thing.
     if(do_colors){
         auto visitor = [&](const auto& coloring){
-            new_extract_unitigs(dbg, unitigs_out, optional(&coloring), optional(&colors_out), min_colors);
+            new_extract_unitigs(dbg, unitigs_outfile, optional(&coloring), optional(colors_outfile), min_colors);
         };
         std::visit(visitor, coloring);
     } else {
-        new_extract_unitigs<Coloring<SDSL_Variant_Color_Set>, seq_io::Buffered_ofstream<>>(dbg, unitigs_out, nullopt, nullopt, min_colors);
+        new_extract_unitigs<Coloring<SDSL_Variant_Color_Set>>(dbg, unitigs_outfile, nullopt, nullopt, min_colors);
     }
     return 0;
 

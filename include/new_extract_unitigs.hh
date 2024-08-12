@@ -4,6 +4,7 @@
 #include "DBG.hh"
 #include "globals.hh"
 #include "coloring/Coloring.hh"
+#include "WorkDispatcher.hh"
 
 bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node); 
 
@@ -11,8 +12,8 @@ bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node);
 pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node v);
 
 // If coloring is given, splits unitigs by colorset runs
-template<typename coloring_t, typename out_stream_t>
-void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
+template<typename coloring_t>
+void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::Node v, vector<bool>& visited, ParallelOutputWriter& unitigs_out, int64_t unitig_id) {
 
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
@@ -62,13 +63,15 @@ void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::No
 
 }
 
-template<typename coloring_t, typename out_stream_t>
-void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<coloring_t*> coloring,
-                         optional<out_stream_t*> colorsets_out, 
+template<typename coloring_t>
+void new_extract_unitigs(const DBG& dbg, string unitigs_outfile, optional<coloring_t*> coloring,
+                         optional<string> colorsets_outfile, 
                          int64_t min_colors = 0) {
 
     // TODO: min_colors
     // TODO: GFA
+
+    ParallelOutputWriter unitigs_out(unitigs_outfile);
 
     int64_t unitig_id = 0;
     vector<bool> visited(dbg.number_of_sets_in_sbwt());

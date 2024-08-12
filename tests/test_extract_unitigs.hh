@@ -280,8 +280,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         // Compute unitigs with new algorithm
         {
             string fastafile = get_temp_file_manager().create_filename("", ".fna");
-            throwing_ofstream fasta_out(fastafile);
-            new_extract_unitigs<Coloring<>, ofstream>(*dbg, fasta_out.stream, nullopt, nullopt, 0);
+            new_extract_unitigs<Coloring<>>(*dbg, fastafile, nullopt, nullopt, 0);
             seq_io::Reader<> sr(fastafile);
             while(true){
                 string read = sr.get_next_read();
@@ -293,9 +292,7 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         {
             string fastafile = get_temp_file_manager().create_filename("", ".fna");
             string color_outfile = get_temp_file_manager().create_filename("", ".fna");
-            throwing_ofstream fasta_out(fastafile);
-            throwing_ofstream colors_out(color_outfile);
-            new_extract_unitigs(*dbg, fasta_out.stream, optional(&coloring), optional(&colors_out.stream), 0);
+            new_extract_unitigs(*dbg, fastafile, optional(&coloring), optional(color_outfile), 0);
             seq_io::Reader<> sr(fastafile);
             while(true){
                 string read = sr.get_next_read();
