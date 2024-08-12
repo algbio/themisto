@@ -19,6 +19,10 @@ int extract_unitigs_main(int argc, char** argv){
             cerr << "Error: GFA export (--gfa-out) no longer supported as of Themisto 3.2.3" << endl;
             return 1;
         }
+        if(string(argv[i]) == "--min-colors"){
+            cerr << "Error: --min-colors no longer supported as of Themisto 3.2.3" << endl;
+            return 1;
+        }
     }
 
     cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
