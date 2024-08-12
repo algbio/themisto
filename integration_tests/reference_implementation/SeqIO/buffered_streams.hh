@@ -174,11 +174,12 @@ public:
     } // Movable
 
     Buffered_ofstream& operator= (Buffered_ofstream&& other){
-        this->buf = move(other(buf));
+        this->buf = move(other.buf);
         this->buf_size = other.buf_size;
         this->buf_cap = other.buf_cap;
         this->stream = other.stream;
         other.stream = nullptr; // Important!! Otherwise double free at destructor.
+        return *this;
     };  // Movable
 
     Buffered_ofstream(){}
@@ -224,7 +225,6 @@ public:
     ~Buffered_ofstream(){
         empty_internal_buffer_to_stream();
         delete stream;
-        stream = nullptr;
     }
 
 };

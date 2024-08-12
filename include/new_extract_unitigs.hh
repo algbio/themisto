@@ -50,7 +50,6 @@ void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::No
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
         int64_t unitig_id_string_len = fast_int_to_string(unitig_id++, unitig_id_buf);
-        cout << "DEBUG " << unitig_id_string_len << endl;
         unitigs_out.write(">", 1);
         unitigs_out.write(unitig_id_buf, unitig_id_string_len);
         unitigs_out.write("\n", 1);
