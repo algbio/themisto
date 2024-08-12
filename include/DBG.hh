@@ -146,6 +146,11 @@ public:
         return SBWT->number_of_subsets();
     }
 
+    // Low level function for people who know what they are doing
+    int64_t is_dummy_colex_position(int64_t colex) const {
+        return backward_support->get_dummy_marks()[colex];
+    }
+
     ~DBG(){
         delete backward_support;
     }

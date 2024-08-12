@@ -12,8 +12,10 @@ bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node);
 pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node v);
 
 // If coloring is given, splits unitigs by colorset runs
+// Returns the DBG nodes that were visited
+// This function needs to be thread-safe
 template<typename coloring_t>
-void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::Node v, vector<bool>& visited, ParallelOutputWriter& unitigs_out, int64_t unitig_id) {
+vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*> coloring, DBG::Node v, ParallelOutputWriter& unitigs_out, int64_t unitig_id) {
 
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
@@ -37,8 +39,6 @@ void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::No
             color_set_id = new_color_set_id;
         }
 
-        assert(!visited[u.id]);
-        visited[u.id] = true;
     }
 
     if(coloring.has_value()){
@@ -61,27 +61,46 @@ void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::No
         unitigs_out.write("\n", 1);
     }
 
+    return nodes;
+
 }
 
 template<typename coloring_t>
-void new_extract_unitigs(const DBG& dbg, string unitigs_outfile, optional<coloring_t*> coloring,
-                         optional<string> colorsets_outfile, 
+void new_extract_unitigs(int64_t n_threads, const DBG& dbg, string unitigs_outfile, optional<coloring_t*> coloring,
+                         optional<string> colorsets_outfile,
                          int64_t min_colors = 0) {
 
     // TODO: min_colors
     // TODO: GFA
 
-    ParallelOutputWriter unitigs_out(unitigs_outfile);
+    ParallelOutputWriter unitigs_out(unitigs_outfile); // Thread-safe output writer
 
     int64_t unitig_id = 0;
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
     write_log("Listing acyclic unitigs", LogLevel::MAJOR);
     Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
-    for(DBG::Node v : dbg.all_nodes()){
-        pp_acyclic.job_done();
+    #pragma omp parallel for num_threads (n_threads)
+    for(int64_t colex = 0; colex < dbg.number_of_sets_in_sbwt(); colex++){
+        #pragma omp critical
+        {
+            pp_acyclic.job_done();
+        }
+
+        if(dbg.is_dummy_colex_position(colex)) continue;
+
+        DBG::Node v(colex);
         if(!is_first_kmer_of_unitig(dbg, v)) continue;
-        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++);
+
+        vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, unitig_id++);
+
+        #pragma omp critical // Modifying shared data
+        {
+            for(DBG::Node u : nodes){
+                assert(!visited[u.id]);
+                visited[u.id] = true;
+            }
+        }
     }
 
     // Only disjoint cyclic unitigs remain
@@ -90,7 +109,11 @@ void new_extract_unitigs(const DBG& dbg, string unitigs_outfile, optional<colori
     for(DBG::Node v : dbg.all_nodes()) {
         pp_cyclic.job_done();
         if(visited[v.id]) continue;
-        process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++);
+        vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, unitig_id++);
+        for(DBG::Node u : nodes){
+            assert(!visited[u.id]);
+            visited[u.id] = true;
+        }
     }
 
     unitigs_out.flush();

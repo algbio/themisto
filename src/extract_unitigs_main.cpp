@@ -22,6 +22,7 @@ int extract_unitigs_main(int argc, char** argv){
         ("gfa-out", "Output the unitig graph in GFA1 format (optional).", cxxopts::value<string>()->default_value(""))
         ("colors-out", "Output filename for the unitig colors (optional). If this option is not given, the colors are not computed. Note that giving this option affects the unitigs written to unitigs-out: if a unitig has nodes with different color sets, the unitig is split into maximal segments of nodes that have equal color sets. The file format of the color file is as follows: there is one line for each unitig. The lines contain space-separated strings. The first string on a line is the FASTA header of a unitig (without the '>'), and the following strings on the line are the integer color labels of the colors of that unitig. The unitigs appear in the same order as in the FASTA file.", cxxopts::value<string>()->default_value(""))
         ("min-colors", "Extract maximal unitigs with at least (>=) min-colors in each node. Can't be used with --colors-out. (optional)", cxxopts::value<int64_t>()->default_value("0"))
+        ("n-threads", "Number of parallel threads", cxxopts::value<int64_t>()->default_value("4"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "Print usage")
@@ -44,6 +45,7 @@ int extract_unitigs_main(int argc, char** argv){
     string gfa_outfile = opts["gfa-out"].as<string>();
     string colors_outfile = opts["colors-out"].as<string>();
     int64_t min_colors = opts["min-colors"].as<int64_t>();
+    int64_t n_threads = opts["n-threads"].as<int64_t>();
     bool do_colors = (colors_outfile != "") || min_colors > 0;
     string index_dbg_file = opts["index-prefix"].as<string>() + ".tdbg";
     string index_color_file = opts["index-prefix"].as<string>() + ".tcolors";
@@ -91,11 +93,11 @@ int extract_unitigs_main(int argc, char** argv){
     // But that does not mix well with std::variant, so we have this thing.
     if(do_colors){
         auto visitor = [&](const auto& coloring){
-            new_extract_unitigs(dbg, unitigs_outfile, optional(&coloring), optional(colors_outfile), min_colors);
+            new_extract_unitigs(n_threads, dbg, unitigs_outfile, optional(&coloring), optional(colors_outfile), min_colors);
         };
         std::visit(visitor, coloring);
     } else {
-        new_extract_unitigs<Coloring<SDSL_Variant_Color_Set>>(dbg, unitigs_outfile, nullopt, nullopt, min_colors);
+        new_extract_unitigs<Coloring<SDSL_Variant_Color_Set>>(n_threads, dbg, unitigs_outfile, nullopt, nullopt, min_colors);
     }
     return 0;
 
