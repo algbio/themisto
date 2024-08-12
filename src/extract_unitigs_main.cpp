@@ -8,6 +8,7 @@
 #include "coloring/Coloring.hh"
 #include "sbwt/SBWT.hh"
 #include "sbwt/variants.hh"
+#include "new_extract_unitigs.hh"
 
 using namespace std;
 
@@ -74,6 +75,7 @@ int extract_unitigs_main(int argc, char** argv){
     }
 
     if(gfa_outfile != ""){
+        throw runtime_error("GFA support not implemented"); // TODO: GFA support for new unitig algo
         gfa_ofstream.open(gfa_outfile);
         gfa_out = &(gfa_ofstream.stream);
     }
@@ -99,16 +101,11 @@ int extract_unitigs_main(int argc, char** argv){
 
     DBG dbg(&SBWT);
 
-    write_log("Extracting unitigs", LogLevel::MAJOR);
+    write_log("Building unitigs", LogLevel::MAJOR);
 
-    if(std::holds_alternative<Coloring<SDSL_Variant_Color_Set>>(coloring)){
-        UnitigExtractor<Coloring<SDSL_Variant_Color_Set>> UE;
-        UE.extract_unitigs(dbg, std::get<Coloring<SDSL_Variant_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
-    }
-    if(std::holds_alternative<Coloring<Roaring_Color_Set>>(coloring)){
-        UnitigExtractor<Coloring<Roaring_Color_Set>> UE;
-        UE.extract_unitigs(dbg, std::get<Coloring<Roaring_Color_Set>>(coloring), *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
-    }
+    std::visit([&](const auto& coloring){ // Wrapper to unwrap the std::variant
+        new_extract_unitigs(dbg, coloring, *unitigs_out, do_colors, *colors_out, *gfa_out, min_colors);
+    }, coloring);
 
     return 0;
 
