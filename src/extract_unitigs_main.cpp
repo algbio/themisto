@@ -85,26 +85,25 @@ int extract_unitigs_main(int argc, char** argv){
     sbwt::plain_matrix_sbwt_t SBWT;
     SBWT.load(index_dbg_file);
 
-    optional<std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>>> coloring({}); // Default-initialize the variant so we can load it below
+    std::variant<Coloring<SDSL_Variant_Color_Set>, Coloring<Roaring_Color_Set>> coloring;
     if(do_colors){
         // Load whichever coloring data structure type is stored on disk
-        load_coloring(index_color_file, SBWT, coloring.value());
-    } else {
-        coloring.reset(); // Take the default-initialized variant out of the option so it's null
+        load_coloring(index_color_file, SBWT, coloring);
     }
 
     DBG dbg(&SBWT);
 
     write_log("Building unitigs", LogLevel::MAJOR);
 
-    // This is terrible code: std::variant: never again. std::option and std::variant do not mix well.
-    if(coloring.has_value()){
-        if(std::holds_alternative<SDSL_Variant_Color_Set>(coloring.value())) {
-            const Coloring<SDSL_Variant_Color_Set> asdasd = std::get<Coloring<SDSL_Variant_Color_Set>>(coloring.value()); // TODO TERRIBLE: COPIES EVERYTHING 
-            optional<const Coloring<SDSL_Variant_Color_Set>> optional_asdasd = asdasd;
-            new_extract_unitigs(dbg, unitigs_out, optional_asdasd, colors_out, min_colors);
-        }
-
+    // This is terrible code. Whether we have colors or not should be encoded in a std::optional value.
+    // But that does not mix well with std::variant, so we have this thing.
+    if(do_colors){
+        auto visitor = [&](const auto& coloring){
+            new_extract_unitigs(dbg, unitigs_out, optional(&coloring), optional(&colors_out), min_colors);
+        };
+        std::visit(visitor, coloring);
+    } else {
+        new_extract_unitigs<Coloring<SDSL_Variant_Color_Set>, seq_io::Buffered_ofstream<>>(dbg, unitigs_out, nullopt, nullopt, min_colors);
     }
     return 0;
 

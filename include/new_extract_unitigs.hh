@@ -12,7 +12,7 @@ pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node
 
 // If coloring is given, splits unitigs by colorset runs
 template<typename coloring_t, typename out_stream_t>
-void process_unitig_from(const DBG& dbg, optional<const coloring_t&> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
+void process_unitig_from(const DBG& dbg, optional<const coloring_t*> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
     vector<char> label;
@@ -27,7 +27,7 @@ void process_unitig_from(const DBG& dbg, optional<const coloring_t&> coloring, D
         if(coloring.has_value()){
             // Color sets can change only at core k-mers. Otherwise the color set is the same as that
             // of the successor in the DBG.
-            int64_t new_color_set_id = coloring->is_core_kmer(u.id) ? coloring->get_color_set_id(u.id) : color_set_id;
+            int64_t new_color_set_id = coloring.value()->is_core_kmer(u.id) ? coloring.value()->get_color_set_id(u.id) : color_set_id;
             if(pos == (int64_t)nodes.size()-1 || new_color_set_id != color_set_id) {
                 subunitig_ends.push_back(pos+1); // Start a new subunitig
             }
@@ -55,9 +55,11 @@ void process_unitig_from(const DBG& dbg, optional<const coloring_t&> coloring, D
 }
 
 template<typename coloring_t, typename out_stream_t>
-void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<const coloring_t>& coloring,
-                         optional<out_stream_t>& colorsets_out, 
+void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<const coloring_t*> coloring,
+                         optional<out_stream_t*> colorsets_out, 
                          int64_t min_colors = 0) {
+
+    // TODO: write colorsets
 
     int64_t unitig_id = 0;
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
