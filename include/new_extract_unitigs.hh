@@ -13,6 +13,8 @@ bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node);
 // Returns the sequence of nodes and the label of the unitig
 pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node v);
 
+void write_unitig(const char* unitig_id_chars, int64_t unitig_id_length, const char* unitig_label, int64_t unitig_label_length, ParallelOutputWriter& unitigs_out);
+
 template<typename colorset_view_t> 
 void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, colorset_view_t& colorset, ParallelOutputWriter& colors_out){
     vector<char> color_set_line; // ASCII line that will be written 
@@ -28,7 +30,6 @@ void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, color
     colors_out.write(color_set_line.data(), color_set_line.size());
 }
 
-void write_unitig(const char* unitig_id_chars, int64_t unitig_id_length, const char* unitig_label, int64_t unitig_label_length, ParallelOutputWriter& unitigs_out);
 
 // If coloring is given, splits unitigs by colorset runs
 // Returns the DBG nodes that were visited

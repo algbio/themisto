@@ -200,9 +200,8 @@ class EXTRACT_UNITIGS_TEST : public testing::Test {
         // Call extract unitigs
         string unitigs_outfile = get_temp_file_manager().create_filename();
         string colors_outfile = get_temp_file_manager().create_filename();
-        string gfa_outfile = get_temp_file_manager().create_filename();
         stringstream argstring2;
-        argstring2 << "extract-unitigs -i " << indexprefix << " --fasta-out " << unitigs_outfile << " --gfa-out " << gfa_outfile;
+        argstring2 << "extract-unitigs -i " << indexprefix << " --fasta-out " << unitigs_outfile;
         if(split_by_colors) argstring2 << " --colors-out " << colors_outfile;
         Argv argv2(split(argstring2.str()));
         extract_unitigs_main(argv2.size, argv2.array);

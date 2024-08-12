@@ -279,8 +279,6 @@ Usage:
 			  command.
       --fasta-out arg     Output filename for the unitigs in FASTA format
 			  (optional). (default: "")
-      --gfa-out arg       Output the unitig graph in GFA1 format
-			  (optional). (default: "")
       --colors-out arg    Output filename for the unitig colors (optional).
 			  If this option is not given, the colors are not
 			  computed. Note that giving this option affects
