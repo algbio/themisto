@@ -62,10 +62,10 @@ int extract_unitigs_main(int argc, char** argv){
 
     seq_io::NullStream null_stream;
     seq_io::Buffered_ofstream<> unitigs_out;
-    optional<seq_io::Buffered_ofstream<>> colors_out;
+    seq_io::Buffered_ofstream<> colors_out;
 
     if(unitigs_outfile != ""){
-        throw runtime_error("Unitigs output file not given"); // TODO: GFA support for new unitig algo
+        throw runtime_error("Unitigs output file not given");
         unitigs_out.open(unitigs_outfile);
     }
 

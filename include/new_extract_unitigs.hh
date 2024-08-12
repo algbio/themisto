@@ -12,14 +12,15 @@ pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node
 
 // If coloring is given, splits unitigs by colorset runs
 template<typename coloring_t, typename out_stream_t>
-void process_unitig_from(const DBG& dbg, optional<const coloring_t*> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
+void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
     vector<char> label;
     std::tie(nodes, label) = walk_unitig_from(dbg, v);
     check_true(nodes.size() > 0, "BUG: empty unitig");
 
-    int64_t color_set_id = coloring.get_color_set_id(nodes.back().id);
+    int64_t color_set_id = 0;
+    if(coloring.has_value()) color_set_id = coloring.value()->get_color_set_id(nodes.back().id);
 
     for(int64_t pos = (int64_t)nodes.size()-1; pos >= 0; pos--){
         const DBG::Node& u = nodes[pos];
@@ -44,10 +45,16 @@ void process_unitig_from(const DBG& dbg, optional<const coloring_t*> coloring, D
     } else {
         subunitig_ends = {0, nodes.size()}; // One big unitig
     }
+
+    char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
+        int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
+        unitigs_out.write(">", 1);
+        unitigs_out.write(unitig_id_buf, unitig_id_string_len);
+        unitigs_out.write("\n", 1);
+
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
-        unitigs_out << ">" << unitig_id << "\n";
         unitigs_out.write(label.data() + subunitig_ends[i-1], string_len);
         unitigs_out.write("\n", 1);
     }
@@ -55,7 +62,7 @@ void process_unitig_from(const DBG& dbg, optional<const coloring_t*> coloring, D
 }
 
 template<typename coloring_t, typename out_stream_t>
-void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<const coloring_t*> coloring,
+void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<coloring_t*> coloring,
                          optional<out_stream_t*> colorsets_out, 
                          int64_t min_colors = 0) {
 
