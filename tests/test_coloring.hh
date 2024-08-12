@@ -181,7 +181,7 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
 // Seqs need to contain reverse complements
 // Colors should contain added reverse complements
 // The sequences in the fasta filename should *not* contain added reverse complements (it's for ggcat)
-void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, const vector<string>& seqs, vector<int64_t> seq_to_color, string filename, int64_t k){
+void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, vector<int64_t> seq_to_color, string filename, int64_t k){
 
     Coloring<SDSL_Variant_Color_Set> coloring;
     Coloring_Builder<SDSL_Variant_Color_Set> cb;
@@ -277,7 +277,7 @@ TEST(COLORING_TESTS, coli3) {
     }
 
     write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(SBWT, seqs, seq_to_color, filename, k);
+    test_construction_from_colored_unitigs(SBWT, seq_to_color, filename, k);
 
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(SBWT, filename, seqs, seq_to_color, k);

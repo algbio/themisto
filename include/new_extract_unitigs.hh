@@ -69,7 +69,7 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
         std::reverse(subunitig_ends.begin(), subunitig_ends.end());
         std::reverse(color_set_ids.begin(), color_set_ids.end());
     } else {
-        subunitig_ends = {0, nodes.size()}; // One big unitig
+        subunitig_ends = {0, (int64_t)nodes.size()}; // One big unitig
     }
 
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
