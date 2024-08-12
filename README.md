@@ -275,29 +275,29 @@ This command dumps the unitigs and optionally their colors out of an existing Th
 Usage:
   extract-unitigs [OPTION...]
 
-  -i, --index-prefix arg  The index prefix that was given to the build
-			  command.
-      --fasta-out arg     Output filename for the unitigs in FASTA format
-			  (optional). (default: "")
-      --colors-out arg    Output filename for the unitig colors (optional).
-			  If this option is not given, the colors are not
-			  computed. Note that giving this option affects
-			  the unitigs written to unitigs-out: if a unitig
-			  has nodes with different color sets, the unitig
-			  is split into maximal segments of nodes that have
-			  equal color sets. The file format of the color
-			  file is as follows: there is one line for each
-			  unitig. The lines contain space-separated
-			  strings. The first string on a line is the FASTA
-			  header of a unitig (without the '>'), and the
-			  following strings on the line are the integer
-			  color labels of the colors of that unitig. The
-			  unitigs appear in the same order as in the FASTA
-			  file. (default: "")
-      --min-colors arg    Extract maximal unitigs with at least (>=)
-			  min-colors in each node. Can't be used with
-			  --colors-out. (optional) (default: 0)
+  -i, --index-prefix arg  The index prefix that was given to the build 
+                          command.
+      --fasta-out arg     Output filename for the unitigs in FASTA format 
+                          (optional). (default: "")
+      --colors-out arg    Output filename for the unitig colors (optional). 
+                          If this option is not given, the colors are not 
+                          computed. Note that giving this option affects 
+                          the unitigs written to unitigs-out: if a unitig 
+                          has nodes with different color sets, the unitig 
+                          is split into maximal segments of nodes that have 
+                          equal color sets. The file format of the color 
+                          file is as follows: there is one line for each 
+                          unitig. The lines contain space-separated 
+                          strings. The first string on a line is the FASTA 
+                          header of a unitig (without the '>'), and the 
+                          following strings on the line are the integer 
+                          color labels of the colors of that unitig. The 
+                          unitigs appear in the same order as in the FASTA 
+                          file. (default: "")
+  -t, --n-threads arg     Number of parallel threads (default: 4)
   -v, --verbose           More verbose progress reporting into stderr.
+      --silent            Print as little as possible to stderr (only 
+                          errors).
   -h, --help              Print usage
 ```
 
