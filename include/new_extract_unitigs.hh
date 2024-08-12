@@ -90,15 +90,18 @@ void new_extract_unitigs(const DBG& dbg, const coloring_t& coloring, ostream& un
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
     write_log("Listing acyclic unitigs", LogLevel::MAJOR);
+    Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
     for(DBG::Node v : dbg.all_nodes()){
+        pp_acyclic.job_done();
         if(!is_first_kmer_of_unitig(dbg, v)) continue;
         process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++, split_by_colorset_runs);
     }
 
     // Only disjoint cyclic unitigs remain
     write_log("Listing cyclic unitigs", LogLevel::MAJOR);
-
+    Progress_printer pp_cyclic(dbg.number_of_kmers(), 100);
     for(DBG::Node v : dbg.all_nodes()) {
+        pp_cyclic.job_done();
         if(visited[v.id]) continue;
         process_unitig_from(dbg, coloring, v, visited, unitigs_out, unitig_id++, split_by_colorset_runs);
     }
