@@ -13,6 +13,7 @@ pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node
 // If coloring is given, splits unitigs by colorset runs
 template<typename coloring_t, typename out_stream_t>
 void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::Node v, vector<bool>& visited, out_stream_t& unitigs_out, int64_t unitig_id) {
+
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
     vector<char> label;
@@ -48,7 +49,8 @@ void process_unitig_from(const DBG& dbg, optional<coloring_t*> coloring, DBG::No
 
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
-        int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
+        int64_t unitig_id_string_len = fast_int_to_string(unitig_id++, unitig_id_buf);
+        cout << "DEBUG " << unitig_id_string_len << endl;
         unitigs_out.write(">", 1);
         unitigs_out.write(unitig_id_buf, unitig_id_string_len);
         unitigs_out.write("\n", 1);
@@ -66,7 +68,8 @@ void new_extract_unitigs(const DBG& dbg, out_stream_t& unitigs_out, optional<col
                          optional<out_stream_t*> colorsets_out, 
                          int64_t min_colors = 0) {
 
-    // TODO: write colorsets
+    // TODO: min_colors
+    // TODO: GFA
 
     int64_t unitig_id = 0;
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
