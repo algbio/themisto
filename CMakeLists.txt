@@ -70,6 +70,7 @@ set(THEMISTO_SOURCES
   src/zpipe.cpp
   src/build_index_main.cpp
   src/extract_unitigs_main.cpp
+  src/new_extract_unitigs.cpp
   src/DBG.cpp
   src/stats_main.cpp
   src/make_d_equal_1.cpp
