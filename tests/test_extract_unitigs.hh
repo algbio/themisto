@@ -1,5 +1,10 @@
 #pragma once
 
+// These tests are outdated as of 13.8.2024 after changes to unitig computation. To verify unitigs, we now compare against
+// other tools like Fulgor.
+
+/*
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,7 +30,6 @@
 #include "new_extract_unitigs.hh"
 
 using namespace sbwt;
-
 
 // Returns true if the first and last (k-1)-mers of S are the same
 bool is_cyclic_unitig(const string& S, int64_t k){
@@ -591,3 +595,5 @@ TEST(TEST_GGCAT, check_vs_themisto){
     ASSERT_EQ(themisto_pairs, ggcat_pairs);
 
 }
+
+*/
