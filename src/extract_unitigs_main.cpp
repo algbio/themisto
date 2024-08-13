@@ -16,11 +16,11 @@ int extract_unitigs_main(int argc, char** argv){
 
     for(int64_t i = 1; i < argc; i++){
         if(string(argv[i]) == "--gfa-out"){
-            cerr << "Error: GFA export (--gfa-out) no longer supported as of Themisto 3.2.3" << endl;
+            cerr << "Error: GFA export (--gfa-out) no longer supported as of Themisto 3.3" << endl;
             return 1;
         }
         if(string(argv[i]) == "--min-colors"){
-            cerr << "Error: --min-colors no longer supported as of Themisto 3.2.3" << endl;
+            cerr << "Error: --min-colors no longer supported as of Themisto 3.3" << endl;
             return 1;
         }
     }

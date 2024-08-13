@@ -31,11 +31,11 @@ void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, color
 }
 
 
-// If coloring is given, splits unitigs by colorset runs
+// Splits unitigs by colorset runs
 // Returns the DBG nodes that were visited
 // This function needs to be thread-safe
 template<typename coloring_t>
-vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*> coloring, DBG::Node v, ParallelOutputWriter& unitigs_out, optional<ParallelOutputWriter>& colors_out) {
+vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out, ParallelOutputWriter& colors_out) {
 
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
@@ -43,34 +43,26 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
     std::tie(nodes, label) = walk_unitig_from(dbg, v);
     check_true(nodes.size() > 0, "BUG: empty unitig");
 
-    int64_t color_set_id = 0;
-    if(coloring.has_value()) color_set_id = coloring.value()->get_color_set_id(nodes.back().id);
+    int64_t color_set_id = coloring.get_color_set_id(nodes.back().id);
     vector<int64_t> color_set_ids;
 
     for(int64_t pos = (int64_t)nodes.size()-1; pos >= 0; pos--){
         const DBG::Node& u = nodes[pos];
 
-        if(coloring.has_value()){
-            // Color sets can change only at core k-mers. Otherwise the color set is the same as that
-            // of the successor in the DBG.
-            int64_t new_color_set_id = coloring.value()->is_core_kmer(u.id) ? coloring.value()->get_color_set_id(u.id) : color_set_id;
-            if(pos == (int64_t)nodes.size()-1 || new_color_set_id != color_set_id) {
-                subunitig_ends.push_back(pos+1); // Start a new subunitig
-                color_set_ids.push_back(new_color_set_id);
-            }
-            color_set_id = new_color_set_id;
+        // Color sets can change only at core k-mers. Otherwise the color set is the same as that
+        // of the successor in the DBG.
+        int64_t new_color_set_id = coloring.is_core_kmer(u.id) ? coloring.get_color_set_id(u.id) : color_set_id;
+        if(pos == (int64_t)nodes.size()-1 || new_color_set_id != color_set_id) {
+            subunitig_ends.push_back(pos+1); // Start a new subunitig
+            color_set_ids.push_back(new_color_set_id);
         }
-
+        color_set_id = new_color_set_id;
     }
 
-    if(coloring.has_value()){
-        subunitig_ends.push_back(0); // Sentinel
-        color_set_ids.push_back(-1); // Sentinel
-        std::reverse(subunitig_ends.begin(), subunitig_ends.end());
-        std::reverse(color_set_ids.begin(), color_set_ids.end());
-    } else {
-        subunitig_ends = {0, (int64_t)nodes.size()}; // One big unitig
-    }
+    subunitig_ends.push_back(0); // Sentinel
+    color_set_ids.push_back(-1); // Sentinel
+    std::reverse(subunitig_ends.begin(), subunitig_ends.end());
+    std::reverse(color_set_ids.begin(), color_set_ids.end());
 
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
@@ -82,9 +74,11 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
 
         write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, unitigs_out);
 
-        if(colors_out.has_value()) { // Write color set
-            typename coloring_t::colorset_view_type colorset = (*coloring)->get_color_set_by_color_set_id(color_set_ids[i]);
-            write_colorset(unitig_id_buf, unitig_id_string_len, colorset, *colors_out);
+        if(colors_out.enabled) { // Write color set 
+            // This may take a lot of computation so we only do this if the color output is enabled, even though in that case
+            // the writer would not write anything in the end anyway.
+            typename coloring_t::colorset_view_type colorset = coloring.get_color_set_by_color_set_id(color_set_ids[i]);
+            write_colorset(unitig_id_buf, unitig_id_string_len, colorset, colors_out);
         }
     }
 
@@ -96,19 +90,49 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const optional<coloring_t*
 
 template<typename coloring_t>
 void new_extract_unitigs(int64_t n_threads, const DBG& dbg, string unitigs_outfile, optional<coloring_t*> coloring,
-                         optional<string> colorsets_outfile) {
+                         optional<string> colorsets_outfile){}; // TODO: remove
+
+/*
+
+salmonella_10.metadata.txt:
+
+num_references=10
+num_unitigs=86630
+num_color_classes=171
+
+salmonella_10.unitigs.fa:
+
+> unitig_id=0 color_id=0
+GATTGAGCACCAACTGCGAGAATCAGGTGTTGAAGAGCAAGGGCGTGTGTTTATCGAAAAAGCTATTGAGCAGCCGCTTGATCCACAA
+> unitig_id=1 color_id=0
+GAAATTTAACGGCTGTTTTTCCGGCCAGATGTTATGTCTGGCTGGTTTTATTGTTTTGATTTTAAAGGAATTTACAGTGAATAAATGGCGTAACCCCACTGGGTGGTTATGTGCGGTAGCTATGCCTTTTG
+> unitig_id=2 color_id=0
+GCGCTGAACATCAGCGCCTTTCTGCGACAGCTCAATCATGCATTCGCCAATCACGGCAATC
+...
+
+salmonella_10.colors.txt:
+
+color_id=0 size=4 0 3 7 8
+color_id=1 size=1 8
+color_id=2 size=10 0 1 2 3 4 5 6 7 8 9
+color_id=3 size=6 1 2 4 5 6 9
+...
+
+*/
+
+template<typename coloring_t>
+void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optional<string> unitigs_outfile, optional<string> colorsets_outfile, optional<string> metadata_outfile) {
 
     using namespace new_extract_unitigs_internals;
 
+    // Output writes. Won't write anything if the given optional filename is null.
     ParallelOutputWriter unitigs_out(unitigs_outfile); // Thread-safe output writer
-
-    optional<ParallelOutputWriter> colors_out;
-    if(colorsets_outfile.has_value())
-        colors_out.emplace(colorsets_outfile.value());
+    ParallelOutputWriter colors_out(colorsets_outfile); // Thread-safe output writer
+    ParallelOutputWriter metadata_out(metadata_outfile); // Thread-safe output writer
 
     vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
-    write_log("Listing acyclic unitigs", LogLevel::MAJOR);
+    write_log("Constructing acyclic unitigs", LogLevel::MAJOR);
     Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
     #pragma omp parallel for num_threads (n_threads)
     for(int64_t colex = 0; colex < dbg.number_of_sets_in_sbwt(); colex++){
@@ -134,7 +158,7 @@ void new_extract_unitigs(int64_t n_threads, const DBG& dbg, string unitigs_outfi
     }
 
     // Only disjoint cyclic unitigs remain
-    write_log("Listing cyclic unitigs", LogLevel::MAJOR);
+    write_log("Constructing cyclic unitigs", LogLevel::MAJOR);
     Progress_printer pp_cyclic(dbg.number_of_kmers(), 100);
     for(DBG::Node v : dbg.all_nodes()) {
         pp_cyclic.job_done();
@@ -147,7 +171,8 @@ void new_extract_unitigs(int64_t n_threads, const DBG& dbg, string unitigs_outfi
     }
 
     unitigs_out.flush();
-    if(colors_out.has_value()) colors_out->flush();
+    colors_out.flush();
+    metadata_out.flush();
 
     write_log("Done writing unitigs", LogLevel::MAJOR);
 

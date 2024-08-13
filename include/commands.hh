@@ -3,6 +3,7 @@
 int build_index_main(int argc, char** argv);
 int pseudoalign_main(int argc, char** argv);
 int extract_unitigs_main(int argc, char** argv);
+int dump_index_main(int argc, char** argv);
 int stats_main(int argc, char** argv);
 int dump_color_matrix_main(int argc, char** argv);
 

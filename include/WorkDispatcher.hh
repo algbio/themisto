@@ -29,27 +29,40 @@ class ParallelOutputWriter : public ParallelBaseWriter{
     string outfile;
     old_themisto_code::Buffered_ofstream outstream;
     std::mutex mutex;
+    bool enabled = true;
 
     ParallelOutputWriter(string outfile) : outfile(outfile){
         outstream.open(outfile);
     }
 
+    // Does not write anything if the optional is null
+    ParallelOutputWriter(optional<string> outfile){
+        if(outfile.has_value()){
+            this->outfile = outfile.value(); 
+            outstream.open(this->outfile);
+        } else {
+            enabled = false;
+        }
+    }
 
     ParallelOutputWriter(ostream &ostream) : outstream(ostream) {}
 
-
     virtual void write(const string& data){
-        write(data.data(), data.size());
+        if(enabled) write(data.data(), data.size());
     }
 
     virtual void write(const char* data, int64_t data_length){
-        std::lock_guard<std::mutex> lg(mutex);
-        outstream.write(data, data_length);        
+        if(enabled) {
+            std::lock_guard<std::mutex> lg(mutex);
+            outstream.write(data, data_length);        
+        }
     }
 
     virtual void flush(){
-        std::lock_guard<std::mutex> lg(mutex);
-        outstream.flush();
+        if(enabled){
+            std::lock_guard<std::mutex> lg(mutex);
+            outstream.flush();
+        }
     }
     
 };
