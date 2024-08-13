@@ -35,7 +35,7 @@ string human_readable_bytes(int64_t bytes){
 
 int stats_main(int argc, char** argv){
 
-    cxxopts::Options options(argv[0], "Extract unitigs out of the Themisto index.");
+    cxxopts::Options options(argv[0], "Compute statistics from a Themisto index.");
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
