@@ -19,21 +19,7 @@ void write_unitig(
     const char* color_set_id, int64_t color_set_id_len, 
     ParallelOutputWriter& unitigs_out);
 
-template<typename colorset_view_t> 
-void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, colorset_view_t& colorset, ParallelOutputWriter& colors_out){
-    vector<char> color_set_line; // ASCII line that will be written. Needs to be written in one go to avoid interleaved writing with other threads!
-    char color_id_buf[32]; // Enough space to encode 64-bit integers in ascii
-
-    color_set_line.insert(color_set_line.end(), unitig_id_chars, unitig_id_chars + unitig_id_length); // Push the unitig id
-    for (int64_t color : colorset.get_colors_as_vector()) {
-        int64_t color_id_string_len = fast_int_to_string(color, color_id_buf);
-        color_set_line.push_back(' ');
-        color_set_line.insert(color_set_line.end(), color_id_buf, color_id_buf + color_id_string_len);
-    }
-    color_set_line.push_back('\n');
-    colors_out.write(color_set_line.data(), color_set_line.size());
-}
-
+void write_colorset(int64_t color_set_id, const vector<int64_t>& colors, ParallelOutputWriter& out);
 
 // Splits unitigs by colorset runs
 // Returns the DBG nodes that were visited
@@ -83,16 +69,25 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
 
         write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
 
-        if(colors_out.enabled) { // Write color set 
-            // Fetching colors may require a lot of computation so we only do this if the color output is enabled, even though in that case
-            // the writer would not write anything in the end anyway.
-            typename coloring_t::colorset_view_type colorset = coloring.get_color_set_by_color_set_id(color_set_id);
-            write_colorset(unitig_id_buf, unitig_id_string_len, colorset, colors_out);
-        }
     }
 
     return nodes;
 
+}
+
+template<typename coloring_t>
+void write_distinct_color_sets(const coloring_t& coloring, ParallelOutputWriter& out){
+
+    int64_t n_sets = coloring.number_of_distinct_color_sets();
+
+    vector<int64_t> color_set_buf;
+    for(int64_t color_set_id = 0; color_set_id < n_sets; color_set_id++){
+        typename coloring_t::colorset_view_type color_set = coloring.get_color_set_by_color_set_id(color_set_id);
+        color_set.push_colors_to_vector(color_set_buf);
+        
+        write_colorset(color_set_id, color_set_buf, out);
+        color_set_buf.clear();
+    }
 }
 
 } // End of namespace
@@ -180,7 +175,13 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
     }
 
     unitigs_out.flush();
-    colors_out.flush();
+
+    if(colors_out.enabled){
+        write_log("Writing color sets", LogLevel::MAJOR);
+        write_distinct_color_sets(coloring, colors_out);
+        colors_out.flush();
+    }
+
     metadata_out.flush();
 
     write_log("Done writing unitigs", LogLevel::MAJOR);
