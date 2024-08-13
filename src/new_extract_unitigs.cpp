@@ -52,6 +52,7 @@ void write_unitig(
     vector<char> buf; // ASCII data. Needs to be written in one go to avoid interleaved writing with other threads!
 
     buf.push_back('>');
+    buf.push_back(' ');
     buf.insert(buf.end(), UNITIG_ID_EQ, UNITIG_ID_EQ + UNITIG_ID_EQ_LEN);
     buf.insert(buf.end(), unitig_id_chars, unitig_id_chars + unitig_id_length); // Push the unitig id
     buf.push_back(' ');
