@@ -81,12 +81,15 @@ void write_distinct_color_sets(const coloring_t& coloring, ParallelOutputWriter&
     int64_t n_sets = coloring.number_of_distinct_color_sets();
 
     vector<int64_t> color_set_buf;
+    Progress_printer pp(n_sets, 100);
     for(int64_t color_set_id = 0; color_set_id < n_sets; color_set_id++){
         typename coloring_t::colorset_view_type color_set = coloring.get_color_set_by_color_set_id(color_set_id);
         color_set.push_colors_to_vector(color_set_buf);
         
         write_colorset(color_set_id, color_set_buf, out);
         color_set_buf.clear();
+
+        pp.job_done();
     }
 }
 
@@ -137,6 +140,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
     if(unitigs_out.enabled) {
         vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
+        int64_t num_unitigs = 0;
         write_log("Constructing acyclic unitigs", LogLevel::MAJOR);
         Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
         #pragma omp parallel for num_threads (n_threads)
@@ -159,6 +163,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
                     assert(!visited[u.id]);
                     visited[u.id] = true;
                 }
+                num_unitigs++;
             }
         }
 
@@ -173,15 +178,28 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
                 assert(!visited[u.id]);
                 visited[u.id] = true;
             }
+            num_unitigs++;
         }
 
         unitigs_out.flush();
+
+        metadata_out.write("num_unitigs=");
+        metadata_out.write(to_string(num_unitigs));
+        metadata_out.write("\n");
     }
 
     if(colors_out.enabled){
         write_log("Writing color sets", LogLevel::MAJOR);
         write_distinct_color_sets(coloring, colors_out);
         colors_out.flush();
+
+        metadata_out.write("num_colors=");
+        metadata_out.write(to_string(coloring.largest_color()+1));
+        metadata_out.write("\n");
+
+        metadata_out.write("num_color_sets=");
+        metadata_out.write(to_string(coloring.number_of_distinct_color_sets()));
+        metadata_out.write("\n");
     }
 
     metadata_out.flush();
