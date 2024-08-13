@@ -8,7 +8,7 @@
 
 using namespace std;
 
-static vector<string> commands = {"build", "pseudoalign", "extract-unitigs", "dump-index", "dump-color-matrix", "stats"};
+static vector<string> commands = {"build", "pseudoalign", "dump-index", "dump-color-matrix", "stats"};
 
 void print_help(int argc, char** argv){
     (void) argc; // Unused parameter
@@ -47,10 +47,9 @@ int main(int argc, char** argv){
     try{
         if(command == "build") return build_index_main(argc, argv);
         else if(command == "pseudoalign") return pseudoalign_main(argc, argv);
-        else if(command == "extract-unitigs") return extract_unitigs_main(argc, argv);
         else if(command == "dump-index") return dump_index_main(argc, argv);
         else if(command == "stats") return stats_main(argc, argv);
-        else if(command == "dump-color-matrix") return dump_color_matrix_main(argc, argv); // Undocumented developer feature
+        else if(command == "dump-color-matrix") return dump_color_matrix_main(argc, argv);
         else if(command == "color-set-diagnostics") return color_set_diagnostics_main(argc, argv); // Undocumented developer feature
         else if(command == "make-d-equal-1") return make_d_equal_1_main(argc, argv); // Undocumented developer feature
         else if(command == "dump-distinct-color-sets-to-binary") return dump_distinct_color_sets_to_binary_main(argc, argv); // Undocumented developer feature

@@ -69,9 +69,8 @@ set(THEMISTO_SOURCES
   src/WorkDispatcher.cpp
   src/zpipe.cpp
   src/build_index_main.cpp
-  src/extract_unitigs_main.cpp
   src/dump_index_main.cpp
-  src/new_extract_unitigs.cpp
+  src/dump_index.cpp
   src/DBG.cpp
   src/stats_main.cpp
   src/make_d_equal_1.cpp

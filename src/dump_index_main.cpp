@@ -3,13 +3,12 @@
 #include <string>
 #include <cstring>
 #include "version.h"
-#include "extract_unitigs.hh"
 #include "DBG.hh"
 #include "coloring/Coloring.hh"
 #include "sbwt/SBWT.hh"
 #include "sbwt/variants.hh"
-#include "new_extract_unitigs.hh"
 #include "sbwt/cxxopts.hpp"
+#include "dump_index.hh"
 
 using namespace std;
 

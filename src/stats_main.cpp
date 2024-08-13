@@ -6,9 +6,11 @@
 #include <cstring>
 #include <sstream>
 #include <iomanip>
+#include <variant>
 #include "version.h"
 #include "cxxopts.hpp"
-#include "extract_unitigs.hh"
+#include "DBG.hh"
+#include "coloring/Coloring.hh"
 
 using namespace sbwt;
 using namespace std;
@@ -37,7 +39,6 @@ int stats_main(int argc, char** argv){
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
-        ("unitigs", "Also compute statistics on unitigs. This takes a while and requires the temporary directory to be set.", cxxopts::value<bool>()->default_value("false"))
         ("space-breakdown", "Also give a space breakdown for the components of the index.", cxxopts::value<bool>()->default_value("false"))
         ("temp-dir", "Directory for temporary files.", cxxopts::value<string>())
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
@@ -111,41 +112,6 @@ int stats_main(int argc, char** argv){
         int64_t bytes = SBWT.serialize(ns);
         cout << "SBWT: " << human_readable_bytes(bytes) << endl;
         cout << "==" << endl;
-
-    }
-
-    if(do_unitigs){
-        write_log("Extracting unitigs (this could take a while)", LogLevel::MAJOR);
-
-        string unitigs_file = get_temp_file_manager().create_filename("unitigs-",".fna");
-        throwing_ofstream unitigs_out(unitigs_file);
-        seq_io::NullStream null_stream;
-
-        auto call_extract_unitigs = [&](auto& obj) {
-            UnitigExtractor<decltype(obj)> UE;
-            UE.extract_unitigs(dbg, obj, unitigs_out.stream, false, null_stream, null_stream);
-        };
-
-        std::visit(call_extract_unitigs, coloring);
-        unitigs_out.close();
-
-        int64_t unitig_count = 0;
-        seq_io::Reader<> sr(unitigs_file);
-        int64_t min_unitig_len = 1e18;
-        int64_t max_unitig_len = 0;
-        int64_t unitig_len_sum = 0;
-        while(true){
-            int64_t len = sr.get_next_read_to_buffer();
-            if(len == 0) break;
-            unitig_count++;
-            min_unitig_len = min(min_unitig_len, len);
-            max_unitig_len = max(max_unitig_len, len);
-            unitig_len_sum += len;
-        }
-
-        cout << "Min unitig length: " << min_unitig_len << endl;
-        cout << "Max unitig length: " << max_unitig_len << endl;
-        cout << "Avg unitig length: " << (double)unitig_len_sum / unitig_count << endl;
 
     }
 

@@ -8,7 +8,6 @@
 #include <iomanip>
 #include "version.h"
 #include "cxxopts.hpp"
-#include "extract_unitigs.hh"
 #include "coloring/Coloring.hh"
 #include "DBG.hh"
 

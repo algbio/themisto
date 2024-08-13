@@ -9,7 +9,6 @@
 #include "sbwt/SBWT.hh"
 #include "sbwt/globals.hh"
 #include "sbwt/throwing_streams.hh"
-#include "extract_unitigs.hh"
 #include "DBG.hh"
 #include "coloring/Coloring.hh"
 #include "coloring/Coloring_Builder.hh"
@@ -178,6 +177,10 @@ void test_coloring_on_coli3(plain_matrix_sbwt_t& matrix, string filename, std::v
     }
 }
 
+/* 
+
+TEST OUTDATED AS OF 13.8.2024 because of changes to unitig extraction output format
+
 // Seqs need to contain reverse complements
 // Colors should contain added reverse complements
 // The sequences in the fasta filename should *not* contain added reverse complements (it's for ggcat)
@@ -245,6 +248,7 @@ void test_construction_from_colored_unitigs(plain_matrix_sbwt_t& SBWT, vector<in
     }
 
 }
+*/
 
 TEST(COLORING_TESTS, coli3) {
     std::string filename = "testcases/coli3.fna";
@@ -276,8 +280,8 @@ TEST(COLORING_TESTS, coli3) {
         seq_idx++;
     }
 
-    write_log("Testing construction from colored unitigs", LogLevel::MAJOR);
-    test_construction_from_colored_unitigs(SBWT, seq_to_color, filename, k);
+    write_log("Construction from colored unitigs test is outdated -> not running.", LogLevel::MAJOR);
+    //test_construction_from_colored_unitigs(SBWT, seq_to_color, filename, k);
 
     write_log("Testing Standard color set", LogLevel::MAJOR);
     test_coloring_on_coli3<SDSL_Variant_Color_Set, SDSL_Variant_Color_Set_View>(SBWT, filename, seqs, seq_to_color, k);

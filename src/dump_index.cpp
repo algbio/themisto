@@ -1,6 +1,7 @@
 #include <iostream>
 #include "DBG.hh"
 #include "globals.hh"
+#include "dump_index.hh"
 #include "coloring/Coloring.hh"
 
 namespace new_extract_unitigs_internals {
