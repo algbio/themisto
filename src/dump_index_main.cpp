@@ -22,10 +22,10 @@ int dump_index_main(int argc, char** argv){
 
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
-        ("o,output-prefix", "Prefix for output filenames", cxxopts::value<string>())
-        ("no-unitigs", "Do not write unitigs", cxxopts::value<bool>()->default_value("true"))
-        ("no-color-sets", "Do not write color sets", cxxopts::value<bool>()->default_value("true"))
-        ("no-metadata", "Do not write metadata", cxxopts::value<bool>()->default_value("true"))
+        ("o,output-prefix", "Prefix for output filenames. Will write [prefix]" + unitig_file_suffix + ", [prefix]" + color_file_suffix + " and [prefix]" + metadata_file_suffix, cxxopts::value<string>())
+        ("no-unitigs", "Do not dump unitigs.", cxxopts::value<bool>()->default_value("false"))
+        ("no-color-sets", "Do not dump color sets.", cxxopts::value<bool>()->default_value("false"))
+        ("no-metadata", "Do not dump metadata.", cxxopts::value<bool>()->default_value("false"))
         ("t, n-threads", "Number of parallel threads", cxxopts::value<int64_t>()->default_value("4"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
@@ -52,7 +52,7 @@ int dump_index_main(int argc, char** argv){
     optional<string> metadata_outfile;
 
     if(!opts["no-unitigs"].as<bool>()) unitigs_outfile = out_prefix + unitig_file_suffix;
-    if(!opts["no-color_sets"].as<bool>()) colors_outfile = out_prefix + color_file_suffix;
+    if(!opts["no-color-sets"].as<bool>()) colors_outfile = out_prefix + color_file_suffix;
     if(!opts["no-metadata"].as<bool>()) metadata_outfile = out_prefix + metadata_file_suffix;
 
     if(!unitigs_outfile.has_value() && !colors_outfile.has_value() && !metadata_outfile.has_value()){
