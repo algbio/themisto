@@ -25,7 +25,7 @@ void write_colorset(int64_t color_set_id, const vector<int64_t>& colors, Paralle
 // Returns the DBG nodes that were visited
 // This function needs to be thread-safe
 template<typename coloring_t>
-vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out, ParallelOutputWriter& colors_out) {
+vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
 
     vector<DBG::Node> nodes;
     vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
@@ -155,7 +155,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
             DBG::Node v(colex);
             if(!is_first_kmer_of_unitig(dbg, v)) continue;
 
-            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
+            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out);
 
             #pragma omp critical // Modifying shared data
             {
@@ -173,7 +173,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
         for(DBG::Node v : dbg.all_nodes()) {
             pp_cyclic.job_done();
             if(visited[v.id]) continue;
-            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
+            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out);
             for(DBG::Node u : nodes){
                 assert(!visited[u.id]);
                 visited[u.id] = true;

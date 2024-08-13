@@ -16,11 +16,16 @@ int dump_index_main(int argc, char** argv){
 
     cxxopts::Options options(argv[0], "Dump index as maximal subunitigs where all k-mers have the same color set.");
 
+    string unitig_file_suffix = ".unitigs.fa";
+    string metadata_file_suffix = ".metadata.txt";
+    string color_file_suffix = ".color_sets.txt";
+
     options.add_options()
         ("i,index-prefix", "The index prefix that was given to the build command.", cxxopts::value<string>())
-        ("unitigs-out", "Output filename for the unitigs in FASTA format (optional).", cxxopts::value<string>())
-        ("colors-out", "Output filename for the color sets (optional).", cxxopts::value<string>())
-        ("metadata-out", "Output filename for the metadata (optional)", cxxopts::value<string>())
+        ("o,output-prefix", "Prefix for output filenames", cxxopts::value<string>())
+        ("no-unitigs", "Do not write unitigs", cxxopts::value<bool>()->default_value("true"))
+        ("no-color-sets", "Do not write color sets", cxxopts::value<bool>()->default_value("true"))
+        ("no-metadata", "Do not write metadata", cxxopts::value<bool>()->default_value("true"))
         ("t, n-threads", "Number of parallel threads", cxxopts::value<int64_t>()->default_value("4"))
         ("v,verbose", "More verbose progress reporting into stderr.", cxxopts::value<bool>()->default_value("false"))
         ("silent", "Print as little as possible to stderr (only errors).", cxxopts::value<bool>()->default_value("false"))
@@ -40,29 +45,18 @@ int dump_index_main(int argc, char** argv){
     if(opts["verbose"].as<bool>()) set_log_level(LogLevel::MINOR);
     if(opts["silent"].as<bool>()) set_log_level(LogLevel::OFF);
 
+    string out_prefix = opts["output-prefix"].as<string>();
+
     optional<string> unitigs_outfile;
-    try {
-        unitigs_outfile = opts["unitigs-out"].as<string>();
-    } catch(cxxopts::option_has_no_value_exception& e){
-        // No file given -> ok.
-    }
-
     optional<string> colors_outfile;
-    try {
-        colors_outfile = opts["colors-out"].as<string>();
-    } catch(cxxopts::option_has_no_value_exception& e){
-        // No file given -> ok.
-    }
-
     optional<string> metadata_outfile;
-    try {
-        metadata_outfile = opts["metadata-out"].as<string>();
-    } catch(cxxopts::option_has_no_value_exception& e){
-        // No file given -> ok.
-    }
+
+    if(!opts["no-unitigs"].as<bool>()) unitigs_outfile = out_prefix + unitig_file_suffix;
+    if(!opts["no-color_sets"].as<bool>()) colors_outfile = out_prefix + color_file_suffix;
+    if(!opts["no-metadata"].as<bool>()) metadata_outfile = out_prefix + metadata_file_suffix;
 
     if(!unitigs_outfile.has_value() && !colors_outfile.has_value() && !metadata_outfile.has_value()){
-        cerr << "ERROR: no output files given" << endl;
+        cerr << "ERROR: all output was disabled" << endl;
         return 1;
     }
 
