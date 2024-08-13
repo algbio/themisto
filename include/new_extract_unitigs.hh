@@ -13,7 +13,11 @@ bool is_first_kmer_of_unitig(const DBG& dbg, const DBG::Node& node);
 // Returns the sequence of nodes and the label of the unitig
 pair<vector<DBG::Node>, vector<char>> walk_unitig_from(const DBG& dbg, DBG::Node v);
 
-void write_unitig(const char* unitig_id_chars, int64_t unitig_id_length, const char* unitig_label, int64_t unitig_label_length, ParallelOutputWriter& unitigs_out);
+void write_unitig(
+    const char* unitig_id_chars, int64_t unitig_id_length, 
+    const char* unitig_label, int64_t unitig_label_length, 
+    const char* color_set_id, int64_t color_set_id_len, 
+    ParallelOutputWriter& unitigs_out);
 
 template<typename colorset_view_t> 
 void write_colorset(const char* unitig_id_chars, int64_t unitig_id_length, colorset_view_t& colorset, ParallelOutputWriter& colors_out){
@@ -65,19 +69,24 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
     std::reverse(color_set_ids.begin(), color_set_ids.end());
 
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
+    char color_set_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
 
         int64_t unitig_id = nodes[subunitig_ends[i-1]].id; // Unitig id is the colex rank of the first k-mer of the subunitig
         int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
+
+        int64_t color_set_id = color_set_ids[i]; 
+        int64_t color_set_id_string_len = fast_int_to_string(color_set_id, color_set_id_buf);
+
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
 
-        write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, unitigs_out);
+        write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
 
         if(colors_out.enabled) { // Write color set 
-            // This may take a lot of computation so we only do this if the color output is enabled, even though in that case
+            // Fetching colors may require a lot of computation so we only do this if the color output is enabled, even though in that case
             // the writer would not write anything in the end anyway.
-            typename coloring_t::colorset_view_type colorset = coloring.get_color_set_by_color_set_id(color_set_ids[i]);
+            typename coloring_t::colorset_view_type colorset = coloring.get_color_set_by_color_set_id(color_set_id);
             write_colorset(unitig_id_buf, unitig_id_string_len, colorset, colors_out);
         }
     }
@@ -125,7 +134,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
 
     using namespace new_extract_unitigs_internals;
 
-    // Output writes. Won't write anything if the given optional filename is null.
+    // Output writers. Won't write anything if the given optional filename is null.
     ParallelOutputWriter unitigs_out(unitigs_outfile); // Thread-safe output writer
     ParallelOutputWriter colors_out(colorsets_outfile); // Thread-safe output writer
     ParallelOutputWriter metadata_out(metadata_outfile); // Thread-safe output writer
