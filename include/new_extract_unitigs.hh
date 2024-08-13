@@ -134,47 +134,49 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
     ParallelOutputWriter colors_out(colorsets_outfile); // Thread-safe output writer
     ParallelOutputWriter metadata_out(metadata_outfile); // Thread-safe output writer
 
-    vector<bool> visited(dbg.number_of_sets_in_sbwt());
+    if(unitigs_out.enabled) {
+        vector<bool> visited(dbg.number_of_sets_in_sbwt());
 
-    write_log("Constructing acyclic unitigs", LogLevel::MAJOR);
-    Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
-    #pragma omp parallel for num_threads (n_threads)
-    for(int64_t colex = 0; colex < dbg.number_of_sets_in_sbwt(); colex++){
-        #pragma omp critical
-        {
-            pp_acyclic.job_done();
+        write_log("Constructing acyclic unitigs", LogLevel::MAJOR);
+        Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
+        #pragma omp parallel for num_threads (n_threads)
+        for(int64_t colex = 0; colex < dbg.number_of_sets_in_sbwt(); colex++){
+            #pragma omp critical
+            {
+                pp_acyclic.job_done();
+            }
+
+            if(dbg.is_dummy_colex_position(colex)) continue;
+
+            DBG::Node v(colex);
+            if(!is_first_kmer_of_unitig(dbg, v)) continue;
+
+            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
+
+            #pragma omp critical // Modifying shared data
+            {
+                for(DBG::Node u : nodes){
+                    assert(!visited[u.id]);
+                    visited[u.id] = true;
+                }
+            }
         }
 
-        if(dbg.is_dummy_colex_position(colex)) continue;
-
-        DBG::Node v(colex);
-        if(!is_first_kmer_of_unitig(dbg, v)) continue;
-
-        vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
-
-        #pragma omp critical // Modifying shared data
-        {
+        // Only disjoint cyclic unitigs remain
+        write_log("Constructing cyclic unitigs", LogLevel::MAJOR);
+        Progress_printer pp_cyclic(dbg.number_of_kmers(), 100);
+        for(DBG::Node v : dbg.all_nodes()) {
+            pp_cyclic.job_done();
+            if(visited[v.id]) continue;
+            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
             for(DBG::Node u : nodes){
                 assert(!visited[u.id]);
                 visited[u.id] = true;
             }
         }
-    }
 
-    // Only disjoint cyclic unitigs remain
-    write_log("Constructing cyclic unitigs", LogLevel::MAJOR);
-    Progress_printer pp_cyclic(dbg.number_of_kmers(), 100);
-    for(DBG::Node v : dbg.all_nodes()) {
-        pp_cyclic.job_done();
-        if(visited[v.id]) continue;
-        vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out, colors_out);
-        for(DBG::Node u : nodes){
-            assert(!visited[u.id]);
-            visited[u.id] = true;
-        }
+        unitigs_out.flush();
     }
-
-    unitigs_out.flush();
 
     if(colors_out.enabled){
         write_log("Writing color sets", LogLevel::MAJOR);
