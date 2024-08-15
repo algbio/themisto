@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <array>
+#include <optional>
 
 #include "globals.hh"
 #include "SeqIO/SeqIO.hh"
