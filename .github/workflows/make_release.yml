@@ -9,7 +9,7 @@ on:
 jobs:
   build_linux-x86_64:
     runs-on: ubuntu-latest
-    container: phusion/holy-build-box-64:3.0.2
+    container: phusion/holy-build-box:4.0.1
     steps:
       - name: Install wget
         id: install-wget
