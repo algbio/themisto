@@ -200,6 +200,10 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
         metadata_out.write("num_color_sets=");
         metadata_out.write(to_string(coloring.number_of_distinct_color_sets()));
         metadata_out.write("\n");
+
+        metadata_out.write("k=");
+        metadata_out.write(to_string(dbg.get_k()));
+        metadata_out.write("\n");
     }
 
     if(sbwt_outfile.has_value()){
