@@ -284,6 +284,10 @@ public:
 
     }
 
+    const plain_matrix_sbwt_t& get_sbwt() const {
+        return *(this->index_ptr);
+    }
+
     template<typename T1, typename T2> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 

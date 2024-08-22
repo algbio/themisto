@@ -128,7 +128,7 @@ color_id=3 size=6 1 2 4 5 6 9
 */
 
 template<typename coloring_t>
-void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optional<string> unitigs_outfile, optional<string> colorsets_outfile, optional<string> metadata_outfile) {
+void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optional<string> unitigs_outfile, optional<string> colorsets_outfile, optional<string> metadata_outfile, optional<string> sbwt_outfile) {
 
     using namespace new_extract_unitigs_internals;
 
@@ -200,6 +200,14 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
         metadata_out.write("num_color_sets=");
         metadata_out.write(to_string(coloring.number_of_distinct_color_sets()));
         metadata_out.write("\n");
+    }
+
+    if(sbwt_outfile.has_value()){
+        write_log("Writing SBWT", LogLevel::MAJOR);
+        const plain_matrix_sbwt_t& sbwt = coloring.get_sbwt();
+        throwing_ofstream out(sbwt_outfile.value());
+        sbwt.ascii_export_metadata(out.stream);
+        sbwt.ascii_export_sets(out.stream);
     }
 
     metadata_out.flush();
