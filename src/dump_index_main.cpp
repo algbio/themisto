@@ -57,7 +57,7 @@ int dump_index_main(int argc, char** argv){
     if(!opts["no-unitigs"].as<bool>()) unitigs_outfile = out_prefix + unitig_file_suffix;
     if(!opts["no-color-sets"].as<bool>()) colors_outfile = out_prefix + color_file_suffix;
     if(!opts["no-metadata"].as<bool>()) metadata_outfile = out_prefix + metadata_file_suffix;
-    if(!opts["no-sbwt"].as<bool>()) metadata_outfile = out_prefix + sbwt_file_suffix;
+    if(!opts["no-sbwt"].as<bool>()) sbwt_outfile = out_prefix + sbwt_file_suffix;
 
     if(!unitigs_outfile.has_value() && !colors_outfile.has_value() && !metadata_outfile.has_value()){
         cerr << "ERROR: all output was disabled" << endl;

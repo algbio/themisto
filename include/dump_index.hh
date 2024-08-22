@@ -212,6 +212,6 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
 
     metadata_out.flush();
 
-    write_log("Done writing unitigs", LogLevel::MAJOR);
+    write_log("Index dump finished", LogLevel::MAJOR);
 
 }
