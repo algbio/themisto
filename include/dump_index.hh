@@ -32,6 +32,7 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
     vector<char> label;
     std::tie(nodes, label) = walk_unitig_from(dbg, v);
     check_true(nodes.size() > 0, "BUG: empty unitig");
+    check_true(dbg.get_k() % 2 == 1, "Error: only odd k supported in unitig dump");
 
     int64_t color_set_id = coloring.get_color_set_id(nodes.back().id);
     vector<int64_t> color_set_ids;
@@ -67,8 +68,30 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
 
-        write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
+        vector<char> first_kmer(label.data(), label.data() + dbg.get_k());
+        vector<char> last_kmer(label.data() + label.size() - dbg.get_k(), label.data() + label.size());
+        vector<char> first_kmer_rc = first_kmer;
+        reverse_complement_c_string(first_kmer_rc.data(), dbg.get_k());
 
+        if(first_kmer_rc == last_kmer) {
+            // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
+            // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
+            // only the canonical version of S, so we must split the unitig from the middle.
+            check_true(string_len % 2 == 0, "BUG: false assumption in the the special case S || rc(S)");
+
+            if(first_kmer < first_kmer_rc) {
+                // Write the first half
+                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len / 2, color_set_id_buf, color_set_id_string_len, unitigs_out);
+            } else {
+                // Write the second half
+                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1] + string_len / 2, string_len / 2, color_set_id_buf, color_set_id_string_len, unitigs_out);
+            }
+        
+            write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
+        }
+        else if(first_kmer < first_kmer_rc) { // Write only canonical subunitig
+            write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
+        }
     }
 
     return nodes;
