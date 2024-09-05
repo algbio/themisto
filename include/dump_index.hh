@@ -77,20 +77,18 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
             // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
             // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
             // only the canonical version of S, so we must split the unitig from the middle.
+            // This case is very rare so let's not worry about performance too much.
             check_true(len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
-            int64_t half_len_in_nodes = len / 2;
-            int64_t half_string_len = half_len_in_nodes + (dbg.get_k() - 1); 
+            check_true(string_len % 2 == 0, "BUG: false assumption 2 in the special case S || rc(S)");
+            vector<char> first_half(label.begin() + subunitig_ends[i-1], label.begin() + subunitig_ends[i-1] + string_len/2);
+            vector<char> first_half_rc = first_half;
+            reverse_complement_c_string(first_half_rc.data(), first_half_rc.size());
 
-            // This case is rare, so let's not worry about performance so much
-            vector<char> forward_half(label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + half_string_len);
-            vector<char> reverse_half = forward_half;
-            reverse_complement_c_string(reverse_half.data(), reverse_half.size());
+            // Make sure that we really are in this case.
+            vector<char> second_half(label.begin() + subunitig_ends[i-1] + string_len/2, label.begin() + subunitig_ends[i-1] + string_len);
+            check_true(first_half_rc == second_half, "BUG: false assumption 3 in the special case S || rc(S)");
 
-            // Let's make sure that we are in the case S || rc(S).
-            vector<char> forward_second_half(label.data() + subunitig_ends[i-1] + half_len_in_nodes, label.data() + subunitig_ends[i-1] + half_string_len);
-            check_true(reverse_half == forward_second_half, "BUG: false assumption 2 in the special case S || rc(S)");
-
-            vector<char>* canonical_half = forward_half < reverse_half ? &forward_half : &reverse_half;
+            vector<char>* canonical_half = first_half < first_half_rc ? &first_half: &first_half_rc;
 
             write_unitig(unitig_id_buf, unitig_id_string_len, canonical_half->data(), canonical_half->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
