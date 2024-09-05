@@ -70,10 +70,10 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
 
         vector<char> first_kmer(label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + dbg.get_k());
         vector<char> last_kmer(label.data() + subunitig_ends[i] - 1, label.data() + subunitig_ends[i] - 1 + dbg.get_k());
-        vector<char> first_kmer_rc = first_kmer;
-        reverse_complement_c_string(first_kmer_rc.data(), dbg.get_k());
+        vector<char> last_kmer_rc = last_kmer;
+        reverse_complement_c_string(last_kmer_rc.data(), dbg.get_k());
 
-        if(first_kmer_rc == last_kmer) {
+        if(last_kmer_rc == first_kmer) {
             // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
             // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
             // only the canonical version of S, so we must split the unitig from the middle.
@@ -81,15 +81,20 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
             int64_t half_len_in_nodes = len / 2;
             int64_t half_string_len = half_len_in_nodes + (dbg.get_k() - 1); 
 
-            if(first_kmer < first_kmer_rc) {
-                // Write the first half
-                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], half_string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
-            } else {
-                // Write the second half
-                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1] + half_len_in_nodes, half_string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
-            }
+            // This case is rare, so let's not worry about performance so much
+            vector<char> forward_half(label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + half_string_len);
+            vector<char> reverse_half = forward_half;
+            reverse_complement_c_string(reverse_half.data(), reverse_half.size());
+
+            // Let's make sure that we are in the case S || rc(S).
+            vector<char> forward_second_half(label.data() + subunitig_ends[i-1] + half_len_in_nodes, label.data() + subunitig_ends[i-1] + half_string_len);
+            check_true(reverse_half == forward_second_half, "BUG: false assumption 2 in the special case S || rc(S)");
+
+            vector<char>* canonical_half = forward_half < reverse_half ? &forward_half : &reverse_half;
+
+            write_unitig(unitig_id_buf, unitig_id_string_len, canonical_half->data(), canonical_half->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
-        else if(first_kmer < first_kmer_rc) { // Write only canonical subunitig
+        else if(first_kmer < last_kmer_rc) { // Write only canonical subunitig
             write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
     }
