@@ -76,21 +76,30 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
         if(last_kmer_rc == first_kmer) {
             // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
             // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
-            // only the canonical version of S, so we must split the unitig from the middle.
+            // only the canonical version of S, so we must split the unitig.
             // This case is very rare so let's not worry about performance too much.
             check_true(len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
             check_true(string_len % 2 == 0, "BUG: false assumption 2 in the special case S || rc(S)");
-            vector<char> first_half(label.begin() + subunitig_ends[i-1], label.begin() + subunitig_ends[i-1] + string_len/2);
-            vector<char> first_half_rc = first_half;
-            reverse_complement_c_string(first_half_rc.data(), first_half_rc.size());
 
-            // Make sure that we really are in this case.
-            vector<char> second_half(label.begin() + subunitig_ends[i-1] + string_len/2, label.begin() + subunitig_ends[i-1] + string_len);
-            check_true(first_half_rc == second_half, "BUG: false assumption 3 in the special case S || rc(S)");
+            int64_t node_len = len; // Clearer variable name
+            int64_t k = dbg.get_k();
+            const char* subunitig_start = label.data() + subunitig_ends[i-1];
 
-            vector<char>* canonical_half = first_half < first_half_rc ? &first_half: &first_half_rc;
+            vector<char> subunitig(subunitig_start, subunitig_start + string_len);
+            vector<char> subunitig_rc = subunitig;
+            reverse_complement_c_string(subunitig_rc.data(), subunitig_rc.size());
 
-            write_unitig(unitig_id_buf, unitig_id_string_len, canonical_half->data(), canonical_half->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
+            // Sanity check
+            check_true(subunitig == subunitig_rc, "BUG: false assumption 3 in special case S || rc(S)");
+
+            int64_t part_len = node_len/2 + (k-1); // Length of the string label of half of the DBG nodes in this subunitig
+            vector<char> first_part(subunitig_start, subunitig_start + part_len);
+            vector<char> first_part_rc = first_part;
+            reverse_complement_c_string(first_part_rc.data(), first_part_rc.size());
+
+            vector<char>* canonical_part = first_part < first_part_rc ? &first_part : &first_part_rc;
+
+            write_unitig(unitig_id_buf, unitig_id_string_len, canonical_part->data(), canonical_part->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
         else if(first_kmer < last_kmer_rc) { // Write only canonical subunitig
             write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
