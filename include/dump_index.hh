@@ -68,8 +68,8 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
 
-        vector<char> first_kmer(label.data(), label.data() + dbg.get_k());
-        vector<char> last_kmer(label.data() + label.size() - dbg.get_k(), label.data() + label.size());
+        vector<char> first_kmer(label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + dbg.get_k());
+        vector<char> last_kmer(label.data() + subunitig_ends[i] - 1, label.data() + subunitig_ends[i] - 1 + dbg.get_k());
         vector<char> first_kmer_rc = first_kmer;
         reverse_complement_c_string(first_kmer_rc.data(), dbg.get_k());
 
