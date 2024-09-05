@@ -77,7 +77,7 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
             // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
             // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
             // only the canonical version of S, so we must split the unitig from the middle.
-            check_true(string_len % 2 == 0, "BUG: false assumption in the the special case S || rc(S)");
+            check_true(string_len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
 
             if(first_kmer < first_kmer_rc) {
                 // Write the first half
