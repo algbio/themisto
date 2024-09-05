@@ -77,17 +77,17 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
             // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
             // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
             // only the canonical version of S, so we must split the unitig from the middle.
-            check_true(string_len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
+            check_true(len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
+            int64_t half_len_in_nodes = len / 2;
+            int64_t half_string_len = half_len_in_nodes + (dbg.get_k() - 1); 
 
             if(first_kmer < first_kmer_rc) {
                 // Write the first half
-                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len / 2, color_set_id_buf, color_set_id_string_len, unitigs_out);
+                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], half_string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
             } else {
                 // Write the second half
-                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1] + string_len / 2, string_len / 2, color_set_id_buf, color_set_id_string_len, unitigs_out);
+                write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1] + half_len_in_nodes, half_string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
             }
-        
-            write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
         else if(first_kmer < first_kmer_rc) { // Write only canonical subunitig
             write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
