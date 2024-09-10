@@ -118,9 +118,17 @@ UnitigBothWays get_both_unitig_orientations(const DBG& dbg, DBG::Node start_node
     reverse_complement_c_string(rc_label.data(), rc_label.size());
 
     DBG::Node rc_start = dbg.locate(string(rc_label.data(), dbg.get_k()));
+    check_true(rc_start.id >= 0, "BUG: reverse complement of k-mer not found: " + string(rc_label.data(), dbg.get_k()));
+
     vector<DBG::Node> rc_nodes;
     vector<char> rc_label_walked;
-    std::tie(rc_nodes, rc_label) = walk_unitig_from(dbg, rc_start);
+    std::tie(rc_nodes, rc_label_walked) = walk_unitig_from(dbg, rc_start);
+    if(rc_label_walked != rc_label){
+        cerr << string(label.data(), label.size()) << endl;
+        cerr << string(rc_label.data(), rc_label.size()) << endl;
+        cerr << string(rc_label_walked.data(), rc_label_walked.size()) << endl;
+        cerr << rc_nodes.size() << " " << rc_label.size() << endl;
+    }
     check_true(rc_label_walked == rc_label, "BUG: reverse complement label is wrong");
 
     if(std::equal(label.begin(), label.begin() + dbg.get_k(), rc_label.begin())){
