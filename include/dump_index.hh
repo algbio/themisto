@@ -22,7 +22,7 @@ void write_unitig(
 void write_colorset(int64_t color_set_id, const vector<int64_t>& colors, ParallelOutputWriter& out);
 
 // Splits unitigs by colorset runs
-// Returns the DBG nodes that were visited
+// Returns the DBG nodes that were visited, including the reverse complements of those
 // This function needs to be thread-safe
 template<typename coloring_t>
 vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
@@ -34,8 +34,21 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
     check_true(nodes.size() > 0, "BUG: empty unitig");
     check_true(dbg.get_k() % 2 == 1, "Error: only odd k supported in unitig dump");
 
+    vector<char> rc_label = label;
+    reverse_complement_C_string(rc_label.data(), rc_label.size());
+
     int64_t color_set_id = coloring.get_color_set_id(nodes.back().id);
     vector<int64_t> color_set_ids;
+
+    vector<int64_t> prev_color_set;
+    coloring.get_color_set_by_color_set_id(color_set_id).push_colors_to_vector(prev_color_set);
+
+    vector<int64_t> cur_color_set;
+
+    string label_std_string = string(label.data(), label.size()); // Debug
+    bool debug_case = (label_std_string.find("ATCGTGACTAATAAAGAGTATGAAATCGAT") != std::string::npos);
+
+    if(debug_case) cerr << "DEBUG CASE" << endl;
 
     for(int64_t pos = (int64_t)nodes.size()-1; pos >= 0; pos--){
         const DBG::Node& u = nodes[pos];
@@ -43,11 +56,45 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
         // Color sets can change only at core k-mers. Otherwise the color set is the same as that
         // of the successor in the DBG.
         int64_t new_color_set_id = coloring.is_core_kmer(u.id) ? coloring.get_color_set_id(u.id) : color_set_id;
-        if(pos == (int64_t)nodes.size()-1 || new_color_set_id != color_set_id) {
+
+        bool color_set_changed = false;
+
+        if((pos == (int64_t)nodes.size()-1)){ // Initialize the color set for the first one
+            coloring.get_color_set_by_color_set_id(new_color_set_id).push_colors_to_vector(cur_color_set);
+            color_set_changed = true; // The first color set considered a new one
+        }
+
+        if(new_color_set_id != color_set_id) {
+            // Color set may have changed. It can sometimes happen that two color sets with different ids
+            // are actually the same. This is not ideal but GGCAT seems to sometimes do this during unitig
+            // construction. We could add a step to eliminate duplicate color sets, in which case it would
+            // be enough to compare ids, but for now, we compare the actual color sets.
+            cur_color_set.clear();
+            coloring.get_color_set_by_color_set_id(new_color_set_id).push_colors_to_vector(cur_color_set);
+            if(debug_case) {
+                cerr << "CUR ";
+                for(auto x : cur_color_set) cerr << x << " "; cerr << endl;
+                cerr << "PREV ";
+                for(auto x : prev_color_set) cerr << x << " "; cerr << endl;
+
+            }
+            color_set_changed |= prev_color_set != cur_color_set;
+        }
+
+        if(color_set_changed) {
+            if(debug_case) {
+                cerr << color_set_id << endl; 
+                for(auto x : cur_color_set) cerr << x << " "; cerr << endl;
+            }
             subunitig_ends.push_back(pos+1); // Start a new subunitig
             color_set_ids.push_back(new_color_set_id);
+
+            prev_color_set.clear();
+            std::swap(prev_color_set, cur_color_set);
         }
+
         color_set_id = new_color_set_id;
+        
     }
 
     subunitig_ends.push_back(0); // Sentinel
@@ -55,11 +102,36 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
     std::reverse(subunitig_ends.begin(), subunitig_ends.end());
     std::reverse(color_set_ids.begin(), color_set_ids.end());
 
+    /*
+    if(debug_case) {
+        cerr << "DEBUG " << label_std_string << endl;
+        cerr << "Subunitig ends ";
+        for(auto x : subunitig_ends) cerr << x << " "; cerr << endl;
+        cerr << "Color set ids ";
+        for(auto x : color_set_ids) cerr << x << " "; cerr << endl;
+        cerr << "Color sets:" << endl;
+        for(auto x : color_set_ids){
+            if(x == -1) continue;
+            for(auto color : coloring.get_color_set_by_color_set_id(x).get_colors_as_vector()) cout << color << " ";
+            cout << endl;
+        }
+    }
+    */
+
+    if(rc_label < label) { // Canonicalize
+        label = rc_label;
+        std::reverse(subunitig_ends.begin(), subunitig_ends.end());
+        for(int64_t& end : subunitig_ends) end = label.size() - end;
+
+        std::reverse(color_set_ids.begin(), color_set_ids.end());
+    }
+    
+
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     char color_set_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
 
-        int64_t unitig_id = nodes[subunitig_ends[i-1]].id; // Unitig id is the colex rank of the first k-mer of the subunitig
+        int64_t unitig_id = nodes[subunitig_ends[i-1]].id; // Unitig id is the colex rank of the first k-mer of the subunitig. This is before canonicalizatoin but that's ok.
         int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
 
         int64_t color_set_id = color_set_ids[i]; 
@@ -101,12 +173,12 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
 
             write_unitig(unitig_id_buf, unitig_id_string_len, canonical_part->data(), canonical_part->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
-        else if(first_kmer < last_kmer_rc) { // Write only canonical subunitig
+        else { // Write only canonical subunitig
             write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
         }
     }
 
-    return nodes;
+    return nodes; // TODO TODO TODO ADD RC NODES
 
 }
 
