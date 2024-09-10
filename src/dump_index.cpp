@@ -107,5 +107,49 @@ void write_colorset(int64_t color_set_id, const vector<int64_t>& colors, Paralle
     out.write(buf.data(), buf.size());
 }
 
+UnitigBothWays get_both_unitig_orientations(const DBG& dbg, DBG::Node start_node) {
+    vector<DBG::Node> nodes;
+    vector<char> label;
+    std::tie(nodes, label) = walk_unitig_from(dbg, start_node);
+    check_true(nodes.size() > 0, "BUG: empty unitig");
+    check_true(dbg.get_k() % 2 == 1, "Error: only odd k supported in unitig dump");
+
+    vector<char> rc_label = label;
+    reverse_complement_c_string(rc_label.data(), rc_label.size());
+
+    DBG::Node rc_start = dbg.locate(string(rc_label.data(), dbg.get_k()));
+    vector<DBG::Node> rc_nodes;
+    vector<char> rc_label_walked;
+    std::tie(rc_nodes, rc_label) = walk_unitig_from(dbg, rc_start);
+    check_true(rc_label_walked == rc_label, "BUG: reverse complement label is wrong");
+
+    if(std::equal(label.begin(), label.begin() + dbg.get_k(), rc_label.begin())){
+        // This is a special case where the subunitig is of the form: S || rc(S).
+        // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
+        // Only one half, so we must split the unitig.
+        // This case is very rare so let's not worry about performance too much.
+
+        // Sanity check
+        check_true(label == rc_label, "BUG: false assumption 1 in special case S || rc(S)");
+        check_true(nodes.size() % 2 == 0, "BUG: false assumption 2 in the special case S || rc(S)");
+        check_true(label.size() % 2 == 0, "BUG: false assumption 3 in the special case S || rc(S)");
+
+        int64_t node_len = nodes.size();
+        int64_t k = dbg.get_k();
+
+        int64_t part_len = node_len/2 + (k-1); // Length of the string label of half of the DBG nodes in this subunitig
+        string first_part(label.begin(), label.begin() + part_len);
+        string first_part_rc = first_part;
+        reverse_complement_c_string(first_part_rc.data(), first_part_rc.size());
+
+        vector<DBG::Node> first_part_nodes(nodes.begin(), nodes.begin() + part_len);
+        vector<DBG::Node> first_part_rc_nodes(rc_nodes.end() - part_len, rc_nodes.end());
+
+        return UnitigBothWays{first_part_nodes, first_part, first_part_rc_nodes, first_part_rc};
+
+    } else {
+        return UnitigBothWays{nodes, string(label.data(), label.size()), rc_nodes, string(rc_label.data(), rc_label.size())};
+    }
+}
 
 }

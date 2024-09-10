@@ -21,34 +21,18 @@ void write_unitig(
 
 void write_colorset(int64_t color_set_id, const vector<int64_t>& colors, ParallelOutputWriter& out);
 
-// Splits unitigs by colorset runs
-// Returns the DBG nodes that were visited, including the reverse complements of those
-// This function needs to be thread-safe
+// Break unitigs by by color set runs. Exclusive endpoints.
 template<typename coloring_t>
-vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
-
-    vector<DBG::Node> nodes;
-    vector<int64_t> subunitig_ends; // Unitigs broken by color set runs. Exclusive endpoints
-    vector<char> label;
-    std::tie(nodes, label) = walk_unitig_from(dbg, v);
-    check_true(nodes.size() > 0, "BUG: empty unitig");
-    check_true(dbg.get_k() % 2 == 1, "Error: only odd k supported in unitig dump");
-
-    vector<char> rc_label = label;
-    reverse_complement_C_string(rc_label.data(), rc_label.size());
-
+pair<vector<int64_t>, vector<int64_t>> get_subunitig_ends_and_color_set_ids(const coloring_t& coloring, const vector<DBG::Node>& nodes) {
     int64_t color_set_id = coloring.get_color_set_id(nodes.back().id);
     vector<int64_t> color_set_ids;
+
+    vector<int64_t> subunitig_ends;
 
     vector<int64_t> prev_color_set;
     coloring.get_color_set_by_color_set_id(color_set_id).push_colors_to_vector(prev_color_set);
 
     vector<int64_t> cur_color_set;
-
-    string label_std_string = string(label.data(), label.size()); // Debug
-    bool debug_case = (label_std_string.find("ATCGTGACTAATAAAGAGTATGAAATCGAT") != std::string::npos);
-
-    if(debug_case) cerr << "DEBUG CASE" << endl;
 
     for(int64_t pos = (int64_t)nodes.size()-1; pos >= 0; pos--){
         const DBG::Node& u = nodes[pos];
@@ -71,21 +55,10 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
             // be enough to compare ids, but for now, we compare the actual color sets.
             cur_color_set.clear();
             coloring.get_color_set_by_color_set_id(new_color_set_id).push_colors_to_vector(cur_color_set);
-            if(debug_case) {
-                cerr << "CUR ";
-                for(auto x : cur_color_set) cerr << x << " "; cerr << endl;
-                cerr << "PREV ";
-                for(auto x : prev_color_set) cerr << x << " "; cerr << endl;
-
-            }
             color_set_changed |= prev_color_set != cur_color_set;
         }
 
         if(color_set_changed) {
-            if(debug_case) {
-                cerr << color_set_id << endl; 
-                for(auto x : cur_color_set) cerr << x << " "; cerr << endl;
-            }
             subunitig_ends.push_back(pos+1); // Start a new subunitig
             color_set_ids.push_back(new_color_set_id);
 
@@ -102,30 +75,37 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
     std::reverse(subunitig_ends.begin(), subunitig_ends.end());
     std::reverse(color_set_ids.begin(), color_set_ids.end());
 
-    /*
-    if(debug_case) {
-        cerr << "DEBUG " << label_std_string << endl;
-        cerr << "Subunitig ends ";
-        for(auto x : subunitig_ends) cerr << x << " "; cerr << endl;
-        cerr << "Color set ids ";
-        for(auto x : color_set_ids) cerr << x << " "; cerr << endl;
-        cerr << "Color sets:" << endl;
-        for(auto x : color_set_ids){
-            if(x == -1) continue;
-            for(auto color : coloring.get_color_set_by_color_set_id(x).get_colors_as_vector()) cout << color << " ";
-            cout << endl;
-        }
-    }
-    */
+    return {subunitig_ends, color_set_ids};
 
-    if(rc_label < label) { // Canonicalize
-        label = rc_label;
-        std::reverse(subunitig_ends.begin(), subunitig_ends.end());
-        for(int64_t& end : subunitig_ends) end = label.size() - end;
+}
 
-        std::reverse(color_set_ids.begin(), color_set_ids.end());
+struct UnitigBothWays {
+    vector<DBG::Node> fw_nodes;
+    string fw_label;
+    vector<DBG::Node> rc_nodes;
+    string rc_label;
+
+    pair<vector<DBG::Node>&, string> canonical() {
+        if(fw_label < rc_label) return {fw_nodes, fw_label};
+        else return {rc_nodes, rc_label};
     }
-    
+};
+
+UnitigBothWays get_both_unitig_orientations(const DBG& dbg, DBG::Node start_node);
+
+// Splits unitigs by colorset runs.
+// Returns data on the unitig that was written.
+// This function needs to be thread-safe
+template<typename coloring_t>
+UnitigBothWays process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
+
+    UnitigBothWays unitig_both_ways = get_both_unitig_orientations(dbg, v);
+
+    const vector<DBG::Node>& nodes = unitig_both_ways.canonical().first; 
+    const string& label = unitig_both_ways.canonical().second; 
+
+    vector<int64_t> subunitig_ends, color_set_ids;
+    tie(subunitig_ends, color_set_ids) = get_subunitig_ends_and_color_set_ids(coloring, nodes);
 
     char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     char color_set_id_buf[32]; // Enough space to encode 64-bit integers in ascii
@@ -140,45 +120,10 @@ vector<DBG::Node> process_unitig_from(const DBG& dbg, const coloring_t& coloring
         int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
         int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
 
-        vector<char> first_kmer(label.data() + subunitig_ends[i-1], label.data() + subunitig_ends[i-1] + dbg.get_k());
-        vector<char> last_kmer(label.data() + subunitig_ends[i] - 1, label.data() + subunitig_ends[i] - 1 + dbg.get_k());
-        vector<char> last_kmer_rc = last_kmer;
-        reverse_complement_c_string(last_kmer_rc.data(), dbg.get_k());
-
-        if(last_kmer_rc == first_kmer) {
-            // This is a special case where the subunitig is of the form: S || rc(S), where || means concatenation,
-            // and there does not exist a branch in the DBG at the concatenation point. The bidirected DBG contains
-            // only the canonical version of S, so we must split the unitig.
-            // This case is very rare so let's not worry about performance too much.
-            check_true(len % 2 == 0, "BUG: false assumption in the special case S || rc(S)");
-            check_true(string_len % 2 == 0, "BUG: false assumption 2 in the special case S || rc(S)");
-
-            int64_t node_len = len; // Clearer variable name
-            int64_t k = dbg.get_k();
-            const char* subunitig_start = label.data() + subunitig_ends[i-1];
-
-            vector<char> subunitig(subunitig_start, subunitig_start + string_len);
-            vector<char> subunitig_rc = subunitig;
-            reverse_complement_c_string(subunitig_rc.data(), subunitig_rc.size());
-
-            // Sanity check
-            check_true(subunitig == subunitig_rc, "BUG: false assumption 3 in special case S || rc(S)");
-
-            int64_t part_len = node_len/2 + (k-1); // Length of the string label of half of the DBG nodes in this subunitig
-            vector<char> first_part(subunitig_start, subunitig_start + part_len);
-            vector<char> first_part_rc = first_part;
-            reverse_complement_c_string(first_part_rc.data(), first_part_rc.size());
-
-            vector<char>* canonical_part = first_part < first_part_rc ? &first_part : &first_part_rc;
-
-            write_unitig(unitig_id_buf, unitig_id_string_len, canonical_part->data(), canonical_part->size(), color_set_id_buf, color_set_id_string_len, unitigs_out);
-        }
-        else { // Write only canonical subunitig
-            write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
-        }
+        write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
     }
 
-    return nodes; // TODO TODO TODO ADD RC NODES
+    return unitig_both_ways;
 
 }
 
@@ -252,7 +197,7 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
         Progress_printer pp_acyclic(dbg.number_of_kmers(), 100);
         #pragma omp parallel for num_threads (n_threads)
         for(int64_t colex = 0; colex < dbg.number_of_sets_in_sbwt(); colex++){
-            #pragma omp critical
+            #pragma omp critical // TODO: this might cause a lot of parallel contention
             {
                 pp_acyclic.job_done();
             }
@@ -262,11 +207,15 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
             DBG::Node v(colex);
             if(!is_first_kmer_of_unitig(dbg, v)) continue;
 
-            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out);
+            UnitigBothWays unitig = process_unitig_from(dbg, coloring, v, unitigs_out);
 
             #pragma omp critical // Modifying shared data
             {
-                for(DBG::Node u : nodes){
+                for(DBG::Node u : unitig.fw_nodes){
+                    assert(!visited[u.id]);
+                    visited[u.id] = true;
+                }
+                for(DBG::Node u : unitig.rc_nodes){
                     assert(!visited[u.id]);
                     visited[u.id] = true;
                 }
@@ -280,8 +229,12 @@ void dump_index(int64_t n_threads, const DBG& dbg, coloring_t& coloring, optiona
         for(DBG::Node v : dbg.all_nodes()) {
             pp_cyclic.job_done();
             if(visited[v.id]) continue;
-            vector<DBG::Node> nodes = process_unitig_from(dbg, coloring, v, unitigs_out);
-            for(DBG::Node u : nodes){
+            UnitigBothWays unitig = process_unitig_from(dbg, coloring, v, unitigs_out);
+            for(DBG::Node u : unitig.fw_nodes){
+                assert(!visited[u.id]);
+                visited[u.id] = true;
+            }
+            for(DBG::Node u : unitig.rc_nodes){
                 assert(!visited[u.id]);
                 visited[u.id] = true;
             }
