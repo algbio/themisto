@@ -89,41 +89,57 @@ struct UnitigBothWays {
         if(fw_label < rc_label) return {fw_nodes, fw_label};
         else return {rc_nodes, rc_label};
     }
+
 };
 
 UnitigBothWays get_both_unitig_orientations(const DBG& dbg, DBG::Node start_node);
 
 // Splits unitigs by colorset runs.
-// Returns data on the unitig that was written.
 // This function needs to be thread-safe
 template<typename coloring_t>
-UnitigBothWays process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
+vector<UnitigBothWays> process_unitig_from(const DBG& dbg, const coloring_t& coloring, DBG::Node v, ParallelOutputWriter& unitigs_out) {
 
     UnitigBothWays unitig_both_ways = get_both_unitig_orientations(dbg, v);
 
-    const vector<DBG::Node>& nodes = unitig_both_ways.canonical().first; 
-    const string& label = unitig_both_ways.canonical().second; 
+    //const vector<DBG::Node>& nodes = unitig_both_ways.canonical().first; 
+    //const string& label = unitig_both_ways.canonical().second; 
 
     vector<int64_t> subunitig_ends, color_set_ids;
-    tie(subunitig_ends, color_set_ids) = get_subunitig_ends_and_color_set_ids(coloring, nodes);
+    tie(subunitig_ends, color_set_ids) = get_subunitig_ends_and_color_set_ids(coloring, unitig_both_ways.fw_nodes);
 
-    char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
-    char color_set_id_buf[32]; // Enough space to encode 64-bit integers in ascii
+    vector<UnitigBothWays> subunitigs;
+    //char unitig_id_buf[32]; // Enough space to encode 64-bit integers in ascii
+    //char color_set_id_buf[32]; // Enough space to encode 64-bit integers in ascii
     for(int64_t i = 1; i < subunitig_ends.size(); i++) {
 
+        /*
         int64_t unitig_id = nodes[subunitig_ends[i-1]].id; // Unitig id is the colex rank of the first k-mer of the subunitig. This is before canonicalizatoin but that's ok.
         int64_t unitig_id_string_len = fast_int_to_string(unitig_id, unitig_id_buf);
 
         int64_t color_set_id = color_set_ids[i]; 
         int64_t color_set_id_string_len = fast_int_to_string(color_set_id, color_set_id_buf);
+        */
 
-        int64_t len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
-        int64_t string_len = len + (dbg.get_k() - 1); // Length of the string label
+        int64_t node_len = subunitig_ends[i] - subunitig_ends[i-1]; // Length in nodes
+        int64_t string_len = node_len + (dbg.get_k() - 1); // Length of the string label
 
-        write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
+        int64_t start = subunitig_ends[i-1]; // Start node index
+
+        string fw_label = unitig_both_ways.fw_label.substr(start, string_len);
+        vector<int64_t> fw_nodes(unitig_both_ways.fw_nodes.begin() + start, unitig_both_ways.fw_nodes.begin() + start + node_len); 
+
+        int64_t rc_start = unitig_both_ways.fw_nodes.size() - 1 - (start + node_len - 1);
+
+        string rc_label = unitig_both_ways.rc_label.substr(rc_start, string_len);
+        vector<int64_t> rc_nodes(unitig_both_ways.rc_nodes.begin() + rc_start, unitig_both_ways.rc_nodes.begin() + rc_start + node_len); 
+
+        UnitigBothWays subunitig = {fw_nodes, fw_label, rc_nodes, rc_label};
+        subunitigs.push_back(subunitig);
+
+        //write_unitig(unitig_id_buf, unitig_id_string_len, label.data() + subunitig_ends[i-1], string_len, color_set_id_buf, color_set_id_string_len, unitigs_out);
     }
 
-    return unitig_both_ways;
+    return subunitigs;
 
 }
 
