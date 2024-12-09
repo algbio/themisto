@@ -637,8 +637,8 @@ void print_query_color_set_ids(const plain_matrix_sbwt_t& SBWT, const coloring_t
             fast_int_to_string(x, int_to_str_buf);
             cout << ' ';
             cout << int_to_str_buf;
-            cout << '\n';
         }
+        cout << '\n';
     }
 }
 
