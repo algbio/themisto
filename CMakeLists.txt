@@ -75,6 +75,7 @@ set(THEMISTO_SOURCES
   src/stats_main.cpp
   src/make_d_equal_1.cpp
   src/dump_distinct_color_sets_to_binary.cpp
+  src/query_color_set_ids.cpp
   )
 
   ## Require zlib
