@@ -616,6 +616,32 @@ void push_work_batches(int64_t buffer_size, sequence_reader_t& reader, ThreadPoo
 
 } // End namespace pseudoalignment
 
+// Low-level functionality for prototyping color set data structures 
+template<typename coloring_t, typename sequence_reader_t>
+void print_query_color_set_ids(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, sequence_reader_t& reader){
+    vector<int64_t> color_set_id_buf;
+
+    int64_t read_id = 0;
+    char int_to_str_buf[32]; // Enough space to hold a 64-bit integer in ASCII
+    while(true) {
+        int64_t len = reader.get_next_read_to_buffer();
+        if(len == 0) break;
+
+        vector<int64_t> colex_ranks = SBWT.streaming_search(reader.read_buf, len);
+        
+        color_set_id_buf.clear();
+        coloring.push_color_set_ids_of_consecutive_kmers_to_buffer(colex_ranks, color_set_id_buf);
+
+        cout << read_id++;
+        for(int64_t x : color_set_id_buf) {
+            fast_int_to_string(x, int_to_str_buf);
+            cout << ' ';
+            cout << int_to_str_buf;
+            cout << '\n';
+        }
+    }
+}
+
 template<typename coloring_t, typename sequence_reader_t>
 void pseudoalign(const plain_matrix_sbwt_t& SBWT, const coloring_t& coloring, int64_t n_threads, sequence_reader_t& reader, std::string outfile, std::string aux_info_file, bool reverse_complements, int64_t buffer_size, bool gzipped, bool sorted_output, double threshold, bool ignore_unknown, double relevant_kmers_fraction, bool sort_hits){
 
