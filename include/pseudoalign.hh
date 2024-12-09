@@ -190,37 +190,6 @@ public:
         }
     }
 
-    // -1 if node is not found at all.
-    void push_color_set_ids_to_buffer(const vector<int64_t>& colex_ranks, vector<int64_t>& buffer){
-
-        // First pass: get all k-mer kmers and the last k-mer
-        for(int64_t v : colex_ranks){
-            if(v == -1) buffer.push_back(-1); // k-mer not found
-            else{
-                if(coloring->is_core_kmer(v) || v == colex_ranks.back()){
-                    int64_t id = coloring->get_color_set_id(v);
-                    buffer.push_back(id);
-                } else{
-                    buffer.push_back(-2); // To be filled in the second pass
-                }
-            }
-        }
-
-        // Second pass: fill in the rest
-        for(int64_t i = (int64_t)colex_ranks.size()-2; i >= 0; i--){ // -2: skip the last one
-            if(buffer[i] == -2){
-                if(buffer[i+1] == -1){
-                    // Can't copy from the next k-mer because it's not found
-                    buffer[i] = coloring->get_color_set_id(colex_ranks[i]);
-                }
-                else {
-                    // Can copy from the next k-mer
-                    buffer[i] = buffer[i+1];
-                }
-            }
-        }
-    }
-
     vector<int64_t> get_rc_colex_ranks(const char* S, int64_t S_size){
         while(S_size > rc_buffer.size()){
             rc_buffer.resize(rc_buffer.size()*2);
@@ -356,9 +325,9 @@ class ThresholdWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Base<c
             Base::report_results_for_seq(S, string_id, S_size, hits, counts, 0, run_tracker);
         } else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
-            Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
+            Base::coloring->push_color_set_ids_of_consecutive_kmers_to_buffer(colex_ranks, Base::color_set_id_buffer);
             if(Base::reverse_complements){
-                Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
+                Base::coloring->push_color_set_ids_of_consecutive_kmers_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
             }
 
             typename coloring_t::colorset_type fw_set;
@@ -472,9 +441,9 @@ class IntersectionWorker : public BaseWorkerThread<WorkBatch>, Pseudoaligner_Bas
         }
         else{
             vector<int64_t> colex_ranks = Base::SBWT->streaming_search(S, S_size); // TODO: version that pushes to existing buffer?
-            Base::push_color_set_ids_to_buffer(colex_ranks, Base::color_set_id_buffer);
+            Base::coloring->push_color_set_ids_of_consecutive_kmers_to_buffer(colex_ranks, Base::color_set_id_buffer);
             if(Base::reverse_complements){
-                Base::push_color_set_ids_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
+                Base::coloring->push_color_set_ids_of_consecutive_kmers_to_buffer(Base::get_rc_colex_ranks(S, S_size), Base::rc_color_set_id_buffer);
             }
 
             vector<int64_t> intersection; int64_t n_nonempty;

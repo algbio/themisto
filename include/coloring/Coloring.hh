@@ -288,6 +288,41 @@ public:
         return *(this->index_ptr);
     }
 
+    // Pushes the identifiers of color sets of all nodes in the given vector to the given buffer.
+    // Critically, this function assumes that the node ids are ids of consecutive k-mers in a longer
+    // query string, with -1 for those k-mers that do not exists in the index.
+    // If a node id is -1, color set id -1 is pushed.
+    void push_color_set_ids_of_consecutive_kmers_to_buffer(const vector<int64_t>& node_ids, vector<int64_t>& buffer) const {
+
+        // First pass: get all k-mer kmers and the last k-mer
+        for(int64_t v : node_ids){
+            if(v == -1) buffer.push_back(-1); // k-mer not found
+            else{
+                if(is_core_kmer(v) || v == node_ids.back()){
+                    int64_t id = get_color_set_id(v);
+                    buffer.push_back(id);
+                } else{
+                    buffer.push_back(-2); // To be filled in the second pass
+                }
+            }
+        }
+
+        // Second pass: fill in the rest
+        for(int64_t i = (int64_t)node_ids.size()-2; i >= 0; i--){ // -2: skip the last one
+            if(buffer[i] == -2){
+                if(buffer[i+1] == -1){
+                    // Can't copy from the next k-mer because it's not found
+                    buffer[i] = get_color_set_id(node_ids[i]);
+                }
+                else {
+                    // Can copy from the next k-mer
+                    buffer[i] = buffer[i+1];
+                }
+            }
+        }
+    }
+
+
     template<typename T1, typename T2> requires Color_Set_Interface<T1>
     friend class Coloring_Builder;
 
