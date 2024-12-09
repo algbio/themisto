@@ -12,7 +12,7 @@ using namespace std;
 
 int query_color_set_ids_main(int argc, char** argv){
 
-    cxxopts::Options options(argv[0], "Prints the color set ids of the query strings to stdout. For developers.");
+    cxxopts::Options options(argv[0], "For developers. Prints the color set ids of the query strings to stdout. One line of space-separated integers per sequence: first the id of the read, then the color set sets ids of the k-mers.");
 
     options.add_options()
         ("i", "The index prefix that was given to the build command.", cxxopts::value<string>())
